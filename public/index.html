@@ -534,13 +534,164 @@
       color: #57606a;
       margin-top: 2px;
     }
-    .diff-tile.new     .diff-tile-count { color: #198038; }
-    .diff-tile.dropped .diff-tile-count { color: #da1e28; }
+    .diff-tile.new      .diff-tile-count { color: #198038; }
+    .diff-tile.dropped  .diff-tile-count { color: #da1e28; }
     .diff-tile.promoted .diff-tile-count { color: #0043ce; }
     .diff-tile.demoted  .diff-tile-count { color: #f59e0b; }
     .diff-tile.slipped  .diff-tile-count { color: #da1e28; }
     .diff-tile.amount   .diff-tile-count { color: #525252; }
     .diff-tile.pulled   .diff-tile-count { color: #198038; }
+
+    /* Clickable tiles */
+    .diff-tile.clickable {
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .diff-tile.clickable:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border-color: #a8a8a8;
+    }
+    .diff-tile-link {
+      font-size: 10px;
+      color: var(--cds-interactive);
+      text-decoration: underline;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* ── Diff detail modal ── */
+    .diff-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(22,22,22,0.6);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 24px;
+      overflow-y: auto;
+    }
+    .diff-modal-backdrop.open { display: flex; }
+    .diff-modal {
+      background: var(--cds-background);
+      width: 100%;
+      max-width: 720px;
+      border: 1px solid var(--cds-border-subtle);
+      position: relative;
+    }
+    .diff-modal-header {
+      background: var(--ibm-blue-70);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .diff-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'IBM Plex Sans', inherit;
+    }
+    .diff-modal-subtitle {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .diff-modal-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      opacity: 0.75;
+      flex-shrink: 0;
+    }
+    .diff-modal-close:hover { opacity: 1; }
+    .diff-modal-body {
+      padding: 16px 20px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    .diff-modal-empty {
+      font-size: 13px;
+      color: var(--cds-text-secondary);
+      padding: 16px 0;
+      font-style: italic;
+    }
+
+    /* Deal card inside modal */
+    .diff-deal-card {
+      border: 1px solid var(--cds-border-subtle);
+      background: var(--cds-background);
+      margin-bottom: 12px;
+      padding: 14px 16px;
+    }
+    .diff-deal-card:last-child { margin-bottom: 0; }
+    .diff-deal-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .diff-deal-scores {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex-shrink: 0;
+      min-width: 60px;
+      align-items: center;
+    }
+    .diff-deal-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cds-text-primary);
+      line-height: 1.3;
+    }
+    .diff-deal-meta {
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      margin-top: 2px;
+    }
+    .diff-deal-delta {
+      background: var(--cds-layer-01);
+      border-left: 3px solid var(--cds-border-strong);
+      padding: 8px 12px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .diff-deal-delta.delta-risk   { border-left-color: #da1e28; }
+    .diff-deal-delta.delta-positive { border-left-color: #198038; }
+    .diff-deal-delta.delta-warn   { border-left-color: #f59e0b; }
+    .diff-deal-delta.delta-neutral { border-left-color: #8d8d8d; }
+    .diff-delta-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      margin-bottom: 4px;
+    }
+    .diff-delta-value {
+      font-size: 13px;
+      color: var(--cds-text-primary);
+      font-weight: 400;
+    }
+    .diff-delta-direction {
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .diff-deal-financials {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      flex-wrap: wrap;
+    }
+    .diff-deal-financials span { white-space: nowrap; }
+    .diff-deal-financials strong { color: var(--cds-text-primary); }
     #diff-ai-paragraph {
       font-size: 14px;
       line-height: 1.65;
@@ -1010,6 +1161,20 @@
 </main>
 
 <footer>ISC Automated Sales Forecast &mdash; US Public Sector &mdash; <span id="footer-version"></span></footer>
+
+<!-- ── Diff Detail Modal ── -->
+<div class="diff-modal-backdrop" id="diff-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="diff-modal-title">
+  <div class="diff-modal">
+    <div class="diff-modal-header">
+      <div>
+        <div class="diff-modal-title" id="diff-modal-title">Deal Detail</div>
+        <div class="diff-modal-subtitle" id="diff-modal-subtitle"></div>
+      </div>
+      <button class="diff-modal-close" id="diff-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="diff-modal-body" id="diff-modal-body"></div>
+  </div>
+</div>
 
 <script>
   // ── State ──────────────────────────────────────────────────────────────────
@@ -1893,20 +2058,36 @@
       noData.style.display = 'none';
       heading.textContent = `What Changed: live vs ${data.previousWeek}`;
 
-      // Build tiles
+      // Store diff data for modal use
+      _diffData = data;
+
+      // Build tiles — clickable when count > 0
       const tiles = [
-        { cls: 'new',      label: 'New',         count: data.new?.length      || 0 },
-        { cls: 'dropped',  label: 'Dropped',      count: data.dropped?.length  || 0 },
-        { cls: 'promoted', label: 'Promoted',     count: data.promoted?.length || 0 },
-        { cls: 'demoted',  label: 'Demoted',      count: data.demoted?.length  || 0 },
-        { cls: 'slipped',  label: 'Slipped',      count: data.slipped?.length  || 0 },
-        { cls: 'amount',   label: 'Amt Changed',  count: data.amount?.length   || 0 },
-        { cls: 'pulled',   label: 'Pulled In',    count: data.pulled_in?.length|| 0 },
+        { cls: 'new',      label: 'New',        count: data.new?.length       || 0, deals: data.new       || [], key: 'new'      },
+        { cls: 'dropped',  label: 'Dropped',    count: data.dropped?.length   || 0, deals: data.dropped   || [], key: 'dropped'  },
+        { cls: 'promoted', label: 'Promoted',   count: data.promoted?.length  || 0, deals: data.promoted  || [], key: 'promoted' },
+        { cls: 'demoted',  label: 'Demoted',    count: data.demoted?.length   || 0, deals: data.demoted   || [], key: 'demoted'  },
+        { cls: 'slipped',  label: 'Slipped',    count: data.slipped?.length   || 0, deals: data.slipped   || [], key: 'slipped'  },
+        { cls: 'amount',   label: 'Amt Changed',count: data.amount?.length    || 0, deals: data.amount    || [], key: 'amount'   },
+        { cls: 'pulled',   label: 'Pulled In',  count: data.pulled_in?.length || 0, deals: data.pulled_in || [], key: 'pulled'   },
       ];
       tiles.forEach(t => {
         const tile = document.createElement('div');
-        tile.className = `diff-tile ${t.cls}`;
-        tile.innerHTML = `<div class="diff-tile-count">${t.count}</div><div class="diff-tile-label">${t.label}</div>`;
+        const isClickable = t.count > 0;
+        tile.className = `diff-tile ${t.cls}${isClickable ? ' clickable' : ''}`;
+        tile.setAttribute('role', isClickable ? 'button' : 'presentation');
+        tile.setAttribute('tabindex', isClickable ? '0' : '-1');
+        tile.setAttribute('aria-label', isClickable ? `${t.label}: ${t.count} deal${t.count !== 1 ? 's' : ''} — click to view` : `${t.label}: 0`);
+        tile.innerHTML = `
+          <div class="diff-tile-count">${t.count}</div>
+          <div class="diff-tile-label">${t.label}</div>
+          ${isClickable ? `<span class="diff-tile-link">View deals</span>` : ''}
+        `;
+        if (isClickable) {
+          const handler = () => openDiffModal(t.key, t.deals, t.label, data.previousWeek);
+          tile.addEventListener('click', handler);
+          tile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); } });
+        }
         grid.appendChild(tile);
       });
 
@@ -1958,6 +2139,144 @@
 
   document.getElementById('btn-close-diff').addEventListener('click', () => {
     document.getElementById('diff-panel').style.display = 'none';
+  });
+
+  // ── Diff detail modal ─────────────────────────────────────────────────────
+  let _diffData = null; // holds the last diff API response for modal use
+
+  const DIFF_MODAL_CONFIG = {
+    new:      { title: 'New Deals',           icon: '＋', deltaClass: 'delta-positive' },
+    dropped:  { title: 'Dropped Deals',       icon: '✕',  deltaClass: 'delta-risk'     },
+    promoted: { title: 'Promoted Deals',      icon: '↑',  deltaClass: 'delta-positive' },
+    demoted:  { title: 'Demoted Deals',       icon: '↓',  deltaClass: 'delta-risk'     },
+    slipped:  { title: 'Slipped Close Dates', icon: '📅', deltaClass: 'delta-warn'     },
+    amount:   { title: 'Amount Changes',      icon: '$',  deltaClass: 'delta-neutral'  },
+    pulled:   { title: 'Pulled-In Dates',     icon: '⏫', deltaClass: 'delta-positive' },
+  };
+
+  function fmt$M(val) {
+    if (val == null) return '—';
+    return '$' + (val / 1e6).toFixed(2) + 'M';
+  }
+
+  function buildDeltaBlock(category, deal) {
+    const cfg = DIFF_MODAL_CONFIG[category];
+    let label = 'What Changed';
+    let value = '';
+    let dirSymbol = '';
+    let deltaClass = cfg.deltaClass;
+
+    if (category === 'promoted') {
+      dirSymbol = '↑ ';
+      value = `Stage: ${deal.prevStage} → ${deal.curStage}`;
+      deltaClass = 'delta-positive';
+    } else if (category === 'demoted') {
+      dirSymbol = '↓ ';
+      value = `Stage: ${deal.prevStage} → ${deal.curStage} — review needed`;
+      deltaClass = 'delta-risk';
+    } else if (category === 'slipped') {
+      const days = deal.daysDiff;
+      dirSymbol = '↓ ';
+      value = `Close date: ${deal.prevCloseDate} → ${deal.curCloseDate} (+${days} day${days !== 1 ? 's' : ''})`;
+      deltaClass = 'delta-warn';
+    } else if (category === 'pulled') {
+      const days = Math.abs(deal.daysDiff);
+      dirSymbol = '↑ ';
+      value = `Close date: ${deal.prevCloseDate} → ${deal.curCloseDate} (−${days} day${days !== 1 ? 's' : ''})`;
+      deltaClass = 'delta-positive';
+    } else if (category === 'amount') {
+      const diff = deal.amtDiff;
+      const pct  = deal.prevAmt !== 0 ? Math.round((diff / deal.prevAmt) * 100) : 100;
+      const dir  = diff > 0 ? '↑ ' : '↓ ';
+      const sign = diff > 0 ? '+' : '';
+      dirSymbol  = dir;
+      value = `Amount: ${fmt$M(deal.prevAmt)} → ${fmt$M(deal.curAmt)} (${sign}${fmt$M(diff)}, ${sign}${pct}%)`;
+      deltaClass = diff > 0 ? 'delta-positive' : 'delta-risk';
+    } else if (category === 'new') {
+      label = 'Status';
+      value = 'Added to pipeline this week';
+      deltaClass = 'delta-positive';
+    } else if (category === 'dropped') {
+      label = 'Status';
+      value = 'Removed from pipeline — no longer in live data';
+      deltaClass = 'delta-risk';
+    }
+
+    return `<div class="diff-deal-delta ${deltaClass}">
+      <div class="diff-delta-label">${label}</div>
+      <div class="diff-delta-value"><span class="diff-delta-direction" aria-hidden="true">${dirSymbol}</span>${esc(value)}</div>
+    </div>`;
+  }
+
+  function buildDealCard(category, deal) {
+    // Look up live confidence scores from allOpportunities (has tier/score/ai_score)
+    const live = allOpportunities.find(o => o.id === deal.id) || deal;
+    const tier    = live.tier  || '—';
+    const score   = live.score != null ? Math.round(live.score) : null;
+    const aiScore = live.ai_score != null ? Math.round(live.ai_score) : null;
+    const dot     = tier === 'High' ? '🟢' : tier === 'Medium' ? '🟡' : tier === 'Low' ? '🔴' : '○';
+    const tierLabel = tier !== '—' ? tier : 'Unknown';
+
+    const rulesBadgeHtml = score != null
+      ? `<span class="score-badge ${tier === 'High' ? 'score-high' : tier === 'Medium' ? 'score-medium' : 'score-low'}" title="Rules confidence: ${score}/100 · ${tierLabel}">${dot} ${score}</span>`
+      : `<span style="font-size:11px;color:var(--cds-text-secondary)">Not scored</span>`;
+
+    const wxBadgeHtml = aiScore != null
+      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai confidence: ${aiScore}/100">⬡ ${aiScore}</span>`
+      : '';
+
+    return `<div class="diff-deal-card">
+      <div class="diff-deal-top">
+        <div class="diff-deal-scores">
+          ${rulesBadgeHtml}
+          ${wxBadgeHtml}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="diff-deal-name">${esc(deal.opportunity_name || '—')}</div>
+          <div class="diff-deal-meta">${esc(deal.account_name || '—')} · ${esc(deal.opportunity_owner || '—')}</div>
+        </div>
+      </div>
+      ${buildDeltaBlock(category, deal)}
+      <div class="diff-deal-financials">
+        <span><strong>IBM Tech Amt:</strong> ${fmt$(deal.filtered_opportunity_amount)}</span>
+        <span><strong>Total Amt:</strong> ${fmt$(deal.total_opportunity_amount)}</span>
+        <span><strong>Close:</strong> ${esc(deal.close_date || deal.curCloseDate || '—')}</span>
+        <span><strong>Quarter:</strong> ${esc(deal.closeQuarter || '—')}</span>
+        <span><strong>Stage:</strong> ${esc(deal.stage || deal.curStage || '—')}</span>
+      </div>
+    </div>`;
+  }
+
+  function openDiffModal(category, deals, label, previousWeek) {
+    const cfg      = DIFF_MODAL_CONFIG[category] || {};
+    const backdrop = document.getElementById('diff-modal-backdrop');
+    const title    = document.getElementById('diff-modal-title');
+    const subtitle = document.getElementById('diff-modal-subtitle');
+    const body     = document.getElementById('diff-modal-body');
+
+    title.textContent    = `${cfg.icon || ''} ${cfg.title || label}`.trim();
+    subtitle.textContent = `Live vs ${previousWeek} · ${deals.length} deal${deals.length !== 1 ? 's' : ''}`;
+
+    if (deals.length === 0) {
+      body.innerHTML = `<p class="diff-modal-empty">No deals in this category.</p>`;
+    } else {
+      body.innerHTML = deals.map(d => buildDealCard(category, d)).join('');
+    }
+
+    backdrop.classList.add('open');
+    document.getElementById('diff-modal-close').focus();
+  }
+
+  function closeDiffModal() {
+    document.getElementById('diff-modal-backdrop').classList.remove('open');
+  }
+
+  document.getElementById('diff-modal-close').addEventListener('click', closeDiffModal);
+  document.getElementById('diff-modal-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('diff-modal-backdrop')) closeDiffModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDiffModal();
   });
 
   // ── Workflow strip — wire visible buttons to hidden real buttons ───────────
