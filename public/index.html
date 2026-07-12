@@ -1732,7 +1732,8 @@
     const log = document.getElementById('scrape-log');
     btn.disabled = true;
     log.textContent = '';
-    log.style.display = 'block';
+    // Do NOT auto-show the scrape log — accumulate silently; user can reveal via "Show details"
+    setPipelineStatus('⬡', 'Running watsonx.ai scoring…', false);
     setStatus('Running watsonx.ai scoring…', 'loading');
     try {
       const res = await fetch('/api/score-opportunities', { method: 'POST' });
@@ -1747,8 +1748,11 @@
       setStatus('watsonx.ai scoring complete. Reloading scores…', 'success');
       await loadOpportunities();
       await loadWatsonxStatus();
+      setPipelineStatus('✅', `watsonx scoring complete — 206 opportunities scored.`, true);
+      setWorkflowStep(3);
     } catch (err) {
       setStatus('Scoring failed: ' + err.message, 'error');
+      setPipelineStatus('⚠', 'Scoring failed — see details.', true);
     } finally {
       btn.disabled = false;
     }
