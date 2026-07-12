@@ -1729,3 +1729,123 @@ git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseli
   6. **Register entry** at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
 
   ---
+
+  ## Session 6 — Phase 1 & 2 UX: Carbon Design + Guided Workflow + Diff Tile Modals (July 13, 2026)
+
+  ### Branch: `feature/ux-carbon-guided-workflow`
+
+  ### Context / Motivation
+
+  With v2.1.0-rc1 stable on `main`, the decision was made to invest in a significant UX upgrade before the 7/22 IBM watsonx Challenge submission. Rationale: the existing UI is an engineer's UI — all tools presented equally, no workflow guidance, raw terminal output visible. For Dushyant (Sales VP) and his GM (and potential wider Public Market adoption across 5 other Sales VPs), the app needs to feel like an IBM-developed product that guides the user through their weekly workflow, not a renegade tool they have to figure out.
+
+  **Three design principles agreed for this phase:**
+  1. IBM Carbon Design System visual language (tokens + IBM Plex Sans) — no full Carbon library dependency, just inline CSS tokens
+  2. Guided workflow UX — replace flat button row with a stepped workflow strip
+  3. Accessibility first — color is never the only signal (WCAG 2.1 AA)
+
+  ---
+
+  ### Phase 1 — Carbon Skin + Layout Restructure
+
+  #### Changes made (`public/index.html`)
+
+  **CSS additions:**
+  - Added `<link>` for IBM Plex Sans (Google Fonts CDN — weights 300/400/600/700) + IBM Plex Mono
+  - Added `:root` block with full Carbon Design System tokens (`--cds-background`, `--cds-interactive`, `--cds-support-*`, `--ibm-blue-70`, `--wx-purple`, etc.)
+  - All hardcoded colors replaced with `var(--cds-*)` tokens throughout
+  - `border-radius: 0` on all buttons/inputs (Carbon uses square corners)
+  - `font-family: 'IBM Plex Sans'` on body, buttons, table cells, footer
+  - `-webkit-font-smoothing: antialiased` on body
+
+  **Header redesign:**
+  - Height reduced: 56px → 48px (Carbon standard)
+  - `IBM` wordmark in top-left with `font-weight: 300`, separated by a right border
+  - `header-right` group: week/version meta + GM Ready indicator pill
+
+  **GM Ready indicator:**
+  - Pill in top-right of header, always visible
+  - Three states: `no-data` (muted), `needs-action` (amber — N deals missing next steps), `ready` (green — GM Prep Ready · N High)
+  - Color + dot + text label — accessibility compliant (never color-only)
+  - Updates automatically after `loadOpportunities()` resolves
+
+  **Workflow strip (replaces toolbar):**
+  - 6 numbered steps: ⟳ Refresh Data → ⬡ Score with watsonx → ✍ Generate Narrative → 📌 Save Baseline → ⇄ What Changed → ↓ Generate PPT
+  - Step states: `step-active` (blue underline + blue circle), `step-done` (green underline + green circle with checkmark), `step-disabled` (40% opacity, cursor: not-allowed)
+  - Step 1 active on load; all others unlock after data loads; each step marks done as user progresses
+  - Select All / Clear All / 🟢 High + watsonx status dot + selection summary moved to right-side utility area
+  - Hidden real buttons (`btn-refresh` etc.) preserve all existing JS event listeners — workflow strip buttons proxy via `.click()`
+
+  **Pipeline status line (replaces raw scrape terminal):**
+  - Clean white bar below totals: `📋 No data loaded` → `⟳ Refreshing…` → `✅ Pipeline loaded — N opportunities as of DATE`
+  - `Show details / Hide details` toggle reveals/hides the scrape log
+  - Scrape log: font changed to `IBM Plex Mono`, hidden by default
+  - `#status-bar` now shows **errors only** — `setStatus()` patched to return early for info/success/loading types
+
+  **Commits:**
+  ```
+  73dd2f0  feat: Phase 1 UX — Carbon design tokens, IBM Plex Sans, workflow strip, GM Ready indicator, pipeline status line
+  9168019  fix: score-wx handler — suppress auto-show of scrape log, use pipeline status line instead
+  0b64df2  fix: suppress redundant status-bar on info/success/loading — errors only, pipeline-status handles the rest
+  a791c50  fix: suppress auto-show of scrape log on Refresh Data, remove redundant capture listener
+  ```
+
+  ---
+
+  ### Phase 2 — Per-Tile Diff Detail Modals
+
+  #### Design decision
+
+  User proposed: make the 7 diff tiles clickable, opening a modal showing which deals are affected. Decision: **per-tile modal** (not a single combined modal) — each category tells a different story with different urgency. A GM taps "DEMOTED (2)" and immediately sees exactly which deals regressed and why. A combined modal would force mental re-sorting by category.
+
+  #### Accessibility note (applied throughout)
+  All modal delta blocks use direction symbol + numeric change + text label — color is additive, never load-bearing. e.g. `↓ Stage: 4 - Propose → 2 - Qualify — review needed` — the arrow and text carry the meaning even without color vision.
+
+  #### Changes made (`public/index.html`)
+
+  **CSS — modal styles added:**
+  - `.diff-tile.clickable` — hover shadow + border-color transition
+  - `.diff-tile-link` — "View deals" underlined link text on clickable tiles
+  - `.diff-modal-backdrop` — fixed full-screen overlay, `rgba(22,22,22,0.6)`, z-index 1000
+  - `.diff-modal` — white panel, max-width 720px, Carbon square border
+  - `.diff-modal-header` — IBM blue (`--ibm-blue-70`) with white title + subtitle + close button
+  - `.diff-deal-card` — per-deal card with scores, name, meta, delta block, financials row
+  - `.diff-deal-delta` with variants: `delta-risk` (red left border), `delta-positive` (green), `delta-warn` (amber), `delta-neutral` (gray)
+
+  **HTML — modal markup:**
+  - `#diff-modal-backdrop` with `role="dialog"`, `aria-modal="true"`, `aria-labelledby="diff-modal-title"`
+  - `#diff-modal-close` button with `aria-label="Close"`
+
+  **JS — modal engine:**
+  - `DIFF_MODAL_CONFIG` — per-category config: title, icon, default delta class
+  - `buildDeltaBlock(category, deal)` — renders the "What Changed" block with direction symbol and full text for all 7 categories
+  - `buildDealCard(category, deal)` — renders a deal card: looks up live `allOpportunities` for confidence scores (tier/score/ai_score), renders Rules badge + watsonx badge side by side, delta block, financials row (IBM Tech Amt, Total Amt, Close date, Quarter, Stage)
+  - `openDiffModal(category, deals, label, previousWeek)` — populates and opens the modal
+  - `closeDiffModal()` — removes `.open` class
+  - Close triggers: ✕ button, click outside modal, `Escape` key
+  - Keyboard accessibility: tiles have `role="button"`, `tabindex="0"`, `aria-label`, respond to `Enter` and `Space`
+  - `_diffData` variable stores last diff API response for modal access
+
+  **Tile builder patched:**
+  - Each tile now carries `key`, `deals` array from the diff response
+  - Tiles with count > 0 get `.clickable` class + `View deals` link
+  - Tiles with count = 0 get `role="presentation"` and no click handler
+
+  **Commit:**
+  ```
+  1c8ee58  feat: diff tile modals — per-tile clickable cards with confidence badges, delta blocks, accessibility (aria, keyboard, Escape)
+  ```
+
+  #### Test results (all 4 modals validated by user)
+  - ↓ Demoted Deals (2): `2026_Labcorp_sRenewal` (4→2 Qualify), `Corporate ELA` (5→4 Propose) ✅
+  - 📅 Slipped Close Dates (1): `Data Withheld` (+14 days) ✅
+  - $ Amount Changes (2): `Corporate z17` (−$3M, −33%), `2026_Labcorp_uRenewal` (+$2.55M, +67%) ✅
+  - ⏫ Pulled-In Dates (2): `BCBS Virtual Vault` (−21d), `HCSC Fusion Phase 1` (−14d) ✅
+
+  ---
+
+  ### What Remains for Phase 2 (UX branch)
+  - Named view presets (GM Prep / At Risk / Full Pipeline) — planned but not yet built
+  - Session log commit + push to remote
+  - Merge `feature/ux-carbon-guided-workflow` → `develop` → `main` as v2.2.0-rc1
+
+  ---
