@@ -102,9 +102,10 @@ function saveSnapshot(db) {
       (id, week_label, snapped_at,
        opportunity_name, account_name, stage, forecast_category,
        close_date, filtered_opportunity_amount, total_opportunity_amount,
-       opportunity_owner, flm_judgement, next_steps)
+       opportunity_owner, flm_judgement, next_steps,
+       score, tier)
     VALUES
-      (?, ?, ?,  ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?)
+      (?, ?, ?,  ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?,  ?, ?)
   `);
 
   db.transaction(() => {
@@ -113,7 +114,8 @@ function saveSnapshot(db) {
         r.id, weekLabel, snappedAt,
         r.opportunity_name, r.account_name, r.stage, r.forecast_category,
         r.close_date, r.filtered_opportunity_amount, r.total_opportunity_amount,
-        r.opportunity_owner, r.flm_judgement, r.next_steps
+        r.opportunity_owner, r.flm_judgement, r.next_steps,
+        r.score ?? null, r.tier ?? null
       );
     }
   })();
@@ -203,11 +205,17 @@ function computeDiff(db) {
 
     const changes = [];
 
+    // Baseline confidence scores (null if snapshot predates v2.2.0 migration)
+    const scoreContext = {
+      prevScore: prev.score  ?? null,
+      prevTier:  prev.tier   ?? null,
+    };
+
     // Stage movement
     const prevSI = stageIndex(prev.stage);
     const curSI  = stageIndex(cur.stage);
     if (prev.stage !== cur.stage && prevSI !== -1 && curSI !== -1) {
-      const delta = { ...cur, prevStage: prev.stage, curStage: cur.stage };
+      const delta = { ...cur, ...scoreContext, prevStage: prev.stage, curStage: cur.stage };
       if (curSI > prevSI)  { result.promoted.push(delta); changes.push('stage'); }
       if (curSI < prevSI)  { result.demoted.push(delta);  changes.push('stage'); }
     }
@@ -218,7 +226,7 @@ function computeDiff(db) {
     const amtDiff = curAmt - prevAmt;
     const amtPct  = prevAmt !== 0 ? Math.abs(amtDiff / prevAmt) : (curAmt !== 0 ? 1 : 0);
     if (Math.abs(amtDiff) >= 50000 && amtPct >= 0.10) {
-      result.amount.push({ ...cur, prevAmt, curAmt, amtDiff });
+      result.amount.push({ ...cur, ...scoreContext, prevAmt, curAmt, amtDiff });
       changes.push('amount');
     }
 
@@ -228,10 +236,10 @@ function computeDiff(db) {
       const curDate  = new Date(cur.close_date);
       const daysDiff = Math.round((curDate - prevDate) / 86400000);
       if (daysDiff >= 7) {
-        result.slipped.push({ ...cur, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
+        result.slipped.push({ ...cur, ...scoreContext, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
         changes.push('slipped');
       } else if (daysDiff <= -7) {
-        result.pulled_in.push({ ...cur, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
+        result.pulled_in.push({ ...cur, ...scoreContext, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
         changes.push('pulled_in');
       }
     }

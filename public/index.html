@@ -2209,21 +2209,60 @@
     </div>`;
   }
 
+  function scoreBadgeSmall(score, tier) {
+    if (score == null) return `<span style="font-size:11px;color:var(--cds-text-secondary)">—</span>`;
+    const dot = tier === 'High' ? '🟢' : tier === 'Medium' ? '🟡' : tier === 'Low' ? '🔴' : '○';
+    const cls = tier === 'High' ? 'score-high' : tier === 'Medium' ? 'score-medium' : 'score-low';
+    const label = tier || 'Unknown';
+    return `<span class="score-badge ${cls}" title="Rules confidence: ${score}/100 · ${label}">${dot} ${score}</span>`;
+  }
+
+  function buildScoreChangeBlock(deal, live) {
+    // Only show if we have a baseline score to compare against
+    const prevScore = deal.prevScore;
+    const prevTier  = deal.prevTier;
+    const curScore  = live.score != null ? Math.round(live.score) : null;
+    const curTier   = live.tier  || null;
+    const curAiScore = live.ai_score != null ? Math.round(live.ai_score) : null;
+
+    if (prevScore == null && curScore == null) return '';
+
+    const scoreDiff = (prevScore != null && curScore != null) ? curScore - prevScore : null;
+    const diffStr   = scoreDiff != null
+      ? ` <span style="font-weight:700;color:${scoreDiff >= 0 ? '#198038' : '#da1e28'}">(${scoreDiff >= 0 ? '+' : ''}${scoreDiff} pts)</span>`
+      : '';
+
+    const prevBadge = scoreBadgeSmall(prevScore, prevTier);
+    const curBadge  = scoreBadgeSmall(curScore, curTier);
+    const wxBadge   = curAiScore != null
+      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai: ${curAiScore}/100">⬡ ${curAiScore}</span>`
+      : '';
+
+    // Only show the row if something actually changed or if we have both values
+    const hasChange = prevScore != null && curScore != null;
+    const arrow     = hasChange ? ' → ' : '';
+    const before    = hasChange ? `${prevBadge}${arrow}` : '';
+
+    return `<div class="diff-deal-delta delta-neutral" style="margin-top:6px;">
+      <div class="diff-delta-label">Confidence Score</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        ${before}${curBadge}${diffStr}
+        ${wxBadge ? `<span style="color:var(--cds-text-secondary);font-size:11px;">watsonx:</span>${wxBadge}` : ''}
+      </div>
+    </div>`;
+  }
+
   function buildDealCard(category, deal) {
     // Look up live confidence scores from allOpportunities (has tier/score/ai_score)
-    const live = allOpportunities.find(o => o.id === deal.id) || deal;
-    const tier    = live.tier  || '—';
-    const score   = live.score != null ? Math.round(live.score) : null;
-    const aiScore = live.ai_score != null ? Math.round(live.ai_score) : null;
-    const dot     = tier === 'High' ? '🟢' : tier === 'Medium' ? '🟡' : tier === 'Low' ? '🔴' : '○';
-    const tierLabel = tier !== '—' ? tier : 'Unknown';
+    const live    = allOpportunities.find(o => o.id === deal.id) || deal;
+    const curScore  = live.score != null ? Math.round(live.score) : null;
+    const curTier   = live.tier || '—';
+    const dot       = curTier === 'High' ? '🟢' : curTier === 'Medium' ? '🟡' : curTier === 'Low' ? '🔴' : '○';
 
-    const rulesBadgeHtml = score != null
-      ? `<span class="score-badge ${tier === 'High' ? 'score-high' : tier === 'Medium' ? 'score-medium' : 'score-low'}" title="Rules confidence: ${score}/100 · ${tierLabel}">${dot} ${score}</span>`
-      : `<span style="font-size:11px;color:var(--cds-text-secondary)">Not scored</span>`;
-
-    const wxBadgeHtml = aiScore != null
-      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai confidence: ${aiScore}/100">⬡ ${aiScore}</span>`
+    // Top-right score column: just show current scores (before→after is in the score change block)
+    const rulesBadgeHtml = scoreBadgeSmall(curScore, curTier);
+    const wxBadgeHtml = live.ai_score != null
+      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai: ${Math.round(live.ai_score)}/100">⬡ ${Math.round(live.ai_score)}</span>`
       : '';
 
     return `<div class="diff-deal-card">
@@ -2238,6 +2277,7 @@
         </div>
       </div>
       ${buildDeltaBlock(category, deal)}
+      ${buildScoreChangeBlock(deal, live)}
       <div class="diff-deal-financials">
         <span><strong>IBM Tech Amt:</strong> ${fmt$(deal.filtered_opportunity_amount)}</span>
         <span><strong>Total Amt:</strong> ${fmt$(deal.total_opportunity_amount)}</span>

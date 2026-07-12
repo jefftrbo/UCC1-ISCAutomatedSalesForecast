@@ -103,4 +103,19 @@ db.exec(`
   )
 `);
 
+// ── v2.2.0 migration — add score/tier columns to snapshots ───────────────────
+// Stores the rules-based confidence score at baseline time so the diff modal
+// can show "before → after" score deltas for changed deals.
+const snapshotCols = db.pragma('table_info(snapshots)').map(c => c.name);
+const v22SnapshotColumns = [
+  { name: 'score', ddl: 'ALTER TABLE snapshots ADD COLUMN score INTEGER' },
+  { name: 'tier',  ddl: 'ALTER TABLE snapshots ADD COLUMN tier TEXT'     },
+];
+v22SnapshotColumns.forEach(({ name, ddl }) => {
+  if (!snapshotCols.includes(name)) {
+    db.exec(ddl);
+    console.log(`[db] Migration: added column snapshots.${name}`);
+  }
+});
+
 module.exports = db;
