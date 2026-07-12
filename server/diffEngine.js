@@ -61,15 +61,21 @@ function stageIndex(stage) {
 }
 
 /**
- * Returns the ISO week label for a given Date, e.g. "2026-W29".
- * Uses the ISO 8601 week numbering (Monday = start of week).
+ * Returns a human-readable timestamp label, e.g. "Jul 13, 2026 · 2:34 PM".
+ * Used as the snapshot label — timestamp-based so multiple saves in the same
+ * week are distinct and the diff engine always uses the most-recent one.
  * @param {Date} [date]
  * @returns {string}
  */
+function snapshotLabel(date = new Date()) {
+  const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const timePart = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return `${datePart} · ${timePart}`;
+}
+
+// Keep isoWeekLabel exported for test scripts that still use it
 function isoWeekLabel(date = new Date()) {
-  // Clone so we don't mutate the input
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  // ISO week: Thursday of the week determines the year
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   const weekNum = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
@@ -77,22 +83,25 @@ function isoWeekLabel(date = new Date()) {
 }
 
 // ---------------------------------------------------------------------------
-// saveSnapshot — deliberate "Save Baseline" action
+// saveSnapshot — called by Step 5 "Baseline & Generate GM Report"
 // ---------------------------------------------------------------------------
 /**
  * Freeze the current opportunities table as the new baseline snapshot.
- * Uses INSERT OR REPLACE — every call is a deliberate overwrite of any prior
- * snapshot for the same week_label. This ensures the baseline always reflects
- * the pipeline at the exact moment the user clicked "Save Baseline."
  *
- * Typical usage: called once after the Friday GM call to lock in this week's
- * final state for next week's diff comparison.
+ * Uses a timestamp-based label (e.g. "Jul 13, 2026 · 2:34 PM") so multiple
+ * saves in the same week are always distinct. The diff engine orders by
+ * snapped_at DESC so the most-recent snapshot is always the baseline,
+ * regardless of when during the week it was saved.
+ *
+ * Primary usage: automatically called when Dushyant clicks
+ * "📊 Baseline & Generate GM Report" (Step 5).
+ * Secondary usage: manual override via the utility "📌 Save Baseline" button.
  *
  * @param {import('better-sqlite3').Database} db
  * @returns {{ weekLabel: string, saved: number }}
  */
 function saveSnapshot(db) {
-  const weekLabel = isoWeekLabel();
+  const weekLabel = snapshotLabel();   // timestamp label, not ISO week
   const snappedAt = new Date().toISOString();
 
   const rows = db.prepare('SELECT * FROM opportunities').all();
@@ -150,9 +159,11 @@ function saveSnapshot(db) {
  * }}
  */
 function computeDiff(db) {
-  // Get the single most-recent snapshot week_label (the baseline)
+  // Get the most-recent snapshot by snapped_at timestamp (the baseline)
+  // Ordering by snapped_at DESC ensures we always use the latest save,
+  // regardless of whether multiple snapshots exist in the same calendar week.
   const baselineRow = db
-    .prepare("SELECT DISTINCT week_label FROM snapshots ORDER BY week_label DESC LIMIT 1")
+    .prepare("SELECT DISTINCT week_label FROM snapshots ORDER BY snapped_at DESC LIMIT 1")
     .get();
 
   if (!baselineRow) {

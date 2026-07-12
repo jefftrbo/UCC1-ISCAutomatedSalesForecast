@@ -898,14 +898,15 @@
       z-index: 9999;
       background: #161616;
       color: #f4f4f4;
-      font-size: 11px;
-      border-radius: 4px;
-      padding: 10px 12px;
-      width: 260px;
+      font-size: 12px;
+      border-radius: 0;
+      padding: 10px 14px;
+      width: 300px;
       white-space: normal;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       pointer-events: none;
-      line-height: 1.5;
+      line-height: 1.6;
+      font-family: 'IBM Plex Sans', inherit;
     }
     .tooltip-row {
       display: flex;
@@ -959,31 +960,37 @@
 
 <!-- Workflow strip — guides Dushyant through his weekly steps -->
 <div class="workflow-strip">
-  <button class="workflow-step step-active" id="ws-refresh">
+  <button class="workflow-step step-active has-tip" id="ws-refresh"
+    data-tip="Imports the latest pipeline from Salesforce via HAR export. Run this each time you want to update the opportunity list. watsonx scoring runs automatically after refresh.">
     <span class="step-num" id="ws-refresh-num">1</span>
     ⟳ Refresh Data
   </button>
-  <button class="workflow-step step-disabled" id="ws-score">
+  <button class="workflow-step step-disabled has-tip" id="ws-score"
+    data-tip="Re-runs watsonx.ai confidence scoring on all opportunities. Completes automatically after Step 1 — click manually to force a re-score mid-week.">
     <span class="step-num" id="ws-score-num">2</span>
     ⬡ Score with watsonx
   </button>
-  <button class="workflow-step step-disabled" id="ws-narrative">
+  <button class="workflow-step step-disabled has-tip" id="ws-narrative"
+    data-tip="Uses watsonx.ai to write a GM meeting narrative based on your currently filtered view. Apply filters first to scope it to the right deals.">
     <span class="step-num" id="ws-narrative-num">3</span>
     ✍ Generate Narrative
   </button>
-  <button class="workflow-step step-disabled" id="ws-snapshot">
-    <span class="step-num" id="ws-snapshot-num">4</span>
-    📌 Save Baseline
-  </button>
-  <button class="workflow-step step-disabled" id="ws-diff">
-    <span class="step-num" id="ws-diff-num">5</span>
+  <button class="workflow-step step-disabled has-tip" id="ws-diff"
+    data-tip="Compares your live pipeline against the last GM Report baseline. Shows which deals were promoted, demoted, slipped, or added since your last GM call.">
+    <span class="step-num" id="ws-diff-num">4</span>
     ⇄ What Changed
   </button>
-  <button class="workflow-step step-disabled" id="ws-ppt">
-    <span class="step-num" id="ws-ppt-num">6</span>
-    ↓ Generate PPT
+  <button class="workflow-step step-disabled has-tip" id="ws-ppt"
+    data-tip="Saves today's pipeline as your new baseline, then generates the PowerPoint for your GM meeting. Next week's 'What Changed' will compare against this exact snapshot.">
+    <span class="step-num" id="ws-ppt-num">5</span>
+    📊 Baseline &amp; Generate GM Report
   </button>
   <div class="workflow-utilities">
+    <button class="btn-secondary has-tip" id="btn-snapshot-util"
+      style="height:28px;padding:0 12px;font-size:12px;"
+      data-tip="Advanced: manually save a pipeline baseline outside the normal workflow. Opens a warning dialog explaining the impact on your week-over-week diff.">
+      📌 Save Baseline
+    </button>
     <button class="btn-secondary" id="btn-select-all" style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
     <button class="btn-secondary" id="btn-clear-all"  style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
     <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">🟢 High</button>
@@ -1161,6 +1168,82 @@
 </main>
 
 <footer>ISC Automated Sales Forecast &mdash; US Public Sector &mdash; <span id="footer-version"></span></footer>
+
+<!-- ── Step 5: Baseline & Generate GM Report — confirm modal ── -->
+<div class="diff-modal-backdrop" id="ppt-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="ppt-confirm-title">
+  <div class="diff-modal" style="max-width:520px;">
+    <div class="diff-modal-header">
+      <div>
+        <div class="diff-modal-title" id="ppt-confirm-title">📊 Baseline &amp; Generate GM Report</div>
+        <div class="diff-modal-subtitle">Step 5 of 5</div>
+      </div>
+      <button class="diff-modal-close" id="ppt-confirm-close" aria-label="Cancel">✕</button>
+    </div>
+    <div class="diff-modal-body">
+      <p style="font-size:14px;line-height:1.7;color:var(--cds-text-primary);margin-bottom:16px;">
+        This will do <strong>two things</strong> in sequence:
+      </p>
+      <div class="diff-deal-delta delta-positive" style="margin-bottom:12px;">
+        <div class="diff-delta-label">1 — Save Pipeline Baseline</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          The current pipeline will be locked as your reference point, timestamped to right now.
+          Next week, <strong>⇄ What Changed</strong> will compare live data against exactly
+          what is in today's GM report — so your diff always reflects real movement since the last call.
+        </div>
+      </div>
+      <div class="diff-deal-delta delta-positive" style="margin-bottom:20px;">
+        <div class="diff-delta-label">2 — Generate GM Report (PowerPoint)</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          A PowerPoint deck will be generated from your selected opportunities
+          and downloaded automatically.
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn-secondary" id="ppt-confirm-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-success" id="ppt-confirm-ok" style="padding:8px 20px;font-weight:600;">✅ Confirm &amp; Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Save Baseline utility — manual override warning modal ── -->
+<div class="diff-modal-backdrop" id="baseline-warn-backdrop" role="dialog" aria-modal="true" aria-labelledby="baseline-warn-title">
+  <div class="diff-modal" style="max-width:520px;">
+    <div class="diff-modal-header" style="background:#6929c4;">
+      <div>
+        <div class="diff-modal-title" id="baseline-warn-title">📌 Save Baseline — Manual Override</div>
+        <div class="diff-modal-subtitle">Advanced action — read before proceeding</div>
+      </div>
+      <button class="diff-modal-close" id="baseline-warn-close" aria-label="Cancel">✕</button>
+    </div>
+    <div class="diff-modal-body">
+      <div class="diff-deal-delta delta-warn" style="margin-bottom:14px;">
+        <div class="diff-delta-label">⚠ This is outside the normal weekly workflow</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          Normally, your baseline is saved automatically when you click
+          <strong>📊 Baseline &amp; Generate GM Report</strong> (Step 5).
+          That ensures your diff always reflects exactly what your GM saw in the last report.
+        </div>
+      </div>
+      <p style="font-size:13px;line-height:1.7;color:var(--cds-text-primary);margin-bottom:12px;">
+        Use this only if you need to reset the baseline mid-week — for example,
+        after a major pipeline restructure that you want to treat as the new reference point.
+      </p>
+      <div class="diff-deal-delta delta-risk" style="margin-bottom:20px;">
+        <div class="diff-delta-label">⚠ Impact on What Changed</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          <strong>⇄ What Changed</strong> will compare live data against <strong>right now</strong>,
+          not against your last GM Report. Your next PPT diff may not reflect the full
+          week's pipeline movement.
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn-secondary" id="baseline-warn-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-primary" id="baseline-warn-ok" style="padding:8px 20px;background:#6929c4;">📌 Save Baseline Now</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ── Diff Detail Modal ── -->
 <div class="diff-modal-backdrop" id="diff-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="diff-modal-title">
@@ -1974,7 +2057,7 @@
       const isSubset = filteredIds.length < allOpportunities.length;
       const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
       setPipelineStatus('✅', `Narrative generated from ${viewLabel}.`, false);
-      setWorkflowStep(4);  // step 3 done → step 4 (Save Baseline) now active
+      setWorkflowStep(4);  // step 3 done → step 4 (What Changed) now active
     } catch (err) {
       setStatus('Narrative failed: ' + err.message, 'error');
     } finally {
@@ -2113,6 +2196,7 @@
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       setPipelineStatus('⇄', `What Changed: ${data.summary}`, false);
+      setWorkflowStep(5);  // step 4 done → step 5 (Baseline + GM Report) now active
     } catch (err) {
       setStatus('Diff failed: ' + err.message, 'error');
     } finally {
@@ -2130,8 +2214,8 @@
       const res  = await fetch('/api/snapshot', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Baseline save failed.', 'error'); return; }
-      setPipelineStatus('✅', `Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Click ⇄ What Changed to see deltas.`, false);
-      setWorkflowStep(5);  // step 4 done → step 5 (What Changed) now active
+      setPipelineStatus('✅', `Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}.`, false);
+      // manual save baseline doesn't advance workflow step — it's an override
     } catch (err) {
       setStatus('Save Baseline failed: ' + err.message, 'error');
     } finally {
@@ -2318,8 +2402,84 @@
     if (e.target === document.getElementById('diff-modal-backdrop')) closeDiffModal();
   });
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeDiffModal();
+    if (e.key === 'Escape') {
+      closeDiffModal();
+      closePptConfirm();
+      closeBaselineWarn();
+    }
   });
+
+  // ── Step 5 confirm modal ───────────────────────────────────────────────────
+  function openPptConfirm() {
+    document.getElementById('ppt-confirm-backdrop').classList.add('open');
+    document.getElementById('ppt-confirm-ok').focus();
+  }
+  function closePptConfirm() {
+    document.getElementById('ppt-confirm-backdrop').classList.remove('open');
+  }
+  document.getElementById('ppt-confirm-close').addEventListener('click', closePptConfirm);
+  document.getElementById('ppt-confirm-cancel').addEventListener('click', closePptConfirm);
+  document.getElementById('ppt-confirm-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('ppt-confirm-backdrop')) closePptConfirm();
+  });
+
+  document.getElementById('ppt-confirm-ok').addEventListener('click', async () => {
+    closePptConfirm();
+    setPipelineStatus('📌', 'Saving pipeline baseline…', false);
+    // Step 1 — save baseline
+    try {
+      const snapRes  = await fetch('/api/snapshot', { method: 'POST' });
+      const snapData = await snapRes.json();
+      if (!snapRes.ok) { setStatus(snapData.error || 'Baseline save failed.', 'error'); return; }
+      setPipelineStatus('📊', `Baseline saved (${snapData.weekLabel}) — generating GM Report…`, false);
+    } catch (err) {
+      setStatus('Baseline save failed: ' + err.message, 'error'); return;
+    }
+    // Step 2 — generate PPT
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/generate-ppt', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Failed to generate GM Report.', 'error'); return; }
+      setPipelineStatus('✅', `GM Report generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
+      setWorkflowStep(6); // all done
+      const a = document.createElement('a');
+      a.href = data.file;
+      a.download = data.file.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      setStatus('GM Report generation failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      updateSelectionSummary();
+    }
+  });
+
+  // ── Save Baseline utility — manual override warning modal ─────────────────
+  function openBaselineWarn() {
+    document.getElementById('baseline-warn-backdrop').classList.add('open');
+    document.getElementById('baseline-warn-ok').focus();
+  }
+  function closeBaselineWarn() {
+    document.getElementById('baseline-warn-backdrop').classList.remove('open');
+  }
+  document.getElementById('baseline-warn-close').addEventListener('click', closeBaselineWarn);
+  document.getElementById('baseline-warn-cancel').addEventListener('click', closeBaselineWarn);
+  document.getElementById('baseline-warn-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('baseline-warn-backdrop')) closeBaselineWarn();
+  });
+
+  document.getElementById('baseline-warn-ok').addEventListener('click', async () => {
+    closeBaselineWarn();
+    // Delegate to the existing hidden btn-snapshot handler
+    document.getElementById('btn-snapshot').click();
+  });
+
+  // Utility Save Baseline button opens the warning modal
+  document.getElementById('btn-snapshot-util').addEventListener('click', openBaselineWarn);
 
   // ── Workflow strip — wire visible buttons to hidden real buttons ───────────
   (function initWorkflowStrip() {
@@ -2327,9 +2487,8 @@
       ['ws-refresh',  'btn-refresh'],
       ['ws-score',    'btn-score-wx'],
       ['ws-narrative','btn-narrative'],
-      ['ws-snapshot', 'btn-snapshot'],
       ['ws-diff',     'btn-diff'],
-      ['ws-ppt',      'btn-generate'],
+      // ws-ppt opens the confirm modal instead of directly triggering btn-generate
     ];
     map.forEach(([wsId, btnId]) => {
       const wsBtn  = document.getElementById(wsId);
@@ -2340,6 +2499,14 @@
         realBtn.click();
       });
     });
+    // Step 5 opens confirm modal
+    const wsPpt = document.getElementById('ws-ppt');
+    if (wsPpt) {
+      wsPpt.addEventListener('click', () => {
+        if (wsPpt.classList.contains('step-disabled')) return;
+        openPptConfirm();
+      });
+    }
   })();
 
   // ── GM Ready indicator ─────────────────────────────────────────────────────
@@ -2384,9 +2551,10 @@
   });
 
   // ── Workflow step state manager ────────────────────────────────────────────
+  // Steps: 1=Refresh, 2=Score, 3=Narrative, 4=What Changed, 5=Baseline+PPT
+  // step=6 means all done (Step 5 complete)
   function setWorkflowStep(step) {
-    // step: 1 = data loaded, 2 = scored, 3 = narrative done, 4+ = all enabled
-    const steps = ['ws-refresh','ws-score','ws-narrative','ws-snapshot','ws-diff','ws-ppt'];
+    const steps = ['ws-refresh','ws-score','ws-narrative','ws-diff','ws-ppt'];
     steps.forEach((id, i) => {
       const btn = document.getElementById(id);
       if (!btn) return;
@@ -2401,11 +2569,11 @@
         btn.classList.add('step-disabled');
       }
     });
-    // After step 1 (data loaded), unlock steps 2–6 immediately
-    if (step >= 1) {
-      ['ws-score','ws-narrative','ws-snapshot','ws-diff','ws-ppt'].forEach(id => {
+    // After data loads (step ≥ 2), unlock all steps immediately
+    if (step >= 2) {
+      steps.forEach(id => {
         const btn = document.getElementById(id);
-        if (btn && btn.classList.contains('step-disabled') && step > 1) {
+        if (btn && btn.classList.contains('step-disabled')) {
           btn.classList.remove('step-disabled');
         }
       });
