@@ -28,3 +28,6 @@ browser-profile/
 .idea/
 *.swp
 *.swo
+
+# Environment variables — never commit
+.env

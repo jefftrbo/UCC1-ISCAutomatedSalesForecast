@@ -237,6 +237,168 @@
       border-bottom: 1px solid #393939;
     }
 
+    /* ── GM Narrative panel ── */
+    #narrative-panel {
+      display: none;
+      margin: 0;
+      padding: 16px 24px;
+      background: #f0f4ff;
+      border-bottom: 2px solid #0f62fe;
+    }
+    #narrative-panel.mock-mode {
+      background: #fdf6ec;
+      border-bottom-color: #f59e0b;
+    }
+    .narrative-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .narrative-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0043ce;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    #narrative-panel.mock-mode .narrative-header h3 { color: #9b6900; }
+    .narrative-mode-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #d0e2ff;
+      color: #0043ce;
+    }
+    #narrative-panel.mock-mode .narrative-mode-tag { background: #fef3cd; color: #9b6900; }
+    #narrative-paragraph {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    #narrative-bullets {
+      margin: 0 0 12px 16px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1f2328;
+    }
+    #narrative-bullets li { margin-bottom: 4px; }
+    .narrative-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-copy {
+      font-size: 12px;
+      padding: 4px 12px;
+      border: 1px solid #0043ce;
+      background: #fff;
+      color: #0043ce;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: #d0e2ff; }
+    .btn-copy.copied { border-color: #198038; color: #198038; }
+
+    /* ── Diff panel (What Changed) ── */
+    #diff-panel {
+      display: none;
+      margin: 0;
+      padding: 16px 24px;
+      background: #f6f2ff;
+      border-bottom: 2px solid #6929c4;
+    }
+    #diff-panel.mock-mode {
+      background: #fdf6ec;
+      border-bottom-color: #f59e0b;
+    }
+    .diff-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .diff-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #6929c4;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    #diff-panel.mock-mode .diff-header h3 { color: #9b6900; }
+    .diff-mode-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e8daff;
+      color: #6929c4;
+    }
+    #diff-panel.mock-mode .diff-mode-tag { background: #fef3cd; color: #9b6900; }
+    .diff-summary-text {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    .diff-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .diff-tile {
+      background: #fff;
+      border: 1px solid #e0d0ff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 80px;
+    }
+    .diff-tile-count {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .diff-tile-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #57606a;
+      margin-top: 2px;
+    }
+    .diff-tile.new     .diff-tile-count { color: #198038; }
+    .diff-tile.dropped .diff-tile-count { color: #da1e28; }
+    .diff-tile.promoted .diff-tile-count { color: #0043ce; }
+    .diff-tile.demoted  .diff-tile-count { color: #f59e0b; }
+    .diff-tile.slipped  .diff-tile-count { color: #da1e28; }
+    .diff-tile.amount   .diff-tile-count { color: #525252; }
+    .diff-tile.pulled   .diff-tile-count { color: #198038; }
+    #diff-ai-paragraph {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    #diff-bullets {
+      margin: 0 0 12px 16px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1f2328;
+    }
+    #diff-bullets li { margin-bottom: 4px; }
+    .diff-no-data {
+      font-size: 13px;
+      color: #57606a;
+      padding: 8px 0;
+      font-style: italic;
+    }
+
     /* ── Main content ── */
     main { padding: 16px 24px 32px; }
 
@@ -352,7 +514,7 @@
     }
 
     /* ── Confidence score ── */
-    .score-cell { text-align: center; width: 72px; min-width: 72px; max-width: 72px; }
+    .score-cell { text-align: center; width: 120px; min-width: 120px; max-width: 120px; }
 
     .score-badge {
       display: inline-flex;
@@ -368,6 +530,35 @@
     .score-high   { background: #defbe6; color: #198038; }
     .score-medium { background: #fef3cd; color: #9b6900; }
     .score-low    { background: #fff1f1; color: #da1e28; }
+
+    /* AI score badge — sits below rule badge in the same cell */
+    .ai-score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: help;
+      white-space: nowrap;
+      border: 1px solid #d0e2ff;
+      background: #edf5ff;
+      color: #0043ce;
+      margin-top: 3px;
+    }
+    .ai-score-badge.mock { border-color: #e0e0e0; background: #f4f4f4; color: #6f6f6f; }
+    .ai-score-delta-warn { color: #da1e28; font-size: 10px; margin-left: 2px; }
+
+    /* watsonx mode indicator in toolbar */
+    .wx-status {
+      font-size: 11px; color: #6f6f6f; display: flex; align-items: center; gap: 5px;
+    }
+    .wx-status .wx-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+    }
+    .wx-dot.live { background: #198038; }
+    .wx-dot.mock { background: #f59e0b; }
 
     /* ── Forecast badges ── */
     .badge {
@@ -386,25 +577,22 @@
     .flm-no  { color: #6f6f6f; }
 
     /* ── Tooltip ── */
-    .tooltip-wrap { position: relative; display: inline-block; }
-    .tooltip-box {
+    /* ── Global floating tooltip — fixed position, never clipped by overflow ── */
+    #global-tooltip {
       display: none;
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 50%;
-      transform: translateX(-50%);
+      position: fixed;
+      z-index: 9999;
       background: #161616;
       color: #f4f4f4;
       font-size: 11px;
       border-radius: 4px;
       padding: 10px 12px;
-      z-index: 200;
-      width: 220px;
+      width: 260px;
       white-space: normal;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       pointer-events: none;
+      line-height: 1.5;
     }
-    .tooltip-wrap:hover .tooltip-box { display: block; }
     .tooltip-row {
       display: flex;
       justify-content: space-between;
@@ -448,10 +636,15 @@
 
 <div class="toolbar">
   <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
+  <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
+  <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
+  <button class="btn-primary"   id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
+  <button class="btn-secondary" id="btn-snapshot">📌 Save Baseline</button>
   <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
   <button class="btn-secondary" id="btn-select-all">Select All</button>
   <button class="btn-secondary" id="btn-clear-all">Clear All</button>
   <button class="btn-secondary" id="btn-select-high">Select 🟢 High</button>
+  <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
   <span class="selection-summary" id="selection-summary">0 selected</span>
 </div>
 
@@ -527,8 +720,40 @@
   <span class="totals-note" id="totals-note"></span>
 </div>
 
+<div id="global-tooltip"></div>
 <div id="status-bar"></div>
 <pre id="scrape-log"></pre>
+
+<!-- GM Narrative Panel — shown after Generate Narrative is clicked -->
+<div id="narrative-panel">
+  <div class="narrative-header">
+    <h3>GM Meeting Narrative</h3>
+    <span class="narrative-mode-tag" id="narrative-mode-tag">mock</span>
+  </div>
+  <p id="narrative-paragraph"></p>
+  <ul id="narrative-bullets"></ul>
+  <div class="narrative-actions">
+    <button class="btn-copy" id="btn-copy-narrative">⎘ Copy to clipboard</button>
+    <button class="btn-copy" id="btn-close-narrative">✕ Close</button>
+  </div>
+</div>
+
+<!-- What Changed Panel — shown after "⇄ What Changed" is clicked -->
+<div id="diff-panel">
+  <div class="diff-header">
+    <h3 id="diff-heading">What Changed This Week</h3>
+    <span class="diff-mode-tag" id="diff-mode-tag">mock</span>
+  </div>
+  <div class="diff-grid" id="diff-grid"></div>
+  <p id="diff-ai-paragraph"></p>
+  <ul id="diff-bullets"></ul>
+  <p class="diff-no-data" id="diff-no-data" style="display:none">
+    No baseline saved yet. Click <strong>📌 Save Baseline</strong> after your GM call to lock in this week's pipeline — then next week's "⇄ What Changed" will compare live data against it.
+  </p>
+  <div class="narrative-actions">
+    <button class="btn-copy" id="btn-close-diff">✕ Close</button>
+  </div>
+</div>
 
 <main>
   <div class="table-wrap">
@@ -616,6 +841,7 @@
     const pct   = Math.round(score);
     const bd    = opp.breakdown || {};
 
+    // Build rules tooltip HTML (stored in data-tip, rendered by global tooltip engine)
     const tooltipRows = [
       ['Stage',      bd.stage],
       ['Forecast',   bd.forecast],
@@ -631,14 +857,33 @@
       </div>`
     ).join('');
 
-    return `<div class="tooltip-wrap">
-      <span class="score-badge ${cls}">
-        ${dot} ${pct}
-      </span>
-      <div class="tooltip-box">
-        <div class="tooltip-title">Confidence: ${pct}/100 · ${tier}</div>
-        ${tooltipRows}
-      </div>
+    const rulesTipHtml = `<div class="tooltip-title">Rules: ${pct}/100 · ${tier}</div>${tooltipRows}`;
+
+    // Rules badge — data-tip carries the HTML for the global tooltip
+    const rulesBadge = `<span class="score-badge ${cls} has-tip" data-tip="${esc(rulesTipHtml)}">${dot} ${pct}</span>`;
+
+    // watsonx badge
+    const hasAI = opp.ai_score != null;
+    if (!hasAI) {
+      return `<div style="display:flex;flex-direction:column;align-items:center;">${rulesBadge}</div>`;
+    }
+
+    const aiPct     = Math.round(opp.ai_score);
+    const delta     = Math.abs(pct - aiPct);
+    const mockLabel = opp.mock ? ' · mock' : '';
+    const deltaNote = delta >= 20
+      ? `<div style="margin-top:8px;font-size:10px;color:#f4a261;">⚠️ Rules and AI differ by ${delta} pts — review manually</div>`
+      : '';
+
+    const wxTipHtml = `<div class="tooltip-title">watsonx.ai · ${aiPct}/100${mockLabel}</div>`
+      + `<div style="font-size:11px;color:#c6c6c6;line-height:1.5;margin-top:4px;">${esc(opp.ai_rationale || '—')}</div>`
+      + deltaNote;
+
+    const wxBadge = `<span class="ai-score-badge${opp.mock ? ' mock' : ''} has-tip" data-tip="${esc(wxTipHtml)}">⬡ ${aiPct}${delta >= 20 ? ' ⚠️' : ''}</span>`;
+
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+      ${rulesBadge}
+      ${wxBadge}
     </div>`;
   }
 
@@ -683,7 +928,10 @@
     }
 
     document.getElementById('selection-summary').textContent = summary;
-    document.getElementById('btn-generate').disabled = totalSelected === 0;
+    document.getElementById('btn-generate').disabled  = totalSelected === 0;
+    // Narrative uses the filtered view, not the checkbox selection —
+    // enable whenever there are visible rows (even if none are checked)
+    document.getElementById('btn-narrative').disabled = filtered.length === 0;
   }
 
   // ── Multi-select dropdown engine ───────────────────────────────────────────
@@ -904,6 +1152,7 @@
       shown === total ? `all ${total} opportunities` : `${shown} of ${total} shown`;
 
     renderTable();
+    updateSelectionSummary(); // keeps btn-narrative enabled/disabled in sync with filtered.length
   }
 
   // ── Render table ────────────────────────────────────────────────────────────
@@ -1220,8 +1469,280 @@
     }
   }
 
+  // ── Global tooltip engine ──────────────────────────────────────────────────
+  // Uses a single fixed-position div so tooltips are never clipped by
+  // overflow:hidden on td or sticky columns.
+  (function initGlobalTooltip() {
+    const tip = document.getElementById('global-tooltip');
+
+    document.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('.has-tip');
+      if (!el) return;
+      const html = el.dataset.tip;
+      if (!html) return;
+      // Unescape the stored HTML (it was esc()'d to survive the attribute)
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      tip.innerHTML = div.innerHTML;
+      tip.style.display = 'block';
+      positionTip(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (tip.style.display === 'none') return;
+      if (!e.target.closest('.has-tip')) return;
+      positionTip(e);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.has-tip')) return;
+      // Only hide if we're leaving the .has-tip element entirely
+      if (!e.relatedTarget || !e.relatedTarget.closest('.has-tip')) {
+        tip.style.display = 'none';
+      }
+    });
+
+    function positionTip(e) {
+      const margin = 12;
+      const tw = tip.offsetWidth  || 260;
+      const th = tip.offsetHeight || 100;
+      let x = e.clientX + margin;
+      let y = e.clientY + margin;
+      // Flip left if tooltip would overflow right edge
+      if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - margin;
+      // Flip up if tooltip would overflow bottom edge
+      if (y + th > window.innerHeight - 8) y = e.clientY - th - margin;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    }
+  })();
+
+  // ── Score with watsonx button ──────────────────────────────────────────────
+  document.getElementById('btn-score-wx').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-score-wx');
+    const log = document.getElementById('scrape-log');
+    btn.disabled = true;
+    log.textContent = '';
+    log.style.display = 'block';
+    setStatus('Running watsonx.ai scoring…', 'loading');
+    try {
+      const res = await fetch('/api/score-opportunities', { method: 'POST' });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        log.textContent += decoder.decode(value);
+        log.scrollTop = log.scrollHeight;
+      }
+      setStatus('watsonx.ai scoring complete. Reloading scores…', 'success');
+      await loadOpportunities();
+      await loadWatsonxStatus();
+    } catch (err) {
+      setStatus('Scoring failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Generate Narrative button ──────────────────────────────────────────────
+  document.getElementById('btn-narrative').addEventListener('click', async () => {
+    const btn   = document.getElementById('btn-narrative');
+    const panel = document.getElementById('narrative-panel');
+    btn.disabled = true;
+    btn.textContent = '✍ Generating…';
+    panel.style.display = 'none';
+    setStatus('Generating GM narrative…', 'loading');
+    try {
+      // Send the IDs of the currently-filtered visible opportunities so the
+      // narrative reflects exactly what Dushyant sees on screen, not the full DB.
+      // Sorted by amount desc to match what the server passes to generateNarrative.
+      const filteredIds = [...filtered]
+        .sort((a, b) => (b.total_opportunity_amount || 0) - (a.total_opportunity_amount || 0))
+        .map(o => o.id);
+
+      const res  = await fetch('/api/generate-narrative', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids: filteredIds }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Narrative generation failed.', 'error'); return; }
+
+      document.getElementById('narrative-paragraph').textContent = data.paragraph;
+
+      const ul = document.getElementById('narrative-bullets');
+      ul.innerHTML = '';
+      (data.bullets || []).forEach(b => {
+        const li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+
+      const tag = document.getElementById('narrative-mode-tag');
+      tag.textContent = data.mock ? 'mock' : 'live · llama-3-70b';
+      panel.classList.toggle('mock-mode', !!data.mock);
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      const isSubset = filteredIds.length < allOpportunities.length;
+      const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
+      setStatus(`Narrative generated from ${viewLabel}.`, 'success');
+    } catch (err) {
+      setStatus('Narrative failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✍ Generate Narrative';
+    }
+  });
+
+  // ── Copy narrative to clipboard ────────────────────────────────────────────
+  document.getElementById('btn-copy-narrative').addEventListener('click', () => {
+    const para    = document.getElementById('narrative-paragraph').textContent;
+    const bullets = [...document.querySelectorAll('#narrative-bullets li')].map(li => '• ' + li.textContent).join('\n');
+    const text    = para + (bullets ? '\n\n' + bullets : '');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-copy-narrative');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '⎘ Copy to clipboard'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+      setStatus('Clipboard copy failed — please copy manually.', 'error');
+    });
+  });
+
+  // ── Close narrative panel ──────────────────────────────────────────────────
+  document.getElementById('btn-close-narrative').addEventListener('click', () => {
+    document.getElementById('narrative-panel').style.display = 'none';
+  });
+
+  // ── watsonx status indicator ───────────────────────────────────────────────
+  async function loadWatsonxStatus() {
+    try {
+      const res  = await fetch('/api/watsonx-status');
+      const data = await res.json();
+      const dot  = document.getElementById('wx-dot');
+      const txt  = document.getElementById('wx-status-text');
+      dot.className = `wx-dot ${data.mode}`;
+      if (data.mode === 'live') {
+        txt.textContent = `watsonx: LIVE · ${data.scored}/${data.total} scored`;
+      } else {
+        txt.textContent = data.scored > 0
+          ? `watsonx: mock · ${data.scored}/${data.total} scored`
+          : 'watsonx: mock mode';
+      }
+    } catch {
+      document.getElementById('wx-status-text').textContent = 'watsonx: unavailable';
+    }
+  }
+
+  // ── What Changed (week-over-week diff) ─────────────────────────────────────
+  document.getElementById('btn-diff').addEventListener('click', async () => {
+    const btn   = document.getElementById('btn-diff');
+    const panel = document.getElementById('diff-panel');
+    btn.disabled = true;
+    btn.textContent = '⇄ Loading…';
+    panel.style.display = 'none';
+    setStatus('Loading week-over-week diff…', 'loading');
+
+    try {
+      const res  = await fetch('/api/diff?summary=true');
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Diff failed.', 'error'); return; }
+
+      const noData  = document.getElementById('diff-no-data');
+      const grid    = document.getElementById('diff-grid');
+      const aiPara  = document.getElementById('diff-ai-paragraph');
+      const bullets = document.getElementById('diff-bullets');
+      const heading = document.getElementById('diff-heading');
+      const tag     = document.getElementById('diff-mode-tag');
+
+      grid.innerHTML    = '';
+      aiPara.textContent = '';
+      bullets.innerHTML = '';
+
+      if (!data.hasData) {
+        noData.style.display = 'block';
+        heading.textContent = 'What Changed';
+        tag.textContent = 'no baseline';
+        panel.classList.remove('mock-mode');
+        panel.style.display = 'block';
+        setStatus('No baseline saved yet — click 📌 Save Baseline after your GM call.', 'info');
+        return;
+      }
+
+      noData.style.display = 'none';
+      heading.textContent = `What Changed: live vs ${data.previousWeek}`;
+
+      // Build tiles
+      const tiles = [
+        { cls: 'new',      label: 'New',         count: data.new?.length      || 0 },
+        { cls: 'dropped',  label: 'Dropped',      count: data.dropped?.length  || 0 },
+        { cls: 'promoted', label: 'Promoted',     count: data.promoted?.length || 0 },
+        { cls: 'demoted',  label: 'Demoted',      count: data.demoted?.length  || 0 },
+        { cls: 'slipped',  label: 'Slipped',      count: data.slipped?.length  || 0 },
+        { cls: 'amount',   label: 'Amt Changed',  count: data.amount?.length   || 0 },
+        { cls: 'pulled',   label: 'Pulled In',    count: data.pulled_in?.length|| 0 },
+      ];
+      tiles.forEach(t => {
+        const tile = document.createElement('div');
+        tile.className = `diff-tile ${t.cls}`;
+        tile.innerHTML = `<div class="diff-tile-count">${t.count}</div><div class="diff-tile-label">${t.label}</div>`;
+        grid.appendChild(tile);
+      });
+
+      // AI summary
+      const isMock = !data.aiSummary || data.aiSummary.mock;
+      tag.textContent = isMock ? 'mock' : 'live · granite-3-8b';
+      panel.classList.toggle('mock-mode', isMock);
+
+      if (data.aiSummary && data.aiSummary.paragraph) {
+        aiPara.textContent = data.aiSummary.paragraph;
+        (data.aiSummary.bullets || []).forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = b;
+          bullets.appendChild(li);
+        });
+      } else {
+        aiPara.textContent = data.summary || '';
+      }
+
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setStatus(`Week-over-week diff: ${data.summary}`, 'success');
+    } catch (err) {
+      setStatus('Diff failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⇄ What Changed';
+    }
+  });
+
+  // ── Save Baseline ──────────────────────────────────────────────────────────
+  document.getElementById('btn-snapshot').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-snapshot');
+    btn.disabled = true;
+    btn.textContent = '📌 Saving…';
+    setStatus('Saving pipeline baseline…', 'loading');
+    try {
+      const res  = await fetch('/api/snapshot', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Baseline save failed.', 'error'); return; }
+      setStatus(`✅ Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Use "⇄ What Changed" next week to see deltas.`, 'success');
+    } catch (err) {
+      setStatus('Save Baseline failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📌 Save Baseline';
+    }
+  });
+
+  document.getElementById('btn-close-diff').addEventListener('click', () => {
+    document.getElementById('diff-panel').style.display = 'none';
+  });
+
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '2.1.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
@@ -1229,6 +1750,7 @@
   document.getElementById('footer-version').textContent = `v${APP_VERSION}`;
 
   loadOpportunities();
+  loadWatsonxStatus();
 </script>
 </body>
 </html>

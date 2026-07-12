@@ -2,21 +2,29 @@
  * server/index.js
  *
  * Local Express API server — the backbone of the ISC Automated Sales Forecast app.
- * Listens on http://localhost:3000
+ * Listens on http://localhost:3090
  *
  * Endpoints:
- *   GET  /api/opportunities           — fetch all opportunities from SQLite
- *   POST /api/opportunities/:id/select — update selected flag for one opportunity
- *   POST /api/scrape                  — trigger the Playwright ISC scraper
- *   POST /api/generate-ppt            — generate PowerPoint from selected opportunities
+ *   GET  /api/opportunities             — fetch all opportunities (rule + AI scores)
+ *   POST /api/opportunities/:id/select  — update selected flag for one opportunity
+ *   POST /api/scrape                    — trigger HAR/devtools/Playwright scraper
+ *   POST /api/score-opportunities       — run watsonx.ai scoring on all opportunities
+ *   GET  /api/watsonx-status            — returns current watsonx mode (live/mock)
+ *   POST /api/generate-narrative        — generate GM meeting executive narrative (watsonx)
+ *   POST /api/generate-ppt              — generate PowerPoint from selected opportunities
+ *   POST /api/snapshot                  — save baseline snapshot (deliberate action, after GM call)
+ *   GET  /api/diff                      — return diff: live opportunities vs. most-recent snapshot
  */
 
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { spawn } = require('child_process');
 const db = require('./db');
 const generatePpt = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
+const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
+const { saveSnapshot, computeDiff } = require('./diffEngine');
 
 const app = express();
 const PORT = process.env.PORT || 3090;
@@ -28,21 +36,143 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------------------------------------------------------------------------
 // GET /api/opportunities
-// Returns all opportunities ordered by close_date ascending.
+// Returns all opportunities with both rule-based and AI scores.
 // ---------------------------------------------------------------------------
 app.get('/api/opportunities', (req, res) => {
   try {
     const rows = db
       .prepare('SELECT * FROM opportunities ORDER BY close_date ASC, total_opportunity_amount DESC')
       .all();
-    // Inject confidence score into each row before sending to frontend
     const scored = rows.map(row => {
       const { score, tier, closeQuarter, breakdown } = scoreOpportunity(row);
-      return { ...row, score, tier, closeQuarter, breakdown };
+      return {
+        ...row,
+        // Rule-based score (always available)
+        score, tier, closeQuarter, breakdown,
+        // AI score fields (null until /api/score-opportunities is called)
+        ai_score:     row.ai_score     ?? null,
+        ai_rationale: row.ai_rationale ?? null,
+        ai_scored_at: row.ai_scored_at ?? null,
+      };
     });
     res.json(scored);
   } catch (err) {
     console.error('GET /api/opportunities error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/watsonx-status
+// Returns the current watsonx mode so the frontend can show the right UI.
+// ---------------------------------------------------------------------------
+app.get('/api/watsonx-status', (req, res) => {
+  const scored = db.prepare('SELECT COUNT(*) as n FROM opportunities WHERE ai_score IS NOT NULL').get();
+  res.json({
+    enabled:  isLiveMode(),
+    mode:     isLiveMode() ? 'live' : 'mock',
+    model:    modelId,
+    scored:   scored.n,
+    total:    db.prepare('SELECT COUNT(*) as n FROM opportunities').get().n,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/score-opportunities
+// Runs watsonx.ai (or mock) scoring on all opportunities in the database.
+// Streams progress back as plain text so the UI can show a progress indicator.
+// Re-scores all rows on every call — scores are cheap and data may have changed.
+// ---------------------------------------------------------------------------
+app.post('/api/score-opportunities', async (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  const mode = isLiveMode() ? `LIVE (${modelId})` : 'MOCK';
+  res.write(`Starting watsonx.ai scoring in ${mode} mode...\n`);
+
+  try {
+    const rows = db
+      .prepare('SELECT * FROM opportunities ORDER BY close_date ASC')
+      .all();
+
+    res.write(`Scoring ${rows.length} opportunities...\n`);
+
+    const updateStmt = db.prepare(
+      'UPDATE opportunities SET ai_score = ?, ai_rationale = ?, ai_scored_at = ? WHERE id = ?'
+    );
+
+    const results = await batchScore(
+      rows,
+      (opp) => scoreOpportunity(opp).score,  // rule-based score as anchor
+      (done, total) => {
+        if (done % 10 === 0 || done === total) {
+          res.write(`  Scored ${done} of ${total}...\n`);
+        }
+      }
+    );
+
+    // Persist results in a single transaction
+    const now = new Date().toISOString();
+    db.transaction(() => {
+      results.forEach(r => {
+        updateStmt.run(r.score, r.rationale, now, r.id);
+      });
+    })();
+
+    const mockCount = results.filter(r => r.mock).length;
+    const liveCount = results.length - mockCount;
+    res.write(`\nDone. ${liveCount > 0 ? liveCount + ' live' : ''} ${mockCount > 0 ? mockCount + ' mock' : ''} scores saved.\n`);
+    res.end();
+  } catch (err) {
+    console.error('POST /api/score-opportunities error:', err.message);
+    res.write(`\nError: ${err.message}`);
+    res.end();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/generate-narrative
+// Body (optional): { ids: string[] }
+//   ids — the ordered list of opportunity IDs currently visible in the UI
+//         (filtered set). When provided, narrative reflects that exact view.
+//         When omitted, falls back to all selected=1 rows (backward compat).
+// Returns: { paragraph, bullets, mock, model, count }
+// ---------------------------------------------------------------------------
+app.post('/api/generate-narrative', async (req, res) => {
+  try {
+    let opps;
+    const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
+
+    if (ids && ids.length > 0) {
+      // Fetch only the rows the frontend is currently showing, preserving frontend order
+      const placeholders = ids.map(() => '?').join(',');
+      const byId = db
+        .prepare(`SELECT * FROM opportunities WHERE id IN (${placeholders})`)
+        .all(...ids);
+      // Re-sort to match the order the frontend sent (ids are already sorted by the UI)
+      const idIndex = new Map(ids.map((id, i) => [id, i]));
+      opps = byId.sort((a, b) => (idIndex.get(a.id) ?? 0) - (idIndex.get(b.id) ?? 0));
+    } else {
+      // Fallback: all selected rows
+      opps = db
+        .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC')
+        .all();
+    }
+
+    if (opps.length === 0) {
+      return res.status(400).json({ error: 'No opportunities in the current view. Adjust your filters or select opportunities first.' });
+    }
+
+    const result = await generateNarrative(opps);
+    res.json({
+      paragraph: result.paragraph,
+      bullets:   result.bullets,
+      mock:      result.mock,
+      model:     result.mock ? 'mock' : 'meta-llama/llama-3-70b-instruct',
+      count:     opps.length,
+    });
+  } catch (err) {
+    console.error('POST /api/generate-narrative error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -118,6 +248,58 @@ app.get('/api/save-cookies', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/snapshot
+// Deliberately freezes the current pipeline as the new baseline for
+// week-over-week diff. Should be called AFTER the GM meeting to lock in
+// "this week's final state" so next week's diff compares against it.
+// Uses INSERT OR REPLACE — re-calling in the same week updates the baseline
+// to the current moment (intentional, not a no-op).
+// Returns: { weekLabel, saved }
+// ---------------------------------------------------------------------------
+app.post('/api/snapshot', (req, res) => {
+  try {
+    const result = saveSnapshot(db);
+    res.json(result);
+  } catch (err) {
+    console.error('POST /api/snapshot error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/diff
+// Compares the two most-recent week_labels in the snapshots table and returns
+// a structured diff object. If fewer than 2 snapshots exist, returns
+// { hasData: false } so the UI can show a "Not enough history yet" message.
+// Optional query param: ?summary=true — also triggers watsonx delta summary.
+// Returns: diff object from diffEngine.computeDiff()
+// ---------------------------------------------------------------------------
+app.get('/api/diff', async (req, res) => {
+  try {
+    const diff = computeDiff(db);
+    if (!diff.hasData) {
+      return res.json(diff);
+    }
+
+    // Optionally generate a watsonx AI summary of the changes
+    if (req.query.summary === 'true') {
+      try {
+        const aiSummary = await generateDeltaSummary(diff);
+        diff.aiSummary = aiSummary;
+      } catch (e) {
+        console.warn('GET /api/diff: delta summary skipped —', e.message);
+        diff.aiSummary = null;
+      }
+    }
+
+    res.json(diff);
+  } catch (err) {
+    console.error('GET /api/diff error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/scrape
 // Spawns the appropriate scraper as a child process.
 // - If scraper/devtools-response.json exists → load-from-devtools.js (recommended)
@@ -165,7 +347,7 @@ app.post('/api/scrape', (req, res) => {
 
   child.on('close', (code) => {
     if (code === 0) {
-      res.write('\nScrape complete.');
+      res.write('\nScrape complete. Click "📌 Save Baseline" after your GM call to lock in this week for future diffs.');
     } else {
       res.write(`\nScrape exited with code ${code}.`);
     }
@@ -198,7 +380,28 @@ app.post('/api/generate-ppt', async (req, res) => {
     const outputDir = path.join(__dirname, '..', 'output');
     const outputPath = path.join(outputDir, fileName);
 
-    await generatePpt(selected, outputPath);
+    // Auto-generate narrative for cover slide (non-blocking — PPT still works if this fails)
+    let narrative = null;
+    try {
+      narrative = await generateNarrative(selected);
+    } catch (e) {
+      console.warn('POST /api/generate-ppt: narrative generation skipped —', e.message);
+    }
+
+    // Auto-fetch week-over-week diff and AI delta summary (non-blocking)
+    let diff = null;
+    let deltaSummary = null;
+    try {
+      diff = computeDiff(db);
+      if (diff.hasData) {
+        const { generateDeltaSummary } = require('./watsonxScore');
+        deltaSummary = await generateDeltaSummary(diff);
+      }
+    } catch (e) {
+      console.warn('POST /api/generate-ppt: diff/delta skipped —', e.message);
+    }
+
+    await generatePpt(selected, outputPath, narrative, diff, deltaSummary);
 
     // Return the download URL (served as static file)
     res.json({ file: `/output/${fileName}`, count: selected.length });

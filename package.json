@@ -1,7 +1,7 @@
 {
   "name": "ucc1-isc-automated-sales-forecast",
-  "version": "1.0.0",
-  "description": "Automated ISC sales forecast extraction, selection, and PowerPoint generation for US Public Sector GM meetings.",
+  "version": "2.0.0",
+  "description": "Automated ISC sales forecast extraction, selection, and PowerPoint generation for US Public Sector GM meetings. v2.0.0 adds IBM watsonx.ai confidence scoring and GM narrative generation.",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0",
+    "dotenv": "^17.4.2",
     "express": "^4.18.2",
     "playwright": "^1.43.0",
     "pptxgenjs": "^3.12.0"

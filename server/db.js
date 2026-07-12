@@ -56,7 +56,50 @@ db.exec(`
     -- ── Metadata ───────────────────────────────────────────────────────────
     raw_data                    TEXT,               -- Full JSON record from Salesforce API (all fields)
     scraped_at                  TEXT,               -- ISO timestamp of last scrape
-    selected                    INTEGER DEFAULT 0   -- 1 = included in GM meeting, 0 = excluded
+    selected                    INTEGER DEFAULT 0,  -- 1 = included in GM meeting, 0 = excluded
+
+    -- ── watsonx.ai scoring (v2.0.0) ────────────────────────────────────────
+    ai_score                    INTEGER,            -- watsonx.ai confidence score 0–100
+    ai_rationale                TEXT,               -- One-sentence AI rationale
+    ai_scored_at                TEXT                -- ISO timestamp of last AI scoring
+  )
+`);
+
+// ── v2.0.0 migration — add watsonx columns to existing databases ──────────────
+// SQLite does not support ADD COLUMN IF NOT EXISTS, so we check PRAGMA table_info first.
+const existingCols = db.pragma('table_info(opportunities)').map(c => c.name);
+const v2Columns = [
+  { name: 'ai_score',      ddl: 'ALTER TABLE opportunities ADD COLUMN ai_score INTEGER'      },
+  { name: 'ai_rationale',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_rationale TEXT'     },
+  { name: 'ai_scored_at',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_scored_at TEXT'     },
+];
+v2Columns.forEach(({ name, ddl }) => {
+  if (!existingCols.includes(name)) {
+    db.exec(ddl);
+    console.log(`[db] Migration: added column ${name}`);
+  }
+});
+
+// ── v2.1.0 — snapshots table (week-over-week diff) ────────────────────────────
+// Each HAR import saves a point-in-time snapshot of the full pipeline.
+// Snapshots are keyed by week_label (e.g. "2026-W29") — one row per opportunity
+// per week. The diff engine compares the two most-recent distinct week_labels.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS snapshots (
+    id              TEXT NOT NULL,        -- Opportunity ID (matches opportunities.id)
+    week_label      TEXT NOT NULL,        -- ISO week label, e.g. "2026-W29"
+    snapped_at      TEXT NOT NULL,        -- ISO timestamp of snapshot
+    opportunity_name            TEXT,
+    account_name                TEXT,
+    stage                       TEXT,
+    forecast_category           TEXT,
+    close_date                  TEXT,
+    filtered_opportunity_amount REAL,
+    total_opportunity_amount    REAL,
+    opportunity_owner           TEXT,
+    flm_judgement               TEXT,
+    next_steps                  TEXT,
+    PRIMARY KEY (id, week_label)
   )
 `);
 
