@@ -1,11 +1,11 @@
 /**
  * server/generatePpt.js
  *
- * Generates a clean, minimal executive PowerPoint from an array of
- * selected sales opportunities.
+ * Generates a clean IBM-branded executive PowerPoint from selected sales opportunities.
+ * v2.0.0: accepts optional `narrative` param ({paragraph, bullets}) for the cover slide.
  *
- * Slide 1: Cover — "US Public Sector Sales Forecast" + week date
- * Slide 2+: Opportunity table (auto-paginates at 10 rows per slide)
+ * Slide 1: Cover — "US Public Sector Sales Forecast" + week date + optional GM narrative
+ * Slide 2+: Opportunity table (auto-paginates at ROWS_PER_SLIDE rows per slide)
  *
  * TODO: When the IBM PPT template is provided, load it here using:
  *   pres.load('path/to/ibm-template.pptx')
@@ -47,11 +47,12 @@ function formatCurrency(value) {
 
 /**
  * Generate the forecast PowerPoint.
- * @param {Array<Object>} opportunities - Selected opportunity rows from SQLite
- * @param {string} outputPath - Full file path to write the .pptx to
- * @returns {Promise<string>} Resolves to outputPath on success
+ * @param {Array<Object>} opportunities  selected opportunity rows from SQLite
+ * @param {string}        outputPath     absolute path where .pptx is written
+ * @param {{ paragraph?: string, bullets?: string[] }} [narrative]  optional GM narrative for cover
+ * @returns {Promise<void>}
  */
-async function generatePpt(opportunities, outputPath) {
+async function generatePpt(opportunities, outputPath, narrative = null) {
   const pres = new PptxGenJS();
 
   // Presentation defaults
@@ -102,6 +103,51 @@ async function generatePpt(opportunities, outputPath) {
     color: IBM_GRAY,
     fontFace: 'Calibri',
   });
+
+  // GM Narrative block (optional — present when narrative was generated)
+  if (narrative && narrative.paragraph) {
+    const NARRATIVE_BLUE = '0F62FE';
+
+    // Thin divider line
+    cover.addShape(pres.ShapeType.line, {
+      x: 0.5, y: 3.15, w: 12.33, h: 0,
+      line: { color: 'e0e0e0', width: 0.5 },
+    });
+
+    // "GM BRIEFING" label
+    cover.addText('GM BRIEFING', {
+      x: 0.5, y: 3.25, w: 12, h: 0.25,
+      fontSize: 9,
+      bold: true,
+      color: NARRATIVE_BLUE,
+      fontFace: 'Calibri',
+      charSpacing: 2,
+    });
+
+    // Paragraph text (wraps automatically)
+    cover.addText(narrative.paragraph, {
+      x: 0.5, y: 3.55, w: 12.33, h: 1.5,
+      fontSize: 11,
+      color: IBM_DARK,
+      fontFace: 'Calibri',
+      wrap: true,
+      valign: 'top',
+    });
+
+    // Bullet points
+    if (narrative.bullets && narrative.bullets.length > 0) {
+      const bulletRows = narrative.bullets.map(b => ({
+        text: b,
+        options: { bullet: { type: 'bullet' }, fontSize: 10, color: IBM_DARK, fontFace: 'Calibri' },
+      }));
+      cover.addText(bulletRows, {
+        x: 0.5, y: 5.1, w: 12.33, h: 1.5,
+        fontFace: 'Calibri',
+        wrap: true,
+        valign: 'top',
+      });
+    }
+  }
 
   // Bottom accent bar
   cover.addShape(pres.ShapeType.rect, {

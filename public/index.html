@@ -237,6 +237,72 @@
       border-bottom: 1px solid #393939;
     }
 
+    /* ── GM Narrative panel ── */
+    #narrative-panel {
+      display: none;
+      margin: 0;
+      padding: 16px 24px;
+      background: #f0f4ff;
+      border-bottom: 2px solid #0f62fe;
+    }
+    #narrative-panel.mock-mode {
+      background: #fdf6ec;
+      border-bottom-color: #f59e0b;
+    }
+    .narrative-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .narrative-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #0043ce;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    #narrative-panel.mock-mode .narrative-header h3 { color: #9b6900; }
+    .narrative-mode-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #d0e2ff;
+      color: #0043ce;
+    }
+    #narrative-panel.mock-mode .narrative-mode-tag { background: #fef3cd; color: #9b6900; }
+    #narrative-paragraph {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    #narrative-bullets {
+      margin: 0 0 12px 16px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1f2328;
+    }
+    #narrative-bullets li { margin-bottom: 4px; }
+    .narrative-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-copy {
+      font-size: 12px;
+      padding: 4px 12px;
+      border: 1px solid #0043ce;
+      background: #fff;
+      color: #0043ce;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .btn-copy:hover { background: #d0e2ff; }
+    .btn-copy.copied { border-color: #198038; color: #198038; }
+
     /* ── Main content ── */
     main { padding: 16px 24px 32px; }
 
@@ -475,6 +541,7 @@
 <div class="toolbar">
   <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
   <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
+  <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
   <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
   <button class="btn-secondary" id="btn-select-all">Select All</button>
   <button class="btn-secondary" id="btn-clear-all">Clear All</button>
@@ -558,6 +625,20 @@
 <div id="global-tooltip"></div>
 <div id="status-bar"></div>
 <pre id="scrape-log"></pre>
+
+<!-- GM Narrative Panel — shown after Generate Narrative is clicked -->
+<div id="narrative-panel">
+  <div class="narrative-header">
+    <h3>GM Meeting Narrative</h3>
+    <span class="narrative-mode-tag" id="narrative-mode-tag">mock</span>
+  </div>
+  <p id="narrative-paragraph"></p>
+  <ul id="narrative-bullets"></ul>
+  <div class="narrative-actions">
+    <button class="btn-copy" id="btn-copy-narrative">⎘ Copy to clipboard</button>
+    <button class="btn-copy" id="btn-close-narrative">✕ Close</button>
+  </div>
+</div>
 
 <main>
   <div class="table-wrap">
@@ -732,7 +813,8 @@
     }
 
     document.getElementById('selection-summary').textContent = summary;
-    document.getElementById('btn-generate').disabled = totalSelected === 0;
+    document.getElementById('btn-generate').disabled  = totalSelected === 0;
+    document.getElementById('btn-narrative').disabled = totalSelected === 0;
   }
 
   // ── Multi-select dropdown engine ───────────────────────────────────────────
@@ -1343,6 +1425,64 @@
     } finally {
       btn.disabled = false;
     }
+  });
+
+  // ── Generate Narrative button ──────────────────────────────────────────────
+  document.getElementById('btn-narrative').addEventListener('click', async () => {
+    const btn   = document.getElementById('btn-narrative');
+    const panel = document.getElementById('narrative-panel');
+    btn.disabled = true;
+    btn.textContent = '✍ Generating…';
+    panel.style.display = 'none';
+    setStatus('Generating GM narrative…', 'loading');
+    try {
+      const res  = await fetch('/api/generate-narrative', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Narrative generation failed.', 'error'); return; }
+
+      document.getElementById('narrative-paragraph').textContent = data.paragraph;
+
+      const ul = document.getElementById('narrative-bullets');
+      ul.innerHTML = '';
+      (data.bullets || []).forEach(b => {
+        const li = document.createElement('li');
+        li.textContent = b;
+        ul.appendChild(li);
+      });
+
+      const tag = document.getElementById('narrative-mode-tag');
+      tag.textContent = data.mock ? 'mock' : 'live · llama-3-70b';
+      panel.classList.toggle('mock-mode', !!data.mock);
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      setStatus(`Narrative generated from ${data.count} selected opportunit${data.count===1?'y':'ies'}.`, 'success');
+    } catch (err) {
+      setStatus('Narrative failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✍ Generate Narrative';
+    }
+  });
+
+  // ── Copy narrative to clipboard ────────────────────────────────────────────
+  document.getElementById('btn-copy-narrative').addEventListener('click', () => {
+    const para    = document.getElementById('narrative-paragraph').textContent;
+    const bullets = [...document.querySelectorAll('#narrative-bullets li')].map(li => '• ' + li.textContent).join('\n');
+    const text    = para + (bullets ? '\n\n' + bullets : '');
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('btn-copy-narrative');
+      btn.textContent = '✓ Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = '⎘ Copy to clipboard'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+      setStatus('Clipboard copy failed — please copy manually.', 'error');
+    });
+  });
+
+  // ── Close narrative panel ──────────────────────────────────────────────────
+  document.getElementById('btn-close-narrative').addEventListener('click', () => {
+    document.getElementById('narrative-panel').style.display = 'none';
   });
 
   // ── watsonx status indicator ───────────────────────────────────────────────
