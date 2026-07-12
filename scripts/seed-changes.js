@@ -40,12 +40,21 @@ if (rows.length < 8) {
   process.exit(1);
 }
 
+// Stage order — used to pick a guaranteed lower stage for the demotion scenario
+const STAGE_ORDER = ['1 - Prospect', '2 - Qualify', '3 - Develop', '4 - Propose', '5 - Negotiate', '6 - Close'];
+
+function demotedStage(currentStage) {
+  const idx = STAGE_ORDER.indexOf(currentStage);
+  // If already at lowest (or unknown), fall back to '1 - Prospect'
+  return idx > 0 ? STAGE_ORDER[idx - 1] : '1 - Prospect';
+}
+
 // Build the change manifest — defines both what to apply AND how to restore
 const changes = [
   // [index, field,                    original value (from live),       seeded value]
   { idx: 1, field: 'stage',                    orig: rows[1].stage,                    val: '4 - Propose'  },  // promoted
   { idx: 2, field: 'stage',                    orig: rows[2].stage,                    val: '5 - Negotiate'},  // promoted
-  { idx: 3, field: 'stage',                    orig: rows[3].stage,                    val: '2 - Qualify'  },  // demoted
+  { idx: 3, field: 'stage',                    orig: rows[3].stage,                    val: demotedStage(rows[3].stage) },  // demoted (always one step below current)
   { idx: 4, field: 'total_opportunity_amount', orig: rows[4].total_opportunity_amount, val: rows[4].total_opportunity_amount * 1.5 }, // +50% amount up
   { idx: 5, field: 'total_opportunity_amount', orig: rows[5].total_opportunity_amount, val: Math.max(rows[5].total_opportunity_amount * 0.6, 100000) }, // -40% amount down
   { idx: 6, field: 'close_date',               orig: rows[6].close_date,               val: bumpDate(rows[6].close_date, +21) }, // slipped 3 weeks

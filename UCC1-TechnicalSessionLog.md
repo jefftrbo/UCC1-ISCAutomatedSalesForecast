@@ -1580,3 +1580,49 @@ git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseli
 ```
 
 ---
+
+  ## Session 5 — seed-changes.js Demotion Bug Fix (July 13, 2026)
+
+  ### Bug Found During UI Test
+
+  **Symptom:** Running the UI end-to-end test (correct order: Save Baseline → seed → What Changed) showed `DEMOTED: 0` instead of `DEMOTED: 1`. The "What Changed" panel showed 2 promoted, 2 amt changed, 2 slipped, 1 pulled in — but zero demotions.
+
+  **Root cause:** `scripts/seed-changes.js` hardcoded `'2 - Qualify'` as the demotion target for `rows[3]`. The deal at index 3 (`BCBS of SC - Mainframe Storage...`) was already at `2 - Qualify` in the live DB, so the UPDATE was a no-op — same value written back. The terminal output confirmed it:
+  ```
+  BCBS of SC - Mainframe Storage for New D    stage      2 - Qualify → 2 - Qualify
+  ```
+
+  **Fix applied (`scripts/seed-changes.js`):**
+  - Added `STAGE_ORDER` array: `['1 - Prospect', '2 - Qualify', '3 - Develop', '4 - Propose', '5 - Negotiate', '6 - Close']`
+  - Added `demotedStage(currentStage)` helper: looks up the current stage's index in `STAGE_ORDER` and returns the stage one step lower. Falls back to `'1 - Prospect'` if already at lowest or stage string is unrecognised.
+  - Changed `rows[3]` demotion entry from `val: '2 - Qualify'` → `val: demotedStage(rows[3].stage)` — now always one step below whatever the live stage is, guaranteed non-no-op.
+
+  **Validation steps (exact):**
+  ```bash
+  # Step 1 — restore any previously seeded data (safe to run even if already clean)
+  node scripts/seed-changes.js --restore
+
+  # Step 2 — confirm the demotion target will be a real change
+  node scripts/seed-changes.js --status
+  # rows[3] "seeded" value should show a stage DIFFERENT from "original" value
+
+  # Step 3 — in browser: click "📌 Save Baseline"
+
+  # Step 4 — apply mutations
+  node scripts/seed-changes.js
+  # terminal output for rows[3] should now show e.g. "4 - Propose → 3 - Develop" (not X → X)
+
+  # Step 5 — in browser: click "⇄ What Changed"
+  # Expected tile counts: NEW=0, DROPPED=0, PROMOTED=2, DEMOTED=1, SLIPPED=2, AMT CHANGED=2, PULLED IN=1
+
+  # Step 6 — cleanup
+  node scripts/seed-changes.js --restore
+  ```
+
+  **Commit:**
+  ```bash
+  git add scripts/seed-changes.js
+  git commit -m "fix: seed-changes demotion — dynamic demotedStage() replaces hardcoded '2 - Qualify'"
+  ```
+
+  ---
