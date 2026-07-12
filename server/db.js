@@ -72,6 +72,9 @@ const v2Columns = [
   { name: 'ai_score',      ddl: 'ALTER TABLE opportunities ADD COLUMN ai_score INTEGER'      },
   { name: 'ai_rationale',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_rationale TEXT'     },
   { name: 'ai_scored_at',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_scored_at TEXT'     },
+  // v2.2.0 — persist rules-based score + tier so snapshots capture before→after confidence
+  { name: 'score',         ddl: 'ALTER TABLE opportunities ADD COLUMN score INTEGER'          },
+  { name: 'tier',          ddl: 'ALTER TABLE opportunities ADD COLUMN tier TEXT'              },
 ];
 v2Columns.forEach(({ name, ddl }) => {
   if (!existingCols.includes(name)) {
