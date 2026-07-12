@@ -50,9 +50,11 @@ function formatCurrency(value) {
  * @param {Array<Object>} opportunities  selected opportunity rows from SQLite
  * @param {string}        outputPath     absolute path where .pptx is written
  * @param {{ paragraph?: string, bullets?: string[] }} [narrative]  optional GM narrative for cover
+ * @param {object} [diff]  optional week-over-week diff from diffEngine.computeDiff()
+ * @param {{ paragraph?: string, bullets?: string[] }} [deltaSummary]  optional AI delta summary
  * @returns {Promise<void>}
  */
-async function generatePpt(opportunities, outputPath, narrative = null) {
+async function generatePpt(opportunities, outputPath, narrative = null, diff = null, deltaSummary = null) {
   const pres = new PptxGenJS();
 
   // Presentation defaults
@@ -272,6 +274,111 @@ async function generatePpt(opportunities, outputPath, narrative = null) {
       fontSize: 9,
       color: WHITE,
       fontFace: 'Calibri',
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // "What Changed" slide — only rendered when diff data is available
+  // ---------------------------------------------------------------------------
+  if (diff && diff.hasData) {
+    const changeSlide = pres.addSlide();
+
+    // Header bar
+    changeSlide.addShape(pres.ShapeType.rect, {
+      x: 0, y: 0, w: '100%', h: 0.6,
+      fill: { color: IBM_BLUE },
+    });
+    changeSlide.addText('What Changed This Week', {
+      x: 0.3, y: 0.05, w: 10, h: 0.5,
+      fontSize: 14, bold: true, color: WHITE, fontFace: 'Calibri',
+    });
+    changeSlide.addText(`${diff.previousWeek} → ${diff.currentWeek}`, {
+      x: 9.5, y: 0.1, w: 3.5, h: 0.4,
+      fontSize: 10, color: WHITE, align: 'right', fontFace: 'Calibri',
+    });
+
+    // AI delta summary paragraph (if available)
+    let contentY = 0.8;
+    if (deltaSummary && deltaSummary.paragraph) {
+      changeSlide.addText(deltaSummary.paragraph, {
+        x: 0.3, y: contentY, w: 12.7, h: 0.8,
+        fontSize: 11, color: IBM_DARK, fontFace: 'Calibri', wrap: true, valign: 'top',
+      });
+      contentY += 0.9;
+    }
+
+    // Change category table
+    const categories = [
+      { label: 'New Deals',         count: diff.new.length,       color: '198038' },
+      { label: 'Dropped',           count: diff.dropped.length,   color: 'da1e28' },
+      { label: 'Stage Promoted',    count: diff.promoted.length,  color: '0043ce' },
+      { label: 'Stage Demoted',     count: diff.demoted.length,   color: 'f59e0b' },
+      { label: 'Amount Changes',    count: diff.amount.length,    color: '525252' },
+      { label: 'Close Date Slipped',count: diff.slipped.length,   color: 'da1e28' },
+      { label: 'Pulled In Earlier', count: diff.pulled_in.length, color: '198038' },
+    ].filter(c => c.count > 0);
+
+    if (categories.length === 0) {
+      changeSlide.addText('No significant changes detected this week.', {
+        x: 0.3, y: contentY, w: 12, h: 0.5,
+        fontSize: 12, color: IBM_GRAY, fontFace: 'Calibri', italic: true,
+      });
+    } else {
+      const catTableData = [
+        [
+          { text: 'Category',   options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10 } },
+          { text: 'Count',      options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10, align: 'center' } },
+          { text: 'Top Examples', options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10 } },
+        ],
+        ...categories.map((cat, i) => {
+          const bg = i % 2 === 0 ? 'F4F4F4' : WHITE;
+          // Pull top 3 examples for this category from diff
+          let examples = [];
+          if (cat.label === 'New Deals')          examples = diff.new.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Dropped')            examples = diff.dropped.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Stage Promoted')     examples = diff.promoted.slice(0,3).map(r => `${r.opportunity_name} (→${r.curStage})`);
+          if (cat.label === 'Stage Demoted')      examples = diff.demoted.slice(0,3).map(r => `${r.opportunity_name} (→${r.curStage})`);
+          if (cat.label === 'Amount Changes')     examples = diff.amount.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Close Date Slipped') examples = diff.slipped.slice(0,3).map(r => `${r.opportunity_name} (+${r.daysDiff}d)`);
+          if (cat.label === 'Pulled In Earlier')  examples = diff.pulled_in.slice(0,3).map(r => `${r.opportunity_name} (${r.daysDiff}d)`);
+
+          return [
+            { text: cat.label,               options: { fill: { color: bg }, color: IBM_DARK, fontSize: 9 } },
+            { text: String(cat.count),       options: { fill: { color: bg }, color: `${cat.color}`, fontSize: 11, bold: true, align: 'center' } },
+            { text: examples.join('  |  ') || '—', options: { fill: { color: bg }, color: IBM_GRAY, fontSize: 8 } },
+          ];
+        }),
+      ];
+
+      changeSlide.addTable(catTableData, {
+        x: 0.3, y: contentY, w: 12.7,
+        colW: [2.2, 0.8, 9.7],
+        rowH: [0.28, ...Array(categories.length).fill(0.28)],
+        border: { pt: 0.5, color: 'E0E0E0' },
+      });
+      contentY += 0.35 * (categories.length + 1) + 0.2;
+    }
+
+    // AI delta bullets (if available)
+    if (deltaSummary && deltaSummary.bullets && deltaSummary.bullets.length > 0) {
+      const bulletRows = deltaSummary.bullets.map(b => ({
+        text: b,
+        options: { bullet: { type: 'bullet' }, fontSize: 10, color: IBM_DARK, fontFace: 'Calibri' },
+      }));
+      changeSlide.addText(bulletRows, {
+        x: 0.3, y: Math.min(contentY, 5.8), w: 12.7, h: 1.5,
+        fontFace: 'Calibri', wrap: true, valign: 'top',
+      });
+    }
+
+    // Bottom bar
+    changeSlide.addShape(pres.ShapeType.rect, {
+      x: 0, y: BOTTOM_BAR_Y, w: '100%', h: SLIDE_H - BOTTOM_BAR_Y,
+      fill: { color: IBM_BLUE },
+    });
+    changeSlide.addText(weekLabel, {
+      x: 0.3, y: BOTTOM_BAR_Y + 0.05, w: 12, h: 0.4,
+      fontSize: 9, color: WHITE, fontFace: 'Calibri',
     });
   }
 

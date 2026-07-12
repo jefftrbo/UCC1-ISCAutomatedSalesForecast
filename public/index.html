@@ -303,6 +303,102 @@
     .btn-copy:hover { background: #d0e2ff; }
     .btn-copy.copied { border-color: #198038; color: #198038; }
 
+    /* ── Diff panel (What Changed) ── */
+    #diff-panel {
+      display: none;
+      margin: 0;
+      padding: 16px 24px;
+      background: #f6f2ff;
+      border-bottom: 2px solid #6929c4;
+    }
+    #diff-panel.mock-mode {
+      background: #fdf6ec;
+      border-bottom-color: #f59e0b;
+    }
+    .diff-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .diff-header h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #6929c4;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    #diff-panel.mock-mode .diff-header h3 { color: #9b6900; }
+    .diff-mode-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      background: #e8daff;
+      color: #6929c4;
+    }
+    #diff-panel.mock-mode .diff-mode-tag { background: #fef3cd; color: #9b6900; }
+    .diff-summary-text {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    .diff-grid {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+    .diff-tile {
+      background: #fff;
+      border: 1px solid #e0d0ff;
+      border-radius: 6px;
+      padding: 8px 14px;
+      text-align: center;
+      min-width: 80px;
+    }
+    .diff-tile-count {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    .diff-tile-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #57606a;
+      margin-top: 2px;
+    }
+    .diff-tile.new     .diff-tile-count { color: #198038; }
+    .diff-tile.dropped .diff-tile-count { color: #da1e28; }
+    .diff-tile.promoted .diff-tile-count { color: #0043ce; }
+    .diff-tile.demoted  .diff-tile-count { color: #f59e0b; }
+    .diff-tile.slipped  .diff-tile-count { color: #da1e28; }
+    .diff-tile.amount   .diff-tile-count { color: #525252; }
+    .diff-tile.pulled   .diff-tile-count { color: #198038; }
+    #diff-ai-paragraph {
+      font-size: 14px;
+      line-height: 1.65;
+      color: #1f2328;
+      margin: 0 0 12px 0;
+    }
+    #diff-bullets {
+      margin: 0 0 12px 16px;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #1f2328;
+    }
+    #diff-bullets li { margin-bottom: 4px; }
+    .diff-no-data {
+      font-size: 13px;
+      color: #57606a;
+      padding: 8px 0;
+      font-style: italic;
+    }
+
     /* ── Main content ── */
     main { padding: 16px 24px 32px; }
 
@@ -542,6 +638,7 @@
   <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
   <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
   <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
+  <button class="btn-primary"   id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
   <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
   <button class="btn-secondary" id="btn-select-all">Select All</button>
   <button class="btn-secondary" id="btn-clear-all">Clear All</button>
@@ -637,6 +734,23 @@
   <div class="narrative-actions">
     <button class="btn-copy" id="btn-copy-narrative">⎘ Copy to clipboard</button>
     <button class="btn-copy" id="btn-close-narrative">✕ Close</button>
+  </div>
+</div>
+
+<!-- What Changed Panel — shown after "⇄ What Changed" is clicked -->
+<div id="diff-panel">
+  <div class="diff-header">
+    <h3 id="diff-heading">What Changed This Week</h3>
+    <span class="diff-mode-tag" id="diff-mode-tag">mock</span>
+  </div>
+  <div class="diff-grid" id="diff-grid"></div>
+  <p id="diff-ai-paragraph"></p>
+  <ul id="diff-bullets"></ul>
+  <p class="diff-no-data" id="diff-no-data" style="display:none">
+    Not enough history yet — run a second scrape next week to see week-over-week changes.
+  </p>
+  <div class="narrative-actions">
+    <button class="btn-copy" id="btn-close-diff">✕ Close</button>
   </div>
 </div>
 
@@ -1521,8 +1635,94 @@
     }
   }
 
+  // ── What Changed (week-over-week diff) ─────────────────────────────────────
+  document.getElementById('btn-diff').addEventListener('click', async () => {
+    const btn   = document.getElementById('btn-diff');
+    const panel = document.getElementById('diff-panel');
+    btn.disabled = true;
+    btn.textContent = '⇄ Loading…';
+    panel.style.display = 'none';
+    setStatus('Loading week-over-week diff…', 'loading');
+
+    try {
+      const res  = await fetch('/api/diff?summary=true');
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Diff failed.', 'error'); return; }
+
+      const noData  = document.getElementById('diff-no-data');
+      const grid    = document.getElementById('diff-grid');
+      const aiPara  = document.getElementById('diff-ai-paragraph');
+      const bullets = document.getElementById('diff-bullets');
+      const heading = document.getElementById('diff-heading');
+      const tag     = document.getElementById('diff-mode-tag');
+
+      grid.innerHTML    = '';
+      aiPara.textContent = '';
+      bullets.innerHTML = '';
+
+      if (!data.hasData) {
+        noData.style.display = 'block';
+        heading.textContent = 'What Changed This Week';
+        tag.textContent = 'no history';
+        panel.classList.remove('mock-mode');
+        panel.style.display = 'block';
+        setStatus('Not enough history yet — run a second scrape next week.', 'info');
+        return;
+      }
+
+      noData.style.display = 'none';
+      heading.textContent = `What Changed: ${data.previousWeek} → ${data.currentWeek}`;
+
+      // Build tiles
+      const tiles = [
+        { cls: 'new',      label: 'New',         count: data.new?.length      || 0 },
+        { cls: 'dropped',  label: 'Dropped',      count: data.dropped?.length  || 0 },
+        { cls: 'promoted', label: 'Promoted',     count: data.promoted?.length || 0 },
+        { cls: 'demoted',  label: 'Demoted',      count: data.demoted?.length  || 0 },
+        { cls: 'slipped',  label: 'Slipped',      count: data.slipped?.length  || 0 },
+        { cls: 'amount',   label: 'Amt Changed',  count: data.amount?.length   || 0 },
+        { cls: 'pulled',   label: 'Pulled In',    count: data.pulled_in?.length|| 0 },
+      ];
+      tiles.forEach(t => {
+        const tile = document.createElement('div');
+        tile.className = `diff-tile ${t.cls}`;
+        tile.innerHTML = `<div class="diff-tile-count">${t.count}</div><div class="diff-tile-label">${t.label}</div>`;
+        grid.appendChild(tile);
+      });
+
+      // AI summary
+      const isMock = !data.aiSummary || data.aiSummary.mock;
+      tag.textContent = isMock ? 'mock' : 'live · granite-3-8b';
+      panel.classList.toggle('mock-mode', isMock);
+
+      if (data.aiSummary && data.aiSummary.paragraph) {
+        aiPara.textContent = data.aiSummary.paragraph;
+        (data.aiSummary.bullets || []).forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = b;
+          bullets.appendChild(li);
+        });
+      } else {
+        aiPara.textContent = data.summary || '';
+      }
+
+      panel.style.display = 'block';
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      setStatus(`Week-over-week diff: ${data.summary}`, 'success');
+    } catch (err) {
+      setStatus('Diff failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '⇄ What Changed';
+    }
+  });
+
+  document.getElementById('btn-close-diff').addEventListener('click', () => {
+    document.getElementById('diff-panel').style.display = 'none';
+  });
+
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.0.0';
+  const APP_VERSION = '2.1.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });

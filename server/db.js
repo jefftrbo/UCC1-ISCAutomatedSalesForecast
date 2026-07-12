@@ -80,4 +80,27 @@ v2Columns.forEach(({ name, ddl }) => {
   }
 });
 
+// ── v2.1.0 — snapshots table (week-over-week diff) ────────────────────────────
+// Each HAR import saves a point-in-time snapshot of the full pipeline.
+// Snapshots are keyed by week_label (e.g. "2026-W29") — one row per opportunity
+// per week. The diff engine compares the two most-recent distinct week_labels.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS snapshots (
+    id              TEXT NOT NULL,        -- Opportunity ID (matches opportunities.id)
+    week_label      TEXT NOT NULL,        -- ISO week label, e.g. "2026-W29"
+    snapped_at      TEXT NOT NULL,        -- ISO timestamp of snapshot
+    opportunity_name            TEXT,
+    account_name                TEXT,
+    stage                       TEXT,
+    forecast_category           TEXT,
+    close_date                  TEXT,
+    filtered_opportunity_amount REAL,
+    total_opportunity_amount    REAL,
+    opportunity_owner           TEXT,
+    flm_judgement               TEXT,
+    next_steps                  TEXT,
+    PRIMARY KEY (id, week_label)
+  )
+`);
+
 module.exports = db;
