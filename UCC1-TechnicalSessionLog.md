@@ -497,3 +497,94 @@ Sample records confirmed:
 
 ---
 
+## Session 2 — UI Polish & v1.0.0 Release (July 11, 2026)
+
+**Duration:** ~8 hours  
+**Outcome:** Full UI/UX polish pass, confidence scoring engine, v1.0.0 committed to GitHub
+
+---
+
+### Features Built
+
+#### Confidence Scoring Engine (`server/scoreOpportunity.js`)
+Rule-based 0–100 score computed server-side on every API response. Six signals:
+
+| Signal | Weight | Logic |
+|---|---|---|
+| Stage | 30 pts | 5-Negotiate → 1-Engage |
+| Forecast | 25 pts | Call/Commit → Best Case → Pipeline → Omit |
+| Close Date | 20 pts | CQ position with last-2-week sandbagging discount |
+| FLM Judgement | 10 pts | Yes = 10 |
+| Next Steps | 10 pts | Strong commit language → active → stale/TBD |
+| Team Notes | 5 pts | Date-stamped + length heuristic |
+
+Tiers: 🟢 High (70–100) · 🟡 Medium (40–69) · 🔴 Low (0–39)
+
+---
+
+#### UI Upgrades (`public/index.html`)
+
+**Filters — multi-select dropdowns (Quarter / Stage / Forecast / Confidence)**
+- Custom checkbox-in-dropdown — stays open until user clicks outside
+- "All" master checkbox syncs child options
+- Trigger shows selection count badge when filtered
+- Smart defaults on every load: Q3 2026 · Best Case · 🟢 High + 🟡 Medium
+- "Clear filters" resets to same smart defaults (not "All")
+- Quarter dropdown hardcoded with Q1–Q4 current + next year, merged with data
+
+**Live totals bar**
+- Sticky bar between filter bar and table
+- Shows IBM Tech Amt + Total Amt sums for the current filtered view
+- Updates instantly on every filter change
+
+**3-column freeze pane (Excel-style)**
+- Checkbox · Confidence · Opportunity columns sticky-left
+- Opportunity column left offset recalculated from Confidence column width
+
+**Column resize handles**
+- Drag any column header edge to resize
+- Uses `table-layout: fixed` after snapshotting rendered widths via `getBoundingClientRect()`
+- Visual blue indicator on hover/drag
+
+**Column order (logical left-to-right)**
+Checkbox · Confidence · Opportunity · Account Detail · IBM Tech Amt · Total Amt · Next Steps · Close Date · Quarter · Create Date · Stage · Forecast · Owner · Owner's Manager · Created By · FLM Judgement · Account (Company) · Account (DB/DC) · Team Notes · Business Partner · Technology Client · Acquisition Pipeline · IBM Technology Plan · Opportunity ID
+
+**Truncated text with more/less toggle**
+- Opportunity: 40 chars, word boundary
+- Account Detail: 40 chars, word boundary
+- Next Steps: 250 chars, word boundary
+- Team Notes: 250 chars, word boundary
+- `truncCell(val, limit)` — single function, configurable limit
+
+**Selection summary context-aware**
+- No filters: `7 of 206 selected`
+- Filters active hiding some selections: `7 selected total (0 in view)`
+
+**Other polish**
+- Confidence column: removed progress bar, locked to 72px — pill badge only
+- Filtered Amt renamed to IBM Tech Amt throughout (web app + PPT)
+- Owner / Owner's Manager / Created By moved after Forecast
+- Version displayed in header (`Week of … · v1.0.0`) and footer
+- Min Amount filter: formatted text input with live comma insertion
+
+---
+
+#### PowerPoint Generator (`server/generatePpt.js`)
+
+- Header row reduced from 11pt → 10pt
+- Geometry constants extracted: `TABLE_TOP`, `BOTTOM_BAR_Y`, `USABLE_H`
+- Rows per slide computed dynamically: `Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H)` = **18 rows**
+- Per-row height array: header gets 0.30", data rows 0.32" each
+- Next Steps truncated to 120 chars in PPT (full text stays in web app)
+- Bottom bar y-position driven by constant — nothing bleeds off slide
+
+---
+
+### v1.0.0 Release
+- `package.json` version confirmed at `1.0.0`
+- `.gitignore` created — excludes `node_modules/`, `*.db`, `*.pptx`, `cookies.json`, `isc-export.har`, `browser-profile/`
+- Git repo initialized, initial commit: 25 files, 6,142 insertions
+- Pushed to `https://github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast`
+
+---
+
