@@ -4,64 +4,199 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ISC Sales Forecast — GM Meeting Prep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
+    /* ── Carbon Design System tokens ── */
+    :root {
+      --cds-background:         #ffffff;
+      --cds-background-hover:   #e8e8e8;
+      --cds-layer-01:           #f4f4f4;
+      --cds-layer-02:           #e0e0e0;
+      --cds-border-subtle:      #e0e0e0;
+      --cds-border-strong:      #8d8d8d;
+      --cds-text-primary:       #161616;
+      --cds-text-secondary:     #525252;
+      --cds-text-placeholder:   #a8a8a8;
+      --cds-text-disabled:      #c6c6c6;
+      --cds-interactive:        #0f62fe;
+      --cds-interactive-hover:  #0050e6;
+      --cds-focus:              #0f62fe;
+      --cds-support-success:    #198038;
+      --cds-support-warning:    #f1c21b;
+      --cds-support-error:      #da1e28;
+      --cds-support-info:       #0043ce;
+      --cds-highlight:          #d0e2ff;
+      /* IBM brand blue for header */
+      --ibm-blue-70:            #0043ce;
+      --ibm-blue-60:            #0f62fe;
+      /* watsonx purple */
+      --wx-purple:              #6929c4;
+      --wx-purple-light:        #e8daff;
+      --wx-purple-dark:         #491d8b;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-family: 'IBM Plex Sans', -apple-system, "Segoe UI", system-ui, sans-serif;
       font-size: 14px;
-      background: #f4f4f4;
-      color: #161616;
+      background: var(--cds-layer-01);
+      color: var(--cds-text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Header ── */
     header {
-      background: #0043ce;
+      background: var(--ibm-blue-70);
       color: #fff;
       padding: 0 24px;
-      height: 56px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
+      border-bottom: 1px solid #003ab5;
     }
-    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.01em; }
-    header span { font-size: 12px; opacity: 0.8; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-logo {
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      opacity: 0.75;
+      text-transform: uppercase;
+      border-right: 1px solid rgba(255,255,255,0.3);
+      padding-right: 16px;
+      white-space: nowrap;
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+    .header-right { display: flex; align-items: center; gap: 20px; }
+    .header-meta { font-size: 12px; opacity: 0.75; white-space: nowrap; }
 
-    /* ── Toolbar ── */
-    .toolbar {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 10px 24px;
+    /* ── GM Ready indicator ── */
+    .gm-ready {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      position: sticky;
-      top: 56px;
-      z-index: 99;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
-    .toolbar .selection-summary { margin-left: auto; font-size: 13px; color: #6f6f6f; }
+    .gm-ready.ready    { background: rgba(25,128,56,0.25); color: #6fdc8c; }
+    .gm-ready.needs-action { background: rgba(241,194,27,0.25); color: #f1c21b; }
+    .gm-ready.no-data  { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); }
+    .gm-ready-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .gm-ready.ready .gm-ready-dot    { background: #6fdc8c; }
+    .gm-ready.needs-action .gm-ready-dot { background: #f1c21b; }
+    .gm-ready.no-data .gm-ready-dot  { background: rgba(255,255,255,0.35); }
+
+    /* ── Workflow strip ── */
+    .workflow-strip {
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 0 24px;
+      display: flex;
+      align-items: stretch;
+      position: sticky;
+      top: 48px;
+      z-index: 99;
+      height: 44px;
+      overflow-x: auto;
+    }
+    .workflow-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 16px;
+      border-right: 1px solid var(--cds-border-subtle);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--cds-text-secondary);
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .workflow-step:last-child { border-right: none; }
+    .workflow-step:hover:not(:disabled):not(.step-disabled) { background: var(--cds-layer-01); color: var(--cds-text-primary); }
+    .workflow-step.step-active { color: var(--cds-interactive); font-weight: 600; }
+    .workflow-step.step-active::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--cds-interactive);
+    }
+    .workflow-step.step-done { color: var(--cds-support-success); }
+    .workflow-step.step-done::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--cds-support-success);
+    }
+    .workflow-step.step-disabled { opacity: 0.4; cursor: not-allowed; }
+    .step-num {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: var(--cds-layer-02);
+      color: var(--cds-text-secondary);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.15s, color 0.15s;
+    }
+    .workflow-step.step-done .step-num {
+      background: var(--cds-support-success);
+      color: #fff;
+    }
+    .workflow-step.step-active .step-num {
+      background: var(--cds-interactive);
+      color: #fff;
+    }
+    /* Right-side utility buttons in workflow strip */
+    .workflow-utilities {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 16px;
+      flex-shrink: 0;
+    }
+    .wx-status {
+      font-size: 11px; color: var(--cds-text-secondary); display: flex; align-items: center; gap: 5px;
+    }
+    .wx-status .wx-dot {
+      width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+    }
+    .wx-dot.live { background: #198038; }
+    .wx-dot.mock { background: #f59e0b; }
 
     /* ── Filter bar ── */
     .filter-bar {
-      background: #f4f4f4;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 8px 24px;
+      background: var(--cds-layer-01);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 6px 24px;
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
       position: sticky;
-      top: 105px;
+      top: 92px;
       z-index: 98;
     }
     .filter-bar label {
       font-size: 11px;
       font-weight: 600;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       white-space: nowrap;
@@ -70,12 +205,13 @@
       font-size: 12px;
       font-family: inherit;
       border: 1px solid #c6c6c6;
-      border-radius: 2px;
+      border-radius: 0;
       padding: 4px 8px;
-      background: #fff;
-      color: #161616;
+      background: var(--cds-background);
+      color: var(--cds-text-primary);
       height: 28px;
     }
+    .filter-bar input[type="text"]:focus { outline: 2px solid var(--cds-focus); outline-offset: -2px; }
     .filter-bar input[type="text"]          { width: 160px; }
     .filter-bar input[type="text"].f-amount-input { width: 130px; }
     .filter-bar .filter-sep {
@@ -87,30 +223,30 @@
     .filter-count {
       margin-left: auto;
       font-size: 12px;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
       white-space: nowrap;
     }
 
     /* ── Totals bar ── */
     #totals-bar {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 6px 24px;
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 5px 24px;
       display: flex;
       align-items: center;
       gap: 24px;
       position: sticky;
-      top: 149px;
+      top: 136px;
       z-index: 97;
       font-size: 12px;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
     }
     .totals-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; }
-    .totals-value { font-weight: 700; font-size: 13px; color: #161616; font-variant-numeric: tabular-nums; }
-    .totals-value.ibm  { color: #0043ce; }
-    .totals-value.total { color: #198038; }
-    .totals-sep { width: 1px; height: 16px; background: #e0e0e0; }
-    .totals-note { margin-left: auto; font-size: 11px; color: #a8a8a8; }
+    .totals-value { font-weight: 700; font-size: 13px; color: var(--cds-text-primary); font-variant-numeric: tabular-nums; }
+    .totals-value.ibm  { color: var(--ibm-blue-70); }
+    .totals-value.total { color: var(--cds-support-success); }
+    .totals-sep { width: 1px; height: 16px; background: var(--cds-border-subtle); }
+    .totals-note { margin-left: auto; font-size: 11px; color: var(--cds-text-placeholder); }
 
     /* ── Multi-select dropdown ── */
     .ms-wrap { position: relative; display: inline-block; }
@@ -185,57 +321,84 @@
     button {
       cursor: pointer;
       border: none;
-      border-radius: 2px;
+      border-radius: 0;
       font-size: 13px;
-      font-family: inherit;
+      font-family: 'IBM Plex Sans', inherit;
       padding: 7px 16px;
       transition: background 0.15s;
+      font-weight: 400;
     }
-    .btn-primary   { background: #0043ce; color: #fff; }
-    .btn-primary:hover:not(:disabled)   { background: #0035a8; }
-    .btn-primary:disabled               { background: #a8c0f0; cursor: not-allowed; }
-    .btn-secondary { background: #e0e0e0; color: #161616; }
+    .btn-primary   { background: var(--ibm-blue-70); color: #fff; }
+    .btn-primary:hover:not(:disabled)   { background: #002fa3; }
+    .btn-primary:disabled               { background: var(--cds-text-disabled); cursor: not-allowed; color: var(--cds-text-secondary); }
+    .btn-secondary { background: var(--cds-layer-02); color: var(--cds-text-primary); }
     .btn-secondary:hover:not(:disabled) { background: #c6c6c6; }
     .btn-secondary:disabled             { opacity: 0.5; cursor: not-allowed; }
-    .btn-success   { background: #198038; color: #fff; }
+    .btn-success   { background: var(--cds-support-success); color: #fff; }
     .btn-success:hover:not(:disabled)   { background: #12622b; }
     .btn-success:disabled               { background: #a3c9ae; cursor: not-allowed; }
     .btn-ghost {
       background: none;
-      color: #0043ce;
+      color: var(--cds-interactive);
       padding: 4px 8px;
       font-size: 12px;
       text-decoration: underline;
       cursor: pointer;
       border: none;
     }
-    .btn-ghost:hover { color: #0035a8; }
+    .btn-ghost:hover { color: var(--cds-interactive-hover); }
 
-    /* ── Status banner ── */
-    #status-bar {
+    /* ── Pipeline status line (replaces raw scrape log) ── */
+    #pipeline-status {
+      padding: 8px 24px;
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
       display: none;
-      padding: 9px 24px;
-      font-size: 13px;
-      border-bottom: 1px solid transparent;
+      align-items: center;
+      gap: 8px;
     }
-    #status-bar.info    { background: #edf5ff; color: #0043ce; border-color: #a6c8ff; display: block; }
-    #status-bar.success { background: #defbe6; color: #198038; border-color: #a7f0ba; display: block; }
-    #status-bar.error   { background: #fff1f1; color: #da1e28; border-color: #ffa4a9; display: block; }
-    #status-bar.loading { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; display: block; }
+    #pipeline-status.visible { display: flex; }
+    #pipeline-status .ps-icon { font-size: 14px; }
+    #pipeline-status .ps-text { flex: 1; }
+    #pipeline-status .ps-detail-toggle {
+      font-size: 11px;
+      color: var(--cds-interactive);
+      cursor: pointer;
+      text-decoration: underline;
+      white-space: nowrap;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
 
-    /* ── Scrape log ── */
+    /* ── Scrape log (hidden, toggled via "Details") ── */
     #scrape-log {
       display: none;
       background: #161616;
       color: #42be65;
-      font-family: "Courier New", monospace;
-      font-size: 12px;
+      font-family: 'IBM Plex Mono', "Courier New", monospace;
+      font-size: 11px;
       padding: 10px 24px;
-      max-height: 120px;
+      max-height: 100px;
       overflow-y: auto;
       white-space: pre-wrap;
       border-bottom: 1px solid #393939;
     }
+
+    /* ── Status banner ── */
+    #status-bar {
+      display: none;
+      padding: 8px 24px;
+      font-size: 13px;
+      border-bottom: 1px solid transparent;
+    }
+    #status-bar.info    { background: #edf5ff; color: var(--cds-support-info); border-color: #a6c8ff; display: block; }
+    #status-bar.success { background: #defbe6; color: var(--cds-support-success); border-color: #a7f0ba; display: block; }
+    #status-bar.error   { background: #fff1f1; color: var(--cds-support-error); border-color: #ffa4a9; display: block; }
+    #status-bar.loading { background: var(--cds-layer-01); color: var(--cds-text-secondary); border-color: var(--cds-border-subtle); display: block; }
 
     /* ── GM Narrative panel ── */
     #narrative-panel {
@@ -630,22 +793,62 @@
 <body>
 
 <header>
-  <h1>ISC Sales Forecast — GM Meeting Prep</h1>
-  <span id="header-meta"></span>
+  <div class="header-left">
+    <span class="header-logo">IBM</span>
+    <h1>ISC Sales Forecast — GM Meeting Prep</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-meta" id="header-meta"></span>
+    <div class="gm-ready no-data" id="gm-ready">
+      <span class="gm-ready-dot"></span>
+      <span id="gm-ready-text">No data loaded</span>
+    </div>
+  </div>
 </header>
 
-<div class="toolbar">
-  <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
-  <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
-  <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
-  <button class="btn-primary"   id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
-  <button class="btn-secondary" id="btn-snapshot">📌 Save Baseline</button>
-  <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
-  <button class="btn-secondary" id="btn-select-all">Select All</button>
-  <button class="btn-secondary" id="btn-clear-all">Clear All</button>
-  <button class="btn-secondary" id="btn-select-high">Select 🟢 High</button>
-  <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
-  <span class="selection-summary" id="selection-summary">0 selected</span>
+<!-- Workflow strip — guides Dushyant through his weekly steps -->
+<div class="workflow-strip">
+  <button class="workflow-step step-active" id="ws-refresh" title="Import latest HAR from Salesforce">
+    <span class="step-num" id="ws-refresh-num">1</span>
+    ⟳ Refresh Data
+  </button>
+  <button class="workflow-step step-disabled" id="ws-score" title="Run watsonx.ai confidence scoring">
+    <span class="step-num" id="ws-score-num">2</span>
+    ⬡ Score with watsonx
+  </button>
+  <button class="workflow-step step-disabled" id="ws-narrative" title="Generate GM meeting narrative">
+    <span class="step-num" id="ws-narrative-num">3</span>
+    ✍ Generate Narrative
+  </button>
+  <button class="workflow-step step-disabled" id="ws-snapshot" title="Lock in this week's pipeline as baseline for future diffs">
+    <span class="step-num" id="ws-snapshot-num">4</span>
+    📌 Save Baseline
+  </button>
+  <button class="workflow-step step-disabled" id="ws-diff" title="Compare live pipeline against saved baseline">
+    <span class="step-num" id="ws-diff-num">5</span>
+    ⇄ What Changed
+  </button>
+  <button class="workflow-step step-disabled" id="ws-ppt" title="Generate PowerPoint for GM meeting">
+    <span class="step-num" id="ws-ppt-num">6</span>
+    ↓ Generate PPT
+  </button>
+  <div class="workflow-utilities">
+    <button class="btn-secondary" id="btn-select-all" style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
+    <button class="btn-secondary" id="btn-clear-all"  style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
+    <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">🟢 High</button>
+    <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
+    <span style="font-size:12px;color:var(--cds-text-secondary)" id="selection-summary">0 selected</span>
+  </div>
+</div>
+
+<!-- Hidden real buttons — keep original IDs for all JS event listeners -->
+<div style="display:none">
+  <button id="btn-refresh">⟳ Refresh Data</button>
+  <button id="btn-score-wx">⬡ Score with watsonx</button>
+  <button id="btn-narrative">✍ Generate Narrative</button>
+  <button id="btn-diff">⇄ What Changed</button>
+  <button id="btn-snapshot">📌 Save Baseline</button>
+  <button id="btn-generate">↓ Generate PPT</button>
 </div>
 
 <!-- Filter bar -->
@@ -721,8 +924,14 @@
 </div>
 
 <div id="global-tooltip"></div>
-<div id="status-bar"></div>
+<!-- Pipeline status line — clean summary replacing raw scrape terminal -->
+<div id="pipeline-status">
+  <span class="ps-icon" id="ps-icon">📋</span>
+  <span class="ps-text" id="ps-text">No data loaded — click Step 1 to refresh.</span>
+  <button class="ps-detail-toggle" id="ps-detail-toggle" style="display:none">Show details</button>
+</div>
 <pre id="scrape-log"></pre>
+<div id="status-bar"></div>
 
 <!-- GM Narrative Panel — shown after Generate Narrative is clicked -->
 <div id="narrative-panel">
@@ -1741,8 +1950,118 @@
     document.getElementById('diff-panel').style.display = 'none';
   });
 
+  // ── Workflow strip — wire visible buttons to hidden real buttons ───────────
+  (function initWorkflowStrip() {
+    const map = [
+      ['ws-refresh',  'btn-refresh'],
+      ['ws-score',    'btn-score-wx'],
+      ['ws-narrative','btn-narrative'],
+      ['ws-snapshot', 'btn-snapshot'],
+      ['ws-diff',     'btn-diff'],
+      ['ws-ppt',      'btn-generate'],
+    ];
+    map.forEach(([wsId, btnId]) => {
+      const wsBtn  = document.getElementById(wsId);
+      const realBtn = document.getElementById(btnId);
+      if (!wsBtn || !realBtn) return;
+      wsBtn.addEventListener('click', () => {
+        if (wsBtn.classList.contains('step-disabled')) return;
+        realBtn.click();
+      });
+    });
+  })();
+
+  // ── GM Ready indicator ─────────────────────────────────────────────────────
+  function updateGmReady() {
+    const el   = document.getElementById('gm-ready');
+    const text = document.getElementById('gm-ready-text');
+    if (!allOpportunities.length) {
+      el.className = 'gm-ready no-data';
+      text.textContent = 'No data loaded';
+      return;
+    }
+    // Count attention signals: demoted + slipped visible in diff, or check overall pipeline
+    const highCount = allOpportunities.filter(o => o.tier === 'High').length;
+    const noNextSteps = allOpportunities.filter(o =>
+      (o.tier === 'High' || o.tier === 'Medium') && !o.next_steps
+    ).length;
+    if (noNextSteps > 0) {
+      el.className = 'gm-ready needs-action';
+      text.textContent = `${noNextSteps} deal${noNextSteps > 1 ? 's' : ''} need attention`;
+    } else {
+      el.className = 'gm-ready ready';
+      text.textContent = `GM Prep Ready · ${highCount} High`;
+    }
+  }
+
+  // ── Pipeline status line ───────────────────────────────────────────────────
+  function setPipelineStatus(icon, msg, showDetails) {
+    const ps = document.getElementById('pipeline-status');
+    document.getElementById('ps-icon').textContent  = icon;
+    document.getElementById('ps-text').textContent  = msg;
+    const toggle = document.getElementById('ps-detail-toggle');
+    toggle.style.display = showDetails ? 'inline' : 'none';
+    ps.classList.add('visible');
+  }
+
+  document.getElementById('ps-detail-toggle').addEventListener('click', () => {
+    const log    = document.getElementById('scrape-log');
+    const toggle = document.getElementById('ps-detail-toggle');
+    const visible = log.style.display !== 'none';
+    log.style.display   = visible ? 'none' : 'block';
+    toggle.textContent  = visible ? 'Show details' : 'Hide details';
+  });
+
+  // ── Workflow step state manager ────────────────────────────────────────────
+  function setWorkflowStep(step) {
+    // step: 1 = data loaded, 2 = scored, 3 = narrative done, 4+ = all enabled
+    const steps = ['ws-refresh','ws-score','ws-narrative','ws-snapshot','ws-diff','ws-ppt'];
+    steps.forEach((id, i) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      if (i + 1 < step) {
+        btn.classList.remove('step-active','step-disabled');
+        btn.classList.add('step-done');
+      } else if (i + 1 === step) {
+        btn.classList.remove('step-done','step-disabled');
+        btn.classList.add('step-active');
+      } else {
+        btn.classList.remove('step-done','step-active');
+        btn.classList.add('step-disabled');
+      }
+    });
+    // After step 1 (data loaded), unlock steps 2–6 immediately
+    if (step >= 1) {
+      ['ws-score','ws-narrative','ws-snapshot','ws-diff','ws-ppt'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn && btn.classList.contains('step-disabled') && step > 1) {
+          btn.classList.remove('step-disabled');
+        }
+      });
+    }
+  }
+
+  // ── Patch loadOpportunities to update workflow + GM Ready after load ───────
+  const _origLoad = loadOpportunities;
+  loadOpportunities = async function() {
+    await _origLoad();
+    if (allOpportunities.length > 0) {
+      setWorkflowStep(2);
+      setPipelineStatus('✅', `Pipeline loaded — ${allOpportunities.length} opportunities as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, true);
+      updateGmReady();
+    }
+  };
+
+  // ── Patch btn-refresh to update pipeline status during scrape ─────────────
+  const realRefreshBtn = document.getElementById('btn-refresh');
+  const _origRefreshClick = realRefreshBtn.onclick;
+  // Intercept via event capture — show loading status before scrape log
+  realRefreshBtn.addEventListener('click', () => {
+    setPipelineStatus('⟳', 'Refreshing pipeline data from Salesforce…', false);
+  }, true);
+
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.1.0';
+  const APP_VERSION = '2.2.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
