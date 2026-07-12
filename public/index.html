@@ -1789,8 +1789,8 @@
     const log = document.getElementById('scrape-log');
     btn.disabled = true;
     log.textContent = '';
-    log.style.display = 'block';
-    setStatus('Loading data…', 'loading');
+    // Do NOT auto-show scrape log — accumulate silently; user reveals via "Show details"
+    setPipelineStatus('⟳', 'Refreshing pipeline data from Salesforce…', false);
     try {
       const res = await fetch('/api/scrape', { method: 'POST' });
       const reader = res.body.getReader();
@@ -1801,10 +1801,11 @@
         log.textContent += decoder.decode(value);
         log.scrollTop = log.scrollHeight;
       }
-      setStatus('Data refreshed successfully.', 'success');
       await loadOpportunities();
+      // loadOpportunities patch sets the pipeline status on success
     } catch (err) {
       setStatus('Refresh failed: ' + err.message, 'error');
+      setPipelineStatus('⚠', 'Refresh failed — see details.', true);
     } finally {
       btn.disabled = false;
     }
@@ -2380,14 +2381,6 @@
       updateGmReady();
     }
   };
-
-  // ── Patch btn-refresh to update pipeline status during scrape ─────────────
-  const realRefreshBtn = document.getElementById('btn-refresh');
-  const _origRefreshClick = realRefreshBtn.onclick;
-  // Intercept via event capture — show loading status before scrape log
-  realRefreshBtn.addEventListener('click', () => {
-    setPipelineStatus('⟳', 'Refreshing pipeline data from Salesforce…', false);
-  }, true);
 
   // ── Init ───────────────────────────────────────────────────────────────────
   const APP_VERSION = '2.2.0';
