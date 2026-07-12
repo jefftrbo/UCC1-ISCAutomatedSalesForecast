@@ -1391,3 +1391,79 @@ feature/week-over-week-diff  — merged + pushed ✅ this session
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+### Step 8 — Diff Engine Unit Test (User Question: "How do I unit test this?")
+
+**Why:** After confirming the `⇄ What Changed` button correctly shows "Not enough history yet" (expected — only one week of data exists), the user asked how to unit test the diff engine across all change scenarios without waiting for a second real scrape.
+
+**Approach chosen:** A self-contained test script (`scripts/test-diff.js`) that:
+1. Borrows 8 real opportunity IDs from the live DB (no fabricated IDs — avoids any FK mismatch risk)
+2. Seeds two synthetic week_labels (`TEST-W01`, `TEST-W02`) into the `snapshots` table using `INSERT OR REPLACE`
+3. Runs `computeDiff(db)` against those synthetic weeks
+4. Asserts expected counts for all 8 categories
+5. **Cleans up** — deletes all `TEST-W01`/`TEST-W02` rows so the real `2026-W28` snapshot is completely untouched
+
+**Why `INSERT OR REPLACE` instead of `INSERT OR IGNORE`:** Test needs to be re-runnable — `REPLACE` ensures a clean state each run regardless of prior test runs that may have partially completed.
+
+**Scenarios covered:**
+- `r0` — **unchanged**: same data in both weeks → expect `unchanged` count = 1
+- `r1` — **promoted**: `2 - Qualify` → `4 - Propose` (stage index moves forward)
+- `r2` — **demoted**: `4 - Propose` → `2 - Qualify` (stage index moves backward)
+- `r3` — **amount change**: `$1.00M` → `$2.00M` (+$1M, +100% — above both thresholds)
+- `r4` — **slipped**: close date `2026-07-01` → `2026-08-15` (+45 days, > 7-day threshold)
+- `r5` — **pulled_in**: close date `2026-09-30` → `2026-08-31` (-30 days)
+- `r6` — **dropped**: present in `TEST-W01`, absent from `TEST-W02`
+- `r7` — **new**: absent from `TEST-W01`, present in `TEST-W02`
+
+**First run (pre-check):** Bob first ran `node -e "..."` inline to inspect the exact `snapshots` column names and get 3 real opportunity rows with their real IDs/stages/amounts to design realistic seed data. This prevents off-by-one errors in the schema.
+
+**Test execution:**
+```bash
+node scripts/test-diff.js
+```
+
+**Output:**
+```
+══════════════════════════════════════════
+  DIFF ENGINE TEST RESULTS
+══════════════════════════════════════════
+  TEST-W01 → TEST-W02
+  hasData: true
+──────────────────────────────────────────
+  ✅ New            expected=1  got=1
+  ✅ Dropped        expected=1  got=1
+  ✅ Promoted       expected=1  got=1
+  ✅ Demoted        expected=1  got=1
+  ✅ Amt Changed    expected=1  got=1
+  ✅ Slipped        expected=1  got=1
+  ✅ Pulled In      expected=1  got=1
+  ✅ Unchanged      expected=1  got=1
+──────────────────────────────────────────
+  Summary: TEST-W02 vs TEST-W01: 1 new, 1 dropped, 1 promoted, 1 demoted, 1 amount changes, 1 slipped, 1 pulled in
+──────────────────────────────────────────
+  Promoted:  2026_Labcorp_sRenewal  2 - Qualify → 4 - Propose
+  Demoted:   Corporate ELA Software Amendment  4 - Propose → 2 - Qualify
+  Amount:    BCBS of SC - Mainframe Storage...  $1.00M → $2.00M
+  Slipped:   Corporate - z17 Machine Upgrade  2026-07-01 → 2026-08-15 (+45d)
+  Pulled In: 2026_Labcorp_uRenewal  2026-09-30 → 2026-08-31 (-30d)
+  New:       BCBS of SC - zlinux Storage Refresh...
+  Dropped:   LabCorp-Guardium Quantum Safe
+  Unchanged: Data Withheld
+──────────────────────────────────────────
+  RESULT: ✅ ALL 8 TESTS PASSED
+══════════════════════════════════════════
+
+  Synthetic test data cleaned up (TEST-W01, TEST-W02 removed).
+```
+
+**Outcome:** ✅ All 8 scenarios pass. Real snapshot data (`2026-W28`) unaffected.
+
+**Commit:**
+```bash
+git add scripts/test-diff.js
+git commit -m "test: diff engine unit test — all 8 scenarios (new, dropped, promoted, demoted, amount, slipped, pulled_in, unchanged)"
+```
+
+**Why this matters for learning:** The key insight is using synthetic week_labels (`TEST-W01`) that can never collide with real ISO week labels (`2026-W28`) — this is the pattern to use for any future test scripts that need to touch the DB. Always clean up in the same script.
+
+---
