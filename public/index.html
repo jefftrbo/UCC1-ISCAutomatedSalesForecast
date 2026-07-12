@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ISC Sales Forecast — GM Meeting Prep</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-size: 14px;
+      background: #f4f4f4;
+      color: #161616;
+    }
+
+    /* ── Header ── */
+    header {
+      background: #0043ce;
+      color: #fff;
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.01em; }
+    header span { font-size: 12px; opacity: 0.8; }
+
+    /* ── Toolbar ── */
+    .toolbar {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 56px;
+      z-index: 99;
+    }
+    .toolbar .selection-summary { margin-left: auto; font-size: 13px; color: #6f6f6f; }
+
+    /* ── Filter bar ── */
+    .filter-bar {
+      background: #f4f4f4;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      position: sticky;
+      top: 105px;
+      z-index: 98;
+    }
+    .filter-bar label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6f6f6f;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    .filter-bar input[type="text"] {
+      font-size: 12px;
+      font-family: inherit;
+      border: 1px solid #c6c6c6;
+      border-radius: 2px;
+      padding: 4px 8px;
+      background: #fff;
+      color: #161616;
+      height: 28px;
+    }
+    .filter-bar input[type="text"]          { width: 160px; }
+    .filter-bar input[type="text"].f-amount-input { width: 130px; }
+    .filter-bar .filter-sep {
+      width: 1px;
+      height: 20px;
+      background: #c6c6c6;
+      margin: 0 4px;
+    }
+    .filter-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: #6f6f6f;
+      white-space: nowrap;
+    }
+
+    /* ── Totals bar ── */
+    #totals-bar {
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+      padding: 6px 24px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      position: sticky;
+      top: 149px;
+      z-index: 97;
+      font-size: 12px;
+      color: #6f6f6f;
+    }
+    .totals-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; }
+    .totals-value { font-weight: 700; font-size: 13px; color: #161616; font-variant-numeric: tabular-nums; }
+    .totals-value.ibm  { color: #0043ce; }
+    .totals-value.total { color: #198038; }
+    .totals-sep { width: 1px; height: 16px; background: #e0e0e0; }
+    .totals-note { margin-left: auto; font-size: 11px; color: #a8a8a8; }
+
+    /* ── Multi-select dropdown ── */
+    .ms-wrap { position: relative; display: inline-block; }
+    .ms-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      height: 28px;
+      min-width: 110px;
+      max-width: 200px;
+      padding: 0 8px;
+      font-size: 12px;
+      font-family: inherit;
+      background: #fff;
+      border: 1px solid #c6c6c6;
+      border-radius: 2px;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      color: #161616;
+    }
+    .ms-trigger:hover { border-color: #a8a8a8; }
+    .ms-trigger.active { border-color: #0043ce; box-shadow: 0 0 0 1px #0043ce; }
+    .ms-trigger .ms-caret { margin-left: auto; font-size: 9px; color: #6f6f6f; padding-left: 4px; flex-shrink: 0; }
+    .ms-badge {
+      background: #0043ce;
+      color: #fff;
+      border-radius: 8px;
+      padding: 0 5px;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .ms-panel {
+      display: none;
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0;
+      min-width: 170px;
+      background: #fff;
+      border: 1px solid #c6c6c6;
+      border-radius: 2px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      z-index: 300;
+      padding: 4px 0;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .ms-wrap.open .ms-panel { display: block; }
+    .ms-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      color: #161616;
+    }
+    .ms-item:hover { background: #edf5ff; }
+    .ms-item input[type="checkbox"] {
+      width: 13px; height: 13px;
+      accent-color: #0043ce;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .ms-divider { height: 1px; background: #e0e0e0; margin: 3px 0; }
+    .ms-select-all { font-weight: 600; color: #0043ce; }
+
+    /* ── Buttons ── */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 2px;
+      font-size: 13px;
+      font-family: inherit;
+      padding: 7px 16px;
+      transition: background 0.15s;
+    }
+    .btn-primary   { background: #0043ce; color: #fff; }
+    .btn-primary:hover:not(:disabled)   { background: #0035a8; }
+    .btn-primary:disabled               { background: #a8c0f0; cursor: not-allowed; }
+    .btn-secondary { background: #e0e0e0; color: #161616; }
+    .btn-secondary:hover:not(:disabled) { background: #c6c6c6; }
+    .btn-secondary:disabled             { opacity: 0.5; cursor: not-allowed; }
+    .btn-success   { background: #198038; color: #fff; }
+    .btn-success:hover:not(:disabled)   { background: #12622b; }
+    .btn-success:disabled               { background: #a3c9ae; cursor: not-allowed; }
+    .btn-ghost {
+      background: none;
+      color: #0043ce;
+      padding: 4px 8px;
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-ghost:hover { color: #0035a8; }
+
+    /* ── Status banner ── */
+    #status-bar {
+      display: none;
+      padding: 9px 24px;
+      font-size: 13px;
+      border-bottom: 1px solid transparent;
+    }
+    #status-bar.info    { background: #edf5ff; color: #0043ce; border-color: #a6c8ff; display: block; }
+    #status-bar.success { background: #defbe6; color: #198038; border-color: #a7f0ba; display: block; }
+    #status-bar.error   { background: #fff1f1; color: #da1e28; border-color: #ffa4a9; display: block; }
+    #status-bar.loading { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; display: block; }
+
+    /* ── Scrape log ── */
+    #scrape-log {
+      display: none;
+      background: #161616;
+      color: #42be65;
+      font-family: "Courier New", monospace;
+      font-size: 12px;
+      padding: 10px 24px;
+      max-height: 120px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      border-bottom: 1px solid #393939;
+    }
+
+    /* ── Main content ── */
+    main { padding: 16px 24px 32px; }
+
+    /* ── Table wrapper ── */
+    .table-wrap {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 2px;
+      overflow-x: auto;
+      overflow-y: auto;
+      max-height: calc(100vh - 260px);
+    }
+
+    table {
+      width: max-content;
+      min-width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      background: #e0e0e0;
+      padding: 9px 10px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      border-right: 1px solid #c6c6c6;
+      z-index: 10;
+    }
+    thead th:hover { background: #c6c6c6; }
+    thead th.sort-asc::after  { content: " ▲"; font-size: 10px; }
+    thead th.sort-desc::after { content: " ▼"; font-size: 10px; }
+
+    /* Sticky columns — checkbox (col 1), Confidence (col 2), Opportunity (col 3) */
+    thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 12; }
+    thead th:nth-child(2), tbody td:nth-child(2) { position: sticky; left: 36px; z-index: 12; }
+    thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 136px; z-index: 12; }
+
+    thead th:nth-child(1) { background: #e0e0e0; width: 36px; text-align: center; border-right: 1px solid #c6c6c6; }
+    thead th:nth-child(2) { background: #e0e0e0; min-width: 100px; }
+    thead th:nth-child(3) { background: #e0e0e0; min-width: 200px; border-right: 2px solid #a8a8a8; }
+
+    tbody td:nth-child(1) { background: #fff; width: 36px; text-align: center; border-right: 1px solid #e0e0e0; }
+    tbody td:nth-child(2) { background: #fff; }
+    tbody td:nth-child(3) { background: #fff; border-right: 2px solid #d0d0d0; }
+
+    tbody tr.selected-row td:nth-child(1),
+    tbody tr.selected-row td:nth-child(2),
+    tbody tr.selected-row td:nth-child(3) { background: #edf5ff; }
+    tbody tr:hover td:nth-child(1),
+    tbody tr:hover td:nth-child(2),
+    tbody tr:hover td:nth-child(3) { background: #edf5ff; }
+
+    /* ── Column resize handles ── */
+    thead th { position: relative; overflow: visible; }
+    .col-resizer {
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 5px;
+      cursor: col-resize;
+      z-index: 20;
+      user-select: none;
+    }
+    .col-resizer:hover, .col-resizer.resizing { background: #0043ce; opacity: 0.5; }
+
+    tbody tr { border-top: 1px solid #e0e0e0; }
+    tbody tr:hover { background: #edf5ff; }
+    tbody tr.selected-row { background: #edf5ff; }
+
+    td {
+      padding: 7px 10px;
+      font-size: 12px;
+      vertical-align: middle;
+      white-space: nowrap;
+      border-right: 1px solid #f0f0f0;
+    }
+    td.wrap   { white-space: normal; }
+    .truncated-text { color: #161616; }
+    .more-toggle {
+      display: inline;
+      margin-left: 3px;
+      color: #0043ce;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .more-toggle:hover { text-decoration: underline; }
+    td.revenue { text-align: right; font-variant-numeric: tabular-nums; }
+    td a { color: #0043ce; text-decoration: none; }
+    td a:hover { text-decoration: underline; }
+
+    td input[type="checkbox"] {
+      width: 15px; height: 15px;
+      cursor: pointer;
+      accent-color: #0043ce;
+    }
+
+    /* ── Confidence score ── */
+    .score-cell { text-align: center; width: 72px; min-width: 72px; max-width: 72px; }
+
+    .score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: help;
+      white-space: nowrap;
+    }
+    .score-high   { background: #defbe6; color: #198038; }
+    .score-medium { background: #fef3cd; color: #9b6900; }
+    .score-low    { background: #fff1f1; color: #da1e28; }
+
+    /* ── Forecast badges ── */
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-commit  { background: #defbe6; color: #198038; }
+    .badge-best    { background: #d0e2ff; color: #0043ce; }
+    .badge-pipeline{ background: #fef3cd; color: #9b6900; }
+    .badge-omit    { background: #e0e0e0; color: #525252; }
+
+    .flm-yes { color: #198038; font-weight: 600; }
+    .flm-no  { color: #6f6f6f; }
+
+    /* ── Tooltip ── */
+    .tooltip-wrap { position: relative; display: inline-block; }
+    .tooltip-box {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #161616;
+      color: #f4f4f4;
+      font-size: 11px;
+      border-radius: 4px;
+      padding: 10px 12px;
+      z-index: 200;
+      width: 220px;
+      white-space: normal;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      pointer-events: none;
+    }
+    .tooltip-wrap:hover .tooltip-box { display: block; }
+    .tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+      gap: 8px;
+    }
+    .tooltip-row:last-child { margin-bottom: 0; }
+    .tooltip-label { color: #a8a8a8; flex: 1; }
+    .tooltip-pts { font-weight: 600; color: #42be65; white-space: nowrap; }
+    .tooltip-max { color: #6f6f6f; font-size: 10px; }
+    .tooltip-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #393939;
+      color: #fff;
+    }
+
+    /* ── Empty state ── */
+    .empty-state { text-align: center; padding: 48px 24px; color: #6f6f6f; }
+    .empty-state h2 { font-size: 16px; margin-bottom: 8px; }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 16px;
+      font-size: 11px;
+      color: #a8a8a8;
+      border-top: 1px solid #e0e0e0;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ISC Sales Forecast — GM Meeting Prep</h1>
+  <span id="header-meta"></span>
+</header>
+
+<div class="toolbar">
+  <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
+  <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
+  <button class="btn-secondary" id="btn-select-all">Select All</button>
+  <button class="btn-secondary" id="btn-clear-all">Clear All</button>
+  <button class="btn-secondary" id="btn-select-high">Select 🟢 High</button>
+  <span class="selection-summary" id="selection-summary">0 selected</span>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+
+  <label>Quarter</label>
+  <div class="ms-wrap" id="ms-quarter">
+    <div class="ms-trigger" id="ms-quarter-trigger">All <span class="ms-caret">▼</span></div>
+    <div class="ms-panel" id="ms-quarter-panel">
+      <label class="ms-item ms-select-all"><input type="checkbox" id="ms-quarter-all" checked> All Quarters</label>
+      <div class="ms-divider"></div>
+    </div>
+  </div>
+
+  <div class="filter-sep"></div>
+  <label>Stage</label>
+  <div class="ms-wrap" id="ms-stage">
+    <div class="ms-trigger" id="ms-stage-trigger">All <span class="ms-caret">▼</span></div>
+    <div class="ms-panel" id="ms-stage-panel">
+      <label class="ms-item ms-select-all"><input type="checkbox" id="ms-stage-all" checked> All Stages</label>
+      <div class="ms-divider"></div>
+    </div>
+  </div>
+
+  <div class="filter-sep"></div>
+  <label>Forecast</label>
+  <div class="ms-wrap" id="ms-forecast">
+    <div class="ms-trigger" id="ms-forecast-trigger">All <span class="ms-caret">▼</span></div>
+    <div class="ms-panel" id="ms-forecast-panel">
+      <label class="ms-item ms-select-all"><input type="checkbox" id="ms-forecast-all" checked> All Forecasts</label>
+      <div class="ms-divider"></div>
+    </div>
+  </div>
+
+  <div class="filter-sep"></div>
+  <label>Confidence</label>
+  <div class="ms-wrap" id="ms-tier">
+    <div class="ms-trigger" id="ms-tier-trigger">All <span class="ms-caret">▼</span></div>
+    <div class="ms-panel" id="ms-tier-panel">
+      <label class="ms-item ms-select-all"><input type="checkbox" id="ms-tier-all"> All</label>
+      <div class="ms-divider"></div>
+      <label class="ms-item"><input type="checkbox" value="High"   class="ms-tier-opt" checked> 🟢 High</label>
+      <label class="ms-item"><input type="checkbox" value="Medium" class="ms-tier-opt" checked> 🟡 Medium</label>
+      <label class="ms-item"><input type="checkbox" value="Low"    class="ms-tier-opt"> 🔴 Low</label>
+    </div>
+  </div>
+
+  <div class="filter-sep"></div>
+  <label>Owner</label>
+  <select id="f-owner" style="font-size:12px;font-family:inherit;border:1px solid #c6c6c6;border-radius:2px;padding:4px 8px;background:#fff;color:#161616;height:28px;min-width:120px;">
+    <option value="">All</option>
+  </select>
+
+  <div class="filter-sep"></div>
+  <label>Min Amount ($)</label>
+  <input type="text" id="f-amount" class="f-amount-input" placeholder="e.g. 500,000" inputmode="numeric" autocomplete="off" />
+
+  <div class="filter-sep"></div>
+  <label>Search</label>
+  <input type="text" id="f-search" placeholder="Opp name or account…" />
+
+  <button class="btn-ghost" id="btn-clear-filters">Clear filters</button>
+  <span class="filter-count" id="filter-count"></span>
+</div>
+
+<div id="totals-bar">
+  <span class="totals-label">IBM Tech Amt</span>
+  <span class="totals-value ibm" id="totals-ibm">—</span>
+  <div class="totals-sep"></div>
+  <span class="totals-label">Total Amt</span>
+  <span class="totals-value total" id="totals-total">—</span>
+  <span class="totals-note" id="totals-note"></span>
+</div>
+
+<div id="status-bar"></div>
+<pre id="scrape-log"></pre>
+
+<main>
+  <div class="table-wrap">
+    <table id="opp-table">
+      <thead>
+        <tr>
+          <th style="width:36px"></th>
+          <th data-col="score" class="score-cell">Confidence</th>
+          <th data-col="opportunity_name" style="width:220px;min-width:220px;max-width:220px;">Opportunity</th>
+          <th data-col="account_name">Account Detail</th>
+          <th data-col="filtered_opportunity_amount" style="text-align:right">IBM Tech Amt</th>
+          <th data-col="total_opportunity_amount"    style="text-align:right">Total Amt</th>
+          <th data-col="next_steps" style="max-width:220px;min-width:220px;width:220px;">Next Steps</th>
+          <th data-col="close_date">Close Date</th>
+          <th data-col="closeQuarter">Quarter</th>
+          <th data-col="create_date">Create Date</th>
+          <th data-col="stage">Stage</th>
+          <th data-col="forecast_category">Forecast</th>
+          <th data-col="opportunity_owner">Owner</th>
+          <th data-col="opportunity_owners_manager">Owner's Manager</th>
+          <th data-col="opportunity_created_by">Created By</th>
+          <th data-col="flm_judgement">FLM Judgement</th>
+          <th data-col="account_company">Account (Company)</th>
+          <th data-col="account_db_dc">Account (DB/DC)</th>
+          <th data-col="team_notes">Team Notes</th>
+          <th data-col="business_partner">Business Partner</th>
+          <th data-col="technology_client">Technology Client</th>
+          <th data-col="acquisition_pipeline">Acquisition Pipeline</th>
+          <th data-col="ibm_technology_plan">IBM Technology Plan</th>
+          <th data-col="id">Opportunity ID</th>
+        </tr>
+      </thead>
+      <tbody id="opp-tbody">
+        <tr>
+          <td colspan="24">
+            <div class="empty-state">
+              <h2>No data yet</h2>
+              <p>Click <strong>Refresh Data</strong> to load the latest opportunities.</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<footer>ISC Automated Sales Forecast &mdash; US Public Sector &mdash; <span id="footer-version"></span></footer>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let allOpportunities = [];   // full dataset from API (with scores)
+  let filtered = [];           // current filtered view
+  let sortCol = 'score';
+  let sortDir = 'desc';        // default: highest confidence first
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function fmt$(val) {
+    if (val == null || val === '') return '—';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency', currency: 'USD', maximumFractionDigits: 0
+    }).format(val);
+  }
+
+  function forecastBadge(fc) {
+    if (!fc) return '<span class="badge badge-omit">—</span>';
+    const s = fc.toLowerCase();
+    if (s === 'call' || s.includes('commit'))   return `<span class="badge badge-commit">${fc}</span>`;
+    if (s.includes('best'))                      return `<span class="badge badge-best">${fc}</span>`;
+    if (s.includes('pipeline'))                  return `<span class="badge badge-pipeline">${fc}</span>`;
+    return `<span class="badge badge-omit">${fc}</span>`;
+  }
+
+  function flmHtml(val) {
+    if (!val) return '—';
+    return val.toLowerCase() === 'yes'
+      ? `<span class="flm-yes">Yes</span>`
+      : `<span class="flm-no">No</span>`;
+  }
+
+  function scoreBadge(opp) {
+    const tier  = opp.tier  || 'Low';
+    const score = opp.score ?? 0;
+    const cls   = tier === 'High' ? 'score-high' : tier === 'Medium' ? 'score-medium' : 'score-low';
+    const dot   = tier === 'High' ? '🟢' : tier === 'Medium' ? '🟡' : '🔴';
+    const pct   = Math.round(score);
+    const bd    = opp.breakdown || {};
+
+    const tooltipRows = [
+      ['Stage',      bd.stage],
+      ['Forecast',   bd.forecast],
+      ['Close Date', bd.closeDate],
+      ['FLM',        bd.flm],
+      ['Next Steps', bd.nextSteps],
+      ['Team Notes', bd.teamNotes],
+    ].filter(([, v]) => v).map(([label, v]) =>
+      `<div class="tooltip-row">
+        <span class="tooltip-label">${label}</span>
+        <span class="tooltip-pts">${v.points}</span>
+        <span class="tooltip-max">/ ${v.max}</span>
+      </div>`
+    ).join('');
+
+    return `<div class="tooltip-wrap">
+      <span class="score-badge ${cls}">
+        ${dot} ${pct}
+      </span>
+      <div class="tooltip-box">
+        <div class="tooltip-title">Confidence: ${pct}/100 · ${tier}</div>
+        ${tooltipRows}
+      </div>
+    </div>`;
+  }
+
+  function esc(str) {
+    return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function cell(val) { return esc(val) || '—'; }
+
+  const TRUNC_LEN = 250;
+
+  /** Render text truncated at `limit` chars on a full word boundary with an inline more/less toggle.
+   *  limit defaults to TRUNC_LEN (250). Pass a smaller value for tighter columns. */
+  function truncCell(val, limit = TRUNC_LEN) {
+    if (!val || val.trim().length === 0) return '—';
+    if (val.length <= limit) return esc(val);
+    // Walk back from the limit to the nearest word boundary
+    let cut = limit;
+    while (cut > 0 && val[cut] !== ' ' && val[cut] !== '\n') cut--;
+    if (cut === 0) cut = limit; // no space found — hard cut
+    const short = esc(val.slice(0, cut).trimEnd());
+    const rest  = esc(val.slice(cut));
+    return `<span class="truncated-text">${short}<span class="trunc-rest" style="display:none">${rest}</span>…<span class="more-toggle" onclick="toggleTrunc(this)">more</span></span>`;
+  }
+
+  function setStatus(msg, type) {
+    const bar = document.getElementById('status-bar');
+    bar.textContent = msg;
+    bar.className = type;
+  }
+
+  function updateSelectionSummary() {
+    const totalSelected   = allOpportunities.filter(o => o.selected).length;
+    const filteredSelected = filtered.filter(o => o.selected).length;
+    const isFiltered = filtered.length < allOpportunities.length;
+
+    let summary;
+    if (isFiltered && totalSelected !== filteredSelected) {
+      // Filters are active AND some selections exist outside the current view
+      summary = `${totalSelected} selected total (${filteredSelected} in view)`;
+    } else {
+      summary = `${totalSelected} of ${allOpportunities.length} selected`;
+    }
+
+    document.getElementById('selection-summary').textContent = summary;
+    document.getElementById('btn-generate').disabled = totalSelected === 0;
+  }
+
+  // ── Multi-select dropdown engine ───────────────────────────────────────────
+
+  /**
+   * msConfig: map of filter key → { wrap, trigger, panel, allCb, optClass, getVals }
+   * Built after DOM is ready; options for quarter/stage/forecast are injected by populateFilters.
+   */
+  const msConfig = {
+    quarter:  { wrap: 'ms-quarter',  trigger: 'ms-quarter-trigger',  panel: 'ms-quarter-panel',  allId: 'ms-quarter-all',  optClass: 'ms-quarter-opt'  },
+    stage:    { wrap: 'ms-stage',    trigger: 'ms-stage-trigger',    panel: 'ms-stage-panel',    allId: 'ms-stage-all',    optClass: 'ms-stage-opt'    },
+    forecast: { wrap: 'ms-forecast', trigger: 'ms-forecast-trigger', panel: 'ms-forecast-panel', allId: 'ms-forecast-all', optClass: 'ms-forecast-opt' },
+    tier:     { wrap: 'ms-tier',     trigger: 'ms-tier-trigger',     panel: 'ms-tier-panel',     allId: 'ms-tier-all',     optClass: 'ms-tier-opt'     },
+  };
+
+  /** Return the set of checked values for a multi-select (empty set = "all") */
+  function msGetSelected(key) {
+    const cfg  = msConfig[key];
+    const allCb = document.getElementById(cfg.allId);
+    if (allCb && allCb.checked) return new Set(); // "All" checked → no filter
+    const opts = document.querySelectorAll(`.${cfg.optClass}`);
+    const vals = new Set();
+    opts.forEach(cb => { if (cb.checked) vals.add(cb.value); });
+    return vals;
+  }
+
+  /** Update the trigger button label to reflect current selection */
+  function msUpdateTrigger(key) {
+    const cfg     = msConfig[key];
+    const trigger = document.getElementById(cfg.trigger);
+    const allCb   = document.getElementById(cfg.allId);
+    const opts    = [...document.querySelectorAll(`.${cfg.optClass}`)];
+    const checked = opts.filter(cb => cb.checked);
+
+    // Remove old badge if any
+    const old = trigger.querySelector('.ms-badge');
+    if (old) old.remove();
+    // Restore/ensure caret
+    if (!trigger.querySelector('.ms-caret')) {
+      trigger.insertAdjacentHTML('beforeend', '<span class="ms-caret">▼</span>');
+    }
+
+    if (!allCb || allCb.checked || checked.length === opts.length) {
+      trigger.firstChild.textContent = 'All ';
+      trigger.classList.remove('active');
+    } else if (checked.length === 0) {
+      trigger.firstChild.textContent = 'None ';
+      trigger.classList.add('active');
+    } else if (checked.length === 1) {
+      trigger.firstChild.textContent = checked[0].value.slice(0, 14) + ' ';
+      trigger.classList.add('active');
+      const badge = document.createElement('span');
+      badge.className = 'ms-badge';
+      badge.textContent = '1';
+      trigger.querySelector('.ms-caret').before(badge);
+    } else {
+      trigger.firstChild.textContent = `${checked.length} sel `;
+      trigger.classList.add('active');
+      const badge = document.createElement('span');
+      badge.className = 'ms-badge';
+      badge.textContent = checked.length;
+      trigger.querySelector('.ms-caret').before(badge);
+    }
+  }
+
+  /** Wire up open/close, "All" master checkbox, and individual option checkboxes */
+  function msInit(key) {
+    const cfg     = msConfig[key];
+    const wrap    = document.getElementById(cfg.wrap);
+    const trigger = document.getElementById(cfg.trigger);
+    const panel   = document.getElementById(cfg.panel);
+    const allCb   = document.getElementById(cfg.allId);
+
+    // Prevent any click inside the panel from reaching the document close-handler
+    panel.addEventListener('click', (e) => e.stopPropagation());
+
+    // Toggle panel open/close
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = wrap.classList.contains('open');
+      // Close all other panels first
+      document.querySelectorAll('.ms-wrap.open').forEach(w => w.classList.remove('open'));
+      if (!isOpen) wrap.classList.add('open');
+    });
+
+    // "All" master checkbox
+    if (allCb) {
+      allCb.addEventListener('change', () => {
+        document.querySelectorAll(`.${cfg.optClass}`).forEach(cb => {
+          cb.checked = allCb.checked;
+        });
+        msUpdateTrigger(key);
+        applyFilters();
+      });
+    }
+
+    // Individual option checkboxes
+    wrap.addEventListener('change', (e) => {
+      if (!e.target.classList.contains(cfg.optClass)) return;
+      const opts    = [...document.querySelectorAll(`.${cfg.optClass}`)];
+      const allChecked = opts.every(cb => cb.checked);
+      const noneChecked = opts.every(cb => !cb.checked);
+      if (allCb) allCb.checked = allChecked;
+      msUpdateTrigger(key);
+      applyFilters();
+    });
+  }
+
+  // Close panels when clicking outside
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.ms-wrap.open').forEach(w => w.classList.remove('open'));
+  });
+
+  /** Returns the current calendar quarter label, e.g. "Q3 2026" */
+  function currentQuarterLabel() {
+    const now = new Date();
+    const q   = Math.floor(now.getMonth() / 3) + 1;
+    return `Q${q} ${now.getFullYear()}`;
+  }
+
+  /** Populate a multi-select panel from data.
+   *  defaultOnly: if provided, only that value is checked by default; all others unchecked. */
+  function populateMsPanel(key, values, defaultOnly = null) {
+    const cfg   = msConfig[key];
+    const panel = document.getElementById(cfg.panel);
+    const allCb = document.getElementById(cfg.allId);
+
+    // Keep the "All" row and divider (first 2 children), replace the rest
+    while (panel.children.length > 2) panel.removeChild(panel.lastChild);
+
+    values.forEach(v => {
+      const checked = defaultOnly === null || v === defaultOnly;
+      const lbl = document.createElement('label');
+      lbl.className = 'ms-item';
+      lbl.innerHTML = `<input type="checkbox" value="${esc(v)}" class="${cfg.optClass}"${checked ? ' checked' : ''}> ${esc(v)}`;
+      panel.appendChild(lbl);
+    });
+
+    // Sync the "All" master checkbox — only checked if every option is checked
+    if (allCb) {
+      const opts = [...panel.querySelectorAll(`.${cfg.optClass}`)];
+      allCb.checked = opts.every(cb => cb.checked);
+    }
+
+    msUpdateTrigger(key);
+  }
+
+  // ── Build all quarter options — hardcoded Q1–Q4 for current + next year,
+  //    merged with whatever closeQuarters are in the actual data ──────────────
+  function buildQuarterOptions(opps) {
+    const now   = new Date();
+    const yr    = now.getFullYear();
+    const built = new Set();
+    [yr, yr + 1].forEach(y => ['Q1','Q2','Q3','Q4'].forEach(q => built.add(`${q} ${y}`)));
+    // Add any quarters from the data not already covered
+    opps.forEach(o => { if (o.closeQuarter) built.add(o.closeQuarter); });
+    // Sort chronologically: year first, then Q number
+    return [...built].sort((a, b) => {
+      const [qa, ya] = [a.slice(0,2), parseInt(a.slice(3))];
+      const [qb, yb] = [b.slice(0,2), parseInt(b.slice(3))];
+      return ya !== yb ? ya - yb : qa.localeCompare(qb);
+    });
+  }
+
+  // ── Populate filter dropdowns from data ────────────────────────────────────
+  function populateFilters(opps) {
+    const quarters  = buildQuarterOptions(opps);
+    const stages    = [...new Set(opps.map(o => o.stage).filter(Boolean))].sort();
+    const forecasts = [...new Set(opps.map(o => o.forecast_category).filter(Boolean))].sort();
+    const owners    = [...new Set(opps.map(o => o.opportunity_owner).filter(Boolean))].sort();
+
+    populateMsPanel('quarter',  quarters, currentQuarterLabel());
+    populateMsPanel('stage',    stages);
+    populateMsPanel('forecast', forecasts, 'Best Case');
+    // Tier options are static (High + Medium pre-checked in HTML) — just sync trigger
+    msUpdateTrigger('tier');
+
+    // Owner stays as a regular <select>
+    const ownerSel = document.getElementById('f-owner');
+    const curOwner = ownerSel.value;
+    ownerSel.innerHTML = '<option value="">All</option>' +
+      owners.map(v => `<option value="${esc(v)}"${v===curOwner?' selected':''}>${esc(v)}</option>`).join('');
+  }
+
+  // ── Apply filters ──────────────────────────────────────────────────────────
+  function applyFilters() {
+    const quarters  = msGetSelected('quarter');
+    const stages    = msGetSelected('stage');
+    const forecasts = msGetSelected('forecast');
+    const tiers     = msGetSelected('tier');
+    const owner     = document.getElementById('f-owner').value;
+    const amount    = parseFloat(document.getElementById('f-amount').value.replace(/,/g, '')) || 0;
+    const search    = document.getElementById('f-search').value.toLowerCase().trim();
+
+    filtered = allOpportunities.filter(o => {
+      if (quarters.size  && !quarters.has(o.closeQuarter))       return false;
+      if (stages.size    && !stages.has(o.stage))                 return false;
+      if (forecasts.size && !forecasts.has(o.forecast_category))  return false;
+      if (tiers.size     && !tiers.has(o.tier))                   return false;
+      if (owner          && o.opportunity_owner !== owner)         return false;
+      if (amount         && (o.total_opportunity_amount || 0) < amount) return false;
+      if (search && !((o.opportunity_name || '').toLowerCase().includes(search) ||
+                      (o.account_name     || '').toLowerCase().includes(search))) return false;
+      return true;
+    });
+
+    const total = allOpportunities.length;
+    const shown = filtered.length;
+    document.getElementById('filter-count').textContent =
+      shown === total ? `${total} opportunities` : `${shown} of ${total} shown`;
+
+    // Update totals bar
+    const ibmSum   = filtered.reduce((s, o) => s + (o.filtered_opportunity_amount || 0), 0);
+    const totalSum = filtered.reduce((s, o) => s + (o.total_opportunity_amount    || 0), 0);
+    document.getElementById('totals-ibm').textContent   = fmt$(ibmSum);
+    document.getElementById('totals-total').textContent = fmt$(totalSum);
+    document.getElementById('totals-note').textContent  =
+      shown === total ? `all ${total} opportunities` : `${shown} of ${total} shown`;
+
+    renderTable();
+  }
+
+  // ── Render table ────────────────────────────────────────────────────────────
+  function renderTable() {
+    const sorted = [...filtered].sort((a, b) => {
+      let va = a[sortCol], vb = b[sortCol];
+      if (sortCol === 'score') { va = va ?? 0; vb = vb ?? 0; }
+      if (typeof va === 'string') va = va.toLowerCase();
+      if (typeof vb === 'string') vb = vb.toLowerCase();
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    document.querySelectorAll('thead th[data-col]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+      if (th.dataset.col === sortCol)
+        th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+    });
+
+    const tbody = document.getElementById('opp-tbody');
+
+    if (sorted.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="24">
+        <div class="empty-state">
+          <h2>${allOpportunities.length === 0 ? 'No data yet' : 'No results match your filters'}</h2>
+          <p>${allOpportunities.length === 0
+            ? 'Click <strong>Refresh Data</strong> to load the latest opportunities.'
+            : 'Try adjusting or <button class="btn-ghost" onclick="clearFilters()">clearing the filters</button>.'}</p>
+        </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = sorted.map(opp => `
+      <tr class="${opp.selected ? 'selected-row' : ''}" data-id="${esc(opp.id)}">
+        <td>
+          <input type="checkbox" ${opp.selected ? 'checked' : ''}
+            data-id="${esc(opp.id)}" class="opp-checkbox" />
+        </td>
+        <td class="score-cell">${scoreBadge(opp)}</td>
+        <td class="wrap">${truncCell(opp.opportunity_name, 40)}</td>
+        <td class="wrap">${truncCell(opp.account_name, 40)}</td>
+        <td class="revenue">${fmt$(opp.filtered_opportunity_amount)}</td>
+        <td class="revenue">${fmt$(opp.total_opportunity_amount)}</td>
+        <td class="wrap">${truncCell(opp.next_steps)}</td>
+        <td>${cell(opp.close_date)}</td>
+        <td>${cell(opp.closeQuarter)}</td>
+        <td>${cell(opp.create_date)}</td>
+        <td>${cell(opp.stage)}</td>
+        <td>${forecastBadge(opp.forecast_category)}</td>
+        <td>${cell(opp.opportunity_owner)}</td>
+        <td>${cell(opp.opportunity_owners_manager)}</td>
+        <td>${cell(opp.opportunity_created_by)}</td>
+        <td>${flmHtml(opp.flm_judgement)}</td>
+        <td>${cell(opp.account_company)}</td>
+        <td>${cell(opp.account_db_dc)}</td>
+        <td class="wrap">${truncCell(opp.team_notes)}</td>
+        <td>${cell(opp.business_partner)}</td>
+        <td>${cell(opp.technology_client)}</td>
+        <td>${cell(opp.acquisition_pipeline)}</td>
+        <td>${opp.ibm_technology_plan
+              ? `<a href="${esc(opp.ibm_technology_plan)}" target="_blank" rel="noopener">Quip ↗</a>`
+              : '—'}</td>
+        <td style="font-size:10px;color:#6f6f6f">${cell(opp.id)}</td>
+      </tr>
+    `).join('');
+
+    updateSelectionSummary();
+  }
+
+  // ── Load opportunities ──────────────────────────────────────────────────────
+  async function loadOpportunities() {
+    try {
+      const res = await fetch('/api/opportunities');
+      allOpportunities = await res.json();
+      populateFilters(allOpportunities);
+      applyFilters();
+    } catch (err) {
+      setStatus('Failed to load opportunities: ' + err.message, 'error');
+    }
+  }
+
+  // ── Clear filters ───────────────────────────────────────────────────────────
+  function clearFilters() {
+    // Quarter resets to current quarter only (not "All")
+    const cq = currentQuarterLabel();
+    document.querySelectorAll(`.${msConfig.quarter.optClass}`).forEach(cb => {
+      cb.checked = cb.value === cq;
+    });
+    const qAllCb = document.getElementById(msConfig.quarter.allId);
+    if (qAllCb) qAllCb.checked = false;
+    msUpdateTrigger('quarter');
+
+    // Stage resets to All
+    ['stage'].forEach(key => {
+      const cfg = msConfig[key];
+      const allCb = document.getElementById(cfg.allId);
+      if (allCb) allCb.checked = true;
+      document.querySelectorAll(`.${cfg.optClass}`).forEach(cb => { cb.checked = true; });
+      msUpdateTrigger(key);
+    });
+
+    // Forecast resets to Best Case only
+    document.querySelectorAll(`.${msConfig.forecast.optClass}`).forEach(cb => {
+      cb.checked = cb.value === 'Best Case';
+    });
+    const fcAllCb = document.getElementById(msConfig.forecast.allId);
+    if (fcAllCb) fcAllCb.checked = false;
+    msUpdateTrigger('forecast');
+
+    // Confidence resets to High + Medium only
+    document.querySelectorAll(`.${msConfig.tier.optClass}`).forEach(cb => {
+      cb.checked = cb.value === 'High' || cb.value === 'Medium';
+    });
+    const tierAllCb = document.getElementById(msConfig.tier.allId);
+    if (tierAllCb) tierAllCb.checked = false;
+    msUpdateTrigger('tier');
+    document.getElementById('f-owner').value  = '';
+    document.getElementById('f-amount').value = '';
+    document.getElementById('f-search').value = '';
+    applyFilters();
+  }
+  document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
+
+  // Owner + search listeners
+  document.getElementById('f-owner').addEventListener('change', applyFilters);
+  // Format Min Amount as user types — insert commas, keep cursor stable
+  document.getElementById('f-amount').addEventListener('input', function () {
+    const el       = this;
+    const raw      = el.value.replace(/[^0-9]/g, '');
+    const formatted = raw ? Number(raw).toLocaleString('en-US') : '';
+    const cursorFromEnd = el.value.length - el.selectionEnd;
+    el.value = formatted;
+    const newPos = Math.max(0, formatted.length - cursorFromEnd);
+    el.setSelectionRange(newPos, newPos);
+    applyFilters();
+  });
+  document.getElementById('f-search').addEventListener('input', applyFilters);
+
+  // ── Init multi-select dropdowns ────────────────────────────────────────────
+  ['quarter','stage','forecast','tier'].forEach(key => msInit(key));
+
+  // ── Column resize ──────────────────────────────────────────────────────────
+  (function initColResize() {
+    const ths = document.querySelectorAll('#opp-table thead th');
+    ths.forEach(th => {
+      // Don't put a resize handle on the checkbox column (no data-col)
+      if (!th.dataset.col && th.cellIndex === 0) return;
+      const handle = document.createElement('div');
+      handle.className = 'col-resizer';
+      // Prevent the resize drag from triggering a column sort click
+      handle.addEventListener('click', e => e.stopPropagation());
+      th.appendChild(handle);
+
+      let startX, startW;
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        startX = e.pageX;
+        startW = th.offsetWidth;
+        handle.classList.add('resizing');
+        document.body.style.cursor = 'col-resize';
+        document.body.style.userSelect = 'none';
+
+        function onMove(e) {
+          const delta = e.pageX - startX;
+          th.style.minWidth = Math.max(40, startW + delta) + 'px';
+          th.style.width    = Math.max(40, startW + delta) + 'px';
+        }
+        function onUp() {
+          handle.classList.remove('resizing');
+          document.body.style.cursor = '';
+          document.body.style.userSelect = '';
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        }
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+  })();
+
+  // ── Checkbox toggle ─────────────────────────────────────────────────────────
+  document.getElementById('opp-tbody').addEventListener('change', async (e) => {
+    if (!e.target.classList.contains('opp-checkbox')) return;
+    const id = e.target.dataset.id;
+    const selected = e.target.checked;
+    const opp = allOpportunities.find(o => o.id === id);
+    if (opp) opp.selected = selected ? 1 : 0;
+    renderTable();
+    try {
+      await fetch(`/api/opportunities/${encodeURIComponent(id)}/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected }),
+      });
+    } catch (err) {
+      setStatus('Failed to save selection: ' + err.message, 'error');
+      if (opp) opp.selected = selected ? 0 : 1;
+      renderTable();
+    }
+  });
+
+  // ── Select All / Clear All / Select High ───────────────────────────────────
+  async function setSelected(opps, value) {
+    opps.forEach(opp => { opp.selected = value ? 1 : 0; });
+    renderTable();
+    await Promise.all(opps.map(opp =>
+      fetch(`/api/opportunities/${encodeURIComponent(opp.id)}/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ selected: value }),
+      })
+    ));
+  }
+
+  document.getElementById('btn-select-all').addEventListener('click', () =>
+    setSelected(filtered, true));
+  document.getElementById('btn-clear-all').addEventListener('click', () =>
+    setSelected(allOpportunities, false));
+  document.getElementById('btn-select-high').addEventListener('click', () =>
+    setSelected(filtered.filter(o => o.tier === 'High'), true));
+
+  // ── Sort by column header ──────────────────────────────────────────────────
+  document.querySelectorAll('thead th[data-col]').forEach(th => {
+    th.addEventListener('click', () => {
+      if (sortCol === th.dataset.col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = th.dataset.col;
+        sortDir = sortCol === 'score' ? 'desc' : 'asc';
+      }
+      renderTable();
+    });
+  });
+
+  // ── Refresh Data ───────────────────────────────────────────────────────────
+  document.getElementById('btn-refresh').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-refresh');
+    const log = document.getElementById('scrape-log');
+    btn.disabled = true;
+    log.textContent = '';
+    log.style.display = 'block';
+    setStatus('Loading data…', 'loading');
+    try {
+      const res = await fetch('/api/scrape', { method: 'POST' });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        log.textContent += decoder.decode(value);
+        log.scrollTop = log.scrollHeight;
+      }
+      setStatus('Data refreshed successfully.', 'success');
+      await loadOpportunities();
+    } catch (err) {
+      setStatus('Refresh failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── Generate PPT ───────────────────────────────────────────────────────────
+  document.getElementById('btn-generate').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    setStatus('Generating PowerPoint…', 'loading');
+    try {
+      const res = await fetch('/api/generate-ppt', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Failed to generate PowerPoint.', 'error'); return; }
+      setStatus(`PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'}. Downloading…`, 'success');
+      const a = document.createElement('a');
+      a.href = data.file;
+      a.download = data.file.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      setStatus('Generate PPT failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      updateSelectionSummary();
+    }
+  });
+
+  // ── More / Less toggle for truncated cells ─────────────────────────────────
+  function toggleTrunc(el) {
+    const restSpan = el.previousElementSibling; // .trunc-rest
+    const expanded = restSpan.style.display !== 'none';
+    if (expanded) {
+      restSpan.style.display = 'none';
+      el.previousSibling.textContent = '…'; // restore ellipsis text node
+      el.textContent = 'more';
+    } else {
+      restSpan.style.display = 'inline';
+      el.previousSibling.textContent = '';   // hide ellipsis when expanded
+      el.textContent = 'less';
+    }
+  }
+
+  // ── Init ───────────────────────────────────────────────────────────────────
+  const APP_VERSION = '1.0.0';
+  const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
+    month: 'long', day: 'numeric', year: 'numeric'
+  });
+  document.getElementById('header-meta').textContent = `${weekOf} · v${APP_VERSION}`;
+  document.getElementById('footer-version').textContent = `v${APP_VERSION}`;
+
+  loadOpportunities();
+</script>
+</body>
+</html>

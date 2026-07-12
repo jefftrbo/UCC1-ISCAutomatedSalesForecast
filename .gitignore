@@ -1,0 +1,30 @@
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+
+# ── Database (runtime data — not source) ──────────────────────────────────────
+opportunities.db
+opportunities.db-shm
+opportunities.db-wal
+
+# ── Generated PowerPoint output ───────────────────────────────────────────────
+output/*.pptx
+output/~$*.pptx
+
+# ── Scraper — sensitive / user-specific / large files ─────────────────────────
+scraper/cookies.json
+scraper/isc-export.har
+scraper/devtools-response.json
+scraper/UCC1-InteractionLog.md
+
+# ── Playwright browser profile ────────────────────────────────────────────────
+browser-profile/
+
+# ── macOS artifacts ───────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ── Editor / IDE ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
