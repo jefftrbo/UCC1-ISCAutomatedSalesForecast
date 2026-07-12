@@ -1820,7 +1820,8 @@
       const res = await fetch('/api/generate-ppt', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate PowerPoint.', 'error'); return; }
-      setStatus(`PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'}. Downloading…`, 'success');
+      setPipelineStatus('✅', `PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
+      setWorkflowStep(6);  // step 6 done
       const a = document.createElement('a');
       a.href = data.file;
       a.download = data.file.split('/').pop();
@@ -1972,7 +1973,8 @@
 
       const isSubset = filteredIds.length < allOpportunities.length;
       const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
-      setStatus(`Narrative generated from ${viewLabel}.`, 'success');
+      setPipelineStatus('✅', `Narrative generated from ${viewLabel}.`, false);
+      setWorkflowStep(4);  // step 3 done → step 4 (Save Baseline) now active
     } catch (err) {
       setStatus('Narrative failed: ' + err.message, 'error');
     } finally {
@@ -2110,7 +2112,7 @@
 
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      setStatus(`Week-over-week diff: ${data.summary}`, 'success');
+      setPipelineStatus('⇄', `What Changed: ${data.summary}`, false);
     } catch (err) {
       setStatus('Diff failed: ' + err.message, 'error');
     } finally {
@@ -2123,18 +2125,17 @@
   document.getElementById('btn-snapshot').addEventListener('click', async () => {
     const btn = document.getElementById('btn-snapshot');
     btn.disabled = true;
-    btn.textContent = '📌 Saving…';
-    setStatus('Saving pipeline baseline…', 'loading');
+    setPipelineStatus('📌', 'Saving pipeline baseline…', false);
     try {
       const res  = await fetch('/api/snapshot', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Baseline save failed.', 'error'); return; }
-      setStatus(`✅ Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Use "⇄ What Changed" next week to see deltas.`, 'success');
+      setPipelineStatus('✅', `Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Click ⇄ What Changed to see deltas.`, false);
+      setWorkflowStep(5);  // step 4 done → step 5 (What Changed) now active
     } catch (err) {
       setStatus('Save Baseline failed: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = '📌 Save Baseline';
     }
   });
 
