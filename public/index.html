@@ -96,79 +96,85 @@
     .gm-ready.needs-action .gm-ready-dot { background: #f1c21b; }
     .gm-ready.no-data .gm-ready-dot  { background: rgba(255,255,255,0.35); }
 
-    /* ── Workflow strip ── */
-    .workflow-strip {
+    /* ── Action bar (Model 3 — status-driven, fully re-entrant) ── */
+    .action-bar {
       background: var(--cds-background);
       border-bottom: 1px solid var(--cds-border-subtle);
-      padding: 0 24px;
+      padding: 0 16px;
       display: flex;
-      align-items: stretch;
+      align-items: center;
       position: sticky;
       top: 48px;
       z-index: 99;
-      height: 44px;
+      height: 48px;
+      gap: 2px;
       overflow-x: auto;
     }
-    .workflow-step {
+
+    /* Action buttons — always enabled, no sequence lock */
+    .action-btn {
       display: flex;
       align-items: center;
-      gap: 8px;
-      padding: 0 16px;
-      border-right: 1px solid var(--cds-border-subtle);
-      cursor: pointer;
+      gap: 7px;
+      padding: 0 14px;
+      height: 36px;
+      border: 1px solid var(--cds-border-subtle);
+      background: var(--cds-background);
+      color: var(--cds-text-primary);
       font-size: 13px;
+      font-family: 'IBM Plex Sans', inherit;
       font-weight: 400;
-      color: var(--cds-text-secondary);
+      cursor: pointer;
       white-space: nowrap;
-      transition: background 0.15s, color 0.15s;
+      transition: background 0.12s, border-color 0.12s;
+      border-radius: 0;
       flex-shrink: 0;
-      position: relative;
     }
-    .workflow-step:last-child { border-right: none; }
-    .workflow-step:hover:not(:disabled):not(.step-disabled) { background: var(--cds-layer-01); color: var(--cds-text-primary); }
-    .workflow-step.step-active { color: var(--cds-interactive); font-weight: 600; }
-    .workflow-step.step-active::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--cds-interactive);
-    }
-    .workflow-step.step-done { color: var(--cds-support-success); }
-    .workflow-step.step-done::after {
-      content: '';
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--cds-support-success);
-    }
-    .workflow-step.step-disabled { opacity: 0.4; cursor: not-allowed; }
-    .step-num {
-      width: 20px; height: 20px;
-      border-radius: 50%;
-      background: var(--cds-layer-02);
-      color: var(--cds-text-secondary);
+    .action-btn:hover { background: var(--cds-layer-01); border-color: var(--cds-border-strong); }
+    .action-btn:active { background: var(--cds-layer-02); }
+    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Primary actions (refresh, score) */
+    .action-btn.primary { background: var(--ibm-blue-70); color: #fff; border-color: var(--ibm-blue-70); }
+    .action-btn.primary:hover { background: #002fa3; border-color: #002fa3; }
+
+    /* Success action (baseline+ppt) */
+    .action-btn.success { background: var(--cds-support-success); color: #fff; border-color: var(--cds-support-success); }
+    .action-btn.success:hover { background: #12622b; border-color: #12622b; }
+
+    /* Status chip — shows last-run timestamp */
+    .action-status-chip {
       font-size: 11px;
-      font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
+      color: var(--cds-text-secondary);
+      background: var(--cds-layer-01);
+      border: 1px solid var(--cds-border-subtle);
+      padding: 2px 8px;
+      white-space: nowrap;
+      margin-left: -2px;
+      height: 24px;
+      display: flex;
+      align-items: center;
       flex-shrink: 0;
-      transition: background 0.15s, color 0.15s;
     }
-    .workflow-step.step-done .step-num {
-      background: var(--cds-support-success);
-      color: #fff;
+    .action-status-chip.fresh { color: var(--cds-support-success); background: #defbe6; border-color: #a7f0ba; }
+    .action-status-chip.stale { color: #9b6900; background: #fef3cd; border-color: #f1c21b; }
+
+    /* Vertical separator */
+    .action-sep {
+      width: 1px;
+      height: 28px;
+      background: var(--cds-border-subtle);
+      margin: 0 8px;
+      flex-shrink: 0;
     }
-    .workflow-step.step-active .step-num {
-      background: var(--cds-interactive);
-      color: #fff;
-    }
-    /* Right-side utility buttons in workflow strip */
-    .workflow-utilities {
+
+    /* Right-side utilities */
+    .action-utilities {
       margin-left: auto;
       display: flex;
       align-items: center;
       gap: 8px;
-      padding-left: 16px;
+      padding-left: 12px;
       flex-shrink: 0;
     }
     .wx-status {
