@@ -646,3 +646,143 @@ Obtain IBM Cloud API key with watsonx.ai access, then build `server/watsonxScore
 
 ---
 
+---
+
+## Session 3 (continued) — Feature: watsonx Scoring + GM Narrative (July 12, 2026)
+
+**Status:** ✅ Committed  
+**Branch at session start:** `feature/gm-narrative`  
+**Commit:** `769e836`
+
+---
+
+### Context at resumption
+
+Session resumed after re-authentication. Bob reconstructed full project state from session summary. Confirmed:
+- `git status`: branch `feature/gm-narrative`, `server/watsonxScore.js` modified (unstaged — `generateNarrative()` had been written but not committed)
+- `server/index.js`: `POST /api/generate-narrative` endpoint NOT yet wired
+- `public/index.html`: "✍ Generate Narrative" button + panel NOT yet added
+- `server/generatePpt.js`: cover slide narrative block NOT yet added
+
+---
+
+### Step-by-step: feature/gm-narrative completion
+
+#### 1. Reviewed current file state
+- Read `server/watsonxScore.js` — `generateNarrative()` complete with:
+  - `buildNarrativePrompt()` — builds Llama-3-70b prompt with portfolio stats + top 8 deals
+  - `parseNarrativeOutput()` — JSON parse with regex fallback
+  - `mockNarrative()` — fully deterministic mock using real field data, outputs `{paragraph, bullets, mock:true}`
+  - `generateNarrative()` — live path via `meta-llama/llama-3-70b-instruct`, graceful fallback to mock
+  - Module exports: added `generateNarrative` and `narrativeModelId`
+
+#### 2. server/index.js — POST /api/generate-narrative
+Added new endpoint between `POST /api/score-opportunities` and `POST /api/opportunities/:id/select`:
+```js
+app.post('/api/generate-narrative', async (req, res) => {
+  const selected = db.prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC').all();
+  if (selected.length === 0) return res.status(400).json({ error: '...' });
+  const result = await generateNarrative(selected);
+  res.json({ paragraph, bullets, mock, model, count });
+});
+```
+Also updated file-header JSDoc to list the new endpoint.
+Also updated `POST /api/generate-ppt` to auto-generate narrative and pass it to `generatePpt(selected, outputPath, narrative)`.
+
+#### 3. public/index.html — UI changes (three hunks in one apply_diff)
+**Toolbar button:**
+```html
+<button class="btn-primary" id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
+```
+Inserted between "Score with watsonx" and "Generate PPT".
+
+**CSS (narrative panel):**
+- `#narrative-panel` — blue left border, `#f0f4ff` background, hidden by default
+- `#narrative-panel.mock-mode` — amber variant (`#fdf6ec` / `#f59e0b`)
+- `.narrative-header h3` — IBM blue, uppercase, letter-spacing
+- `.narrative-mode-tag` — pill badge showing "mock" or "live · llama-3-70b"
+- `#narrative-paragraph` — 14px body text
+- `#narrative-bullets` — 13px list items
+- `.btn-copy` — outline style, `.btn-copy.copied` green state
+
+**HTML (narrative panel):**
+```html
+<div id="narrative-panel">
+  <div class="narrative-header">
+    <h3>GM Meeting Narrative</h3>
+    <span class="narrative-mode-tag" id="narrative-mode-tag">mock</span>
+  </div>
+  <p id="narrative-paragraph"></p>
+  <ul id="narrative-bullets"></ul>
+  <div class="narrative-actions">
+    <button class="btn-copy" id="btn-copy-narrative">⎘ Copy to clipboard</button>
+    <button class="btn-copy" id="btn-close-narrative">✕ Close</button>
+  </div>
+</div>
+```
+Inserted after `<pre id="scrape-log">`, before `<main>`.
+
+**JS handlers:**
+- `btn-narrative` click: POST `/api/generate-narrative`, populate panel, `scrollIntoView`, toggle `.mock-mode` class
+- `btn-copy-narrative`: `navigator.clipboard.writeText(para + bullets)`, 2s "✓ Copied!" flash
+- `btn-close-narrative`: `panel.style.display = 'none'`
+- `updateSelectionSummary()` extended: `btn-narrative.disabled = totalSelected === 0`
+
+#### 4. server/generatePpt.js — cover slide narrative block
+`generatePpt` signature updated to `(opportunities, outputPath, narrative = null)`.
+When `narrative.paragraph` is present, renders after the summary line at y=3.15+:
+- Thin divider line (`e0e0e0`)
+- "GM BRIEFING" label (IBM blue, 9pt, letter-spaced)
+- Paragraph text (11pt, wraps, y=3.55, h=1.5)
+- Bullet rows using PptxGenJS `bullet: { type: 'bullet' }` syntax (y=5.1, h=1.5)
+Backwards-compatible: `narrative = null` skips the block entirely.
+
+#### 5. Validation
+```bash
+node -e "require('./server/watsonxScore').generateNarrative([...3 test opps...]).then(r => console.log(r))"
+```
+Output:
+```
+PARAGRAPH: This week's US Public Sector IBM Technology forecast stands at $3.3M IBM Tech across 3 selected opportunities...
+BULLETS: 3 items
+MOCK: true
+```
+All three server files passed `node --check`.
+
+#### 6. Commit
+```
+git add server/index.js server/watsonxScore.js server/generatePpt.js public/index.html
+git commit -m "feat: GM narrative generation — POST /api/generate-narrative, UI panel, PPT cover integration"
+# → 769e836 | 4 files changed, 379 insertions(+), 13 deletions(-)
+```
+
+---
+
+### Decisions / Learnings
+
+- **Narrative auto-injected into PPT**: When "Generate PPT" is clicked, the server auto-generates the narrative and injects it into the cover slide — no extra user step required. This avoids requiring the user to click "Generate Narrative" first. Non-blocking: if narrative fails, PPT still generates.
+- **apply_diff escaping gotcha**: If a SEARCH block contains `=======` on its own line, the diff parser treats it as a diff separator — must escape as `\=======`. Encountered during index.js edits; second clean call succeeded.
+- **Duplicate JSDoc block**: First apply_diff on generatePpt.js created a duplicate file header due to a `REPLACE` block containing `/**`. Cleaned up in a follow-up diff.
+- **btn-narrative disabled state**: Wired into `updateSelectionSummary()` (same pattern as `btn-generate`) so the button is grey until at least one opportunity is selected — consistent UX.
+
+---
+
+### Current Git State
+
+```
+main          — v1.0.0 (tagged, rule-based, stable)
+develop       — feature/watsonx-scoring merged (AI scoring complete)
+feature/gm-narrative — current branch, COMMITTED (769e836)
+```
+
+### What Remains for v2.0.0 Release
+
+1. **Test with live credentials** — set `WATSONX_ENABLED=true`, `WATSONX_API_KEY`, `WATSONX_PROJECT_ID` in `.env` once IBM Cloud access is available
+2. **feature/week-over-week-diff** — week-over-week change detection + AI-generated change summary
+3. **Merge feature/gm-narrative → develop** → confirm develop is clean → **merge develop → main as v2.0.0**
+4. **Tag v2.0.0** on main
+
+---
+
+
+
