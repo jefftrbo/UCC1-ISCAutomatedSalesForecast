@@ -1467,3 +1467,116 @@ git commit -m "test: diff engine unit test — all 8 scenarios (new, dropped, pr
 **Why this matters for learning:** The key insight is using synthetic week_labels (`TEST-W01`) that can never collide with real ISO week labels (`2026-W28`) — this is the pattern to use for any future test scripts that need to touch the DB. Always clean up in the same script.
 
 ---
+
+### Step 9 — Diff Engine Redesign: Live vs. Baseline Model
+
+**Why (user question that triggered this):** After confirming `⇄ What Changed` correctly showed "Not enough history yet," the user asked how the app would behave in the real world where Dushyant refreshes the pipeline multiple times during the week due to high deal velocity (IBM↔customer actions changing stages, amounts, and close dates before the Friday GM call).
+
+**Root cause of original design flaw:**
+The original `computeDiff` compared the *two most-recent snapshot week_labels* in the `snapshots` table. `saveSnapshot` used `INSERT OR IGNORE`, making re-runs in the same week no-ops. This meant:
+- Monday 7am refresh → snapshot saved (`2026-W29`, 206 rows)
+- Monday 2pm refresh → snapshot skipped (INSERT OR IGNORE — all 206 rows already exist for `2026-W29`)
+- Wednesday refresh → same, skipped
+- Friday pre-GM refresh → same, skipped
+- PPT generated → diff compared `2026-W28` (last week) vs `2026-W29` **(Monday 7am state)** — Wednesday drops, Friday amount changes, all invisible
+
+**Correct mental model:**
+- **"Previous" (baseline)** = frozen snapshot of the pipeline at the moment the *last* GM call ended — saved deliberately, once per week
+- **"Current"** = the live `opportunities` table as it stands *right now*
+- `⇄ What Changed` always answers: "What is different between RIGHT NOW and the last time we held a GM call?"
+
+---
+
+#### Changes made
+
+**`server/diffEngine.js`:**
+- `saveSnapshot()`: changed `INSERT OR IGNORE` → `INSERT OR REPLACE`. Every call is a deliberate overwrite. Calling it multiple times in the same week always updates the baseline to the current moment (intentional). Removed `skipped` counter from return value — no longer meaningful. Updated JSDoc to document the "Save Baseline after GM call" intent.
+- `computeDiff()`: rewrote query from `LIMIT 2` (two snapshots) to `LIMIT 1` (one snapshot = the baseline). `currentRows` now reads from `SELECT * FROM opportunities` (live table) instead of a second snapshot. `currentWeek` is now always the string `'live'`. `hasData` returns false when *no* snapshot exists at all (not when fewer than 2 exist). Updated summary string to `"live vs YYYY-WXX"`.
+
+**`server/index.js`:**
+- Removed the auto-snapshot block from `POST /api/scrape`'s `child.on('close')` handler. Replaced with a hint message: `"Click 📌 Save Baseline after your GM call to lock in this week for future diffs."`
+- Updated `POST /api/snapshot` endpoint comments to document the deliberate-action intent.
+- Updated JSDoc header.
+
+**`public/index.html`:**
+- Added `📌 Save Baseline` button (`.btn-secondary`, positioned between "⇄ What Changed" and "↓ Generate PPT")
+- `btn-snapshot` click handler: `POST /api/snapshot` → success status: `"✅ Baseline saved — N opportunities locked as YYYY-WXX."`
+- Updated `#diff-no-data` message: `"No baseline saved yet. Click 📌 Save Baseline after your GM call..."`
+- Updated `btn-diff` no-data branch: heading = "What Changed", tag = "no baseline", status = "No baseline saved yet — click 📌 Save Baseline after your GM call."
+- Updated diff heading from `"What Changed: PREV → CURR"` to `"What Changed: live vs YYYY-WXX"`
+
+**`scripts/test-diff.js`** (rewritten):
+- New approach: snapshot ALL 206 rows as `TEST-W01` (full baseline), then patch 6 specific rows in the baseline to set up divergence, then mutate those same rows in the live `opportunities` table
+- Assertion for `unchanged` corrected to `allRows.length - 7` (the 199 rows not involved in any test scenario)
+- Saves and restores original `opportunities` values — table left exactly as before
+
+**`scripts/seed-changes.js`** (new file):
+- UI end-to-end test helper — mutates 8 live `opportunities` rows to simulate deal activity: 2 promotions, 1 demotion, 2 amount changes, 2 slipped dates, 1 pulled-in date
+- Flags: `--restore` (undo all mutations), `--status` (show current vs. original vs. seeded for all 8 rows)
+- Printed workflow guides user through the full UI test cycle
+
+---
+
+#### Test execution history (all runs documented)
+
+**Run 1 (original test-diff.js against new computeDiff):**
+- `new: 199` instead of 1 ❌
+- Root cause: TEST-W01 only had 8 rows; live table had 206; the 198 non-seeded rows all appeared as "new" because they were in live but not in the 8-row baseline
+- Fix: snapshot ALL 206 rows into TEST-W01, then patch specific rows to set up divergence
+
+**Run 2 (after snapshotting all 206 rows):**
+- `unchanged: 199` instead of 1 ❌
+- Root cause: `expect: 1` in the assertion was wrong — with all 206 rows in baseline, the 199 rows not involved in test scenarios correctly show as unchanged
+- Fix: `expect: expectedUnchanged` = `allRows.length - 7`
+
+**Run 3 (corrected assertion):**
+```
+✅ New            expected=1    got=1
+✅ Dropped        expected=1    got=1
+✅ Promoted       expected=1    got=1
+✅ Demoted        expected=1    got=1
+✅ Amt Changed    expected=1    got=1
+✅ Slipped        expected=1    got=1
+✅ Pulled In      expected=1    got=1
+✅ Unchanged      expected=199  got=199
+RESULT: ✅ ALL 8 TESTS PASSED
+```
+
+---
+
+#### Why both failure modes are valuable for the session log
+
+**Run 1 failure** taught: a realistic diff test baseline must contain the *full* pipeline, not just the 8 rows being mutated. Any row in live but absent from the snapshot will be flagged as "new" — exactly what would happen in production if a partial snapshot were saved.
+
+**Run 2 failure** taught: the `unchanged` assertion must reflect the full dataset size. In production, Dushyant's 206-row pipeline will have 190+ unchanged deals every week — the engine correctly surfaces them, and the PPT/UI don't show them (only the changed categories are displayed).
+
+---
+
+#### New complete UI test workflow (for Dushyant / for demo)
+
+```bash
+# Terminal
+npm start                          # start server
+
+# Browser: http://localhost:3090
+# 1. Click "📌 Save Baseline"    → locks current pipeline as baseline
+
+# Terminal
+node scripts/seed-changes.js       # mutate 8 live deals
+
+# Browser
+# 2. Click "⇄ What Changed"      → see live diff with 7 change tiles
+# 3. Click "↓ Generate PPT"      → PPT includes "What Changed" slide
+
+# Terminal
+node scripts/seed-changes.js --restore   # restore original values
+# OR: click "⟳ Refresh Data" to re-import HAR
+```
+
+**Commit:**
+```bash
+git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseline button, seed-changes helper"
+# → 6769643 | 5 files changed, 334 insertions(+), 160 deletions(-)
+```
+
+---
