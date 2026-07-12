@@ -56,8 +56,28 @@ db.exec(`
     -- ── Metadata ───────────────────────────────────────────────────────────
     raw_data                    TEXT,               -- Full JSON record from Salesforce API (all fields)
     scraped_at                  TEXT,               -- ISO timestamp of last scrape
-    selected                    INTEGER DEFAULT 0   -- 1 = included in GM meeting, 0 = excluded
+    selected                    INTEGER DEFAULT 0,  -- 1 = included in GM meeting, 0 = excluded
+
+    -- ── watsonx.ai scoring (v2.0.0) ────────────────────────────────────────
+    ai_score                    INTEGER,            -- watsonx.ai confidence score 0–100
+    ai_rationale                TEXT,               -- One-sentence AI rationale
+    ai_scored_at                TEXT                -- ISO timestamp of last AI scoring
   )
 `);
+
+// ── v2.0.0 migration — add watsonx columns to existing databases ──────────────
+// SQLite does not support ADD COLUMN IF NOT EXISTS, so we check PRAGMA table_info first.
+const existingCols = db.pragma('table_info(opportunities)').map(c => c.name);
+const v2Columns = [
+  { name: 'ai_score',      ddl: 'ALTER TABLE opportunities ADD COLUMN ai_score INTEGER'      },
+  { name: 'ai_rationale',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_rationale TEXT'     },
+  { name: 'ai_scored_at',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_scored_at TEXT'     },
+];
+v2Columns.forEach(({ name, ddl }) => {
+  if (!existingCols.includes(name)) {
+    db.exec(ddl);
+    console.log(`[db] Migration: added column ${name}`);
+  }
+});
 
 module.exports = db;

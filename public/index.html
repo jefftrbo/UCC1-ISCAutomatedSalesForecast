@@ -352,7 +352,7 @@
     }
 
     /* ── Confidence score ── */
-    .score-cell { text-align: center; width: 72px; min-width: 72px; max-width: 72px; }
+    .score-cell { text-align: center; width: 120px; min-width: 120px; max-width: 120px; }
 
     .score-badge {
       display: inline-flex;
@@ -368,6 +368,35 @@
     .score-high   { background: #defbe6; color: #198038; }
     .score-medium { background: #fef3cd; color: #9b6900; }
     .score-low    { background: #fff1f1; color: #da1e28; }
+
+    /* AI score badge — sits below rule badge in the same cell */
+    .ai-score-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 6px;
+      border-radius: 8px;
+      font-size: 10px;
+      font-weight: 600;
+      cursor: help;
+      white-space: nowrap;
+      border: 1px solid #d0e2ff;
+      background: #edf5ff;
+      color: #0043ce;
+      margin-top: 3px;
+    }
+    .ai-score-badge.mock { border-color: #e0e0e0; background: #f4f4f4; color: #6f6f6f; }
+    .ai-score-delta-warn { color: #da1e28; font-size: 10px; margin-left: 2px; }
+
+    /* watsonx mode indicator in toolbar */
+    .wx-status {
+      font-size: 11px; color: #6f6f6f; display: flex; align-items: center; gap: 5px;
+    }
+    .wx-status .wx-dot {
+      width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+    }
+    .wx-dot.live { background: #198038; }
+    .wx-dot.mock { background: #f59e0b; }
 
     /* ── Forecast badges ── */
     .badge {
@@ -448,10 +477,12 @@
 
 <div class="toolbar">
   <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
+  <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
   <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
   <button class="btn-secondary" id="btn-select-all">Select All</button>
   <button class="btn-secondary" id="btn-clear-all">Clear All</button>
   <button class="btn-secondary" id="btn-select-high">Select 🟢 High</button>
+  <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
   <span class="selection-summary" id="selection-summary">0 selected</span>
 </div>
 
@@ -616,6 +647,7 @@
     const pct   = Math.round(score);
     const bd    = opp.breakdown || {};
 
+    // Rule-based breakdown rows
     const tooltipRows = [
       ['Stage',      bd.stage],
       ['Forecast',   bd.forecast],
@@ -631,13 +663,37 @@
       </div>`
     ).join('');
 
-    return `<div class="tooltip-wrap">
+    // AI score section — shown only when ai_score is populated
+    const hasAI = opp.ai_score != null;
+    const aiPct = hasAI ? Math.round(opp.ai_score) : null;
+    const delta = hasAI ? Math.abs(pct - aiPct) : 0;
+    const deltaWarn = delta >= 20 ? `<span class="ai-score-delta-warn" title="Rules and AI disagree by ${delta} pts — review manually">⚠️</span>` : '';
+
+    const aiSection = hasAI ? `
+      <div style="border-top:1px solid #393939;margin-top:8px;padding-top:8px;">
+        <div class="tooltip-title" style="margin-bottom:4px;">watsonx.ai · ${aiPct}/100${opp.mock ? ' (mock)' : ''}</div>
+        <div style="font-size:11px;color:#c6c6c6;line-height:1.4;">${esc(opp.ai_rationale || '—')}</div>
+      </div>` : `
+      <div style="border-top:1px solid #393939;margin-top:8px;padding-top:6px;font-size:10px;color:#6f6f6f;">
+        Click "Score with watsonx" to add AI analysis
+      </div>`;
+
+    const aiBadge = hasAI ? `
+      <div style="margin-top:3px;">
+        <span class="ai-score-badge${opp.mock ? ' mock' : ''}" title="${esc(opp.ai_rationale || '')}">
+          ⬡ ${aiPct}${deltaWarn}
+        </span>
+      </div>` : '';
+
+    return `<div class="tooltip-wrap" style="display:flex;flex-direction:column;align-items:center;">
       <span class="score-badge ${cls}">
         ${dot} ${pct}
       </span>
+      ${aiBadge}
       <div class="tooltip-box">
-        <div class="tooltip-title">Confidence: ${pct}/100 · ${tier}</div>
+        <div class="tooltip-title">Rules: ${pct}/100 · ${tier}</div>
         ${tooltipRows}
+        ${aiSection}
       </div>
     </div>`;
   }
@@ -1220,8 +1276,56 @@
     }
   }
 
+  // ── Score with watsonx button ──────────────────────────────────────────────
+  document.getElementById('btn-score-wx').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-score-wx');
+    const log = document.getElementById('scrape-log');
+    btn.disabled = true;
+    log.textContent = '';
+    log.style.display = 'block';
+    setStatus('Running watsonx.ai scoring…', 'loading');
+    try {
+      const res = await fetch('/api/score-opportunities', { method: 'POST' });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        log.textContent += decoder.decode(value);
+        log.scrollTop = log.scrollHeight;
+      }
+      setStatus('watsonx.ai scoring complete. Reloading scores…', 'success');
+      await loadOpportunities();
+      await loadWatsonxStatus();
+    } catch (err) {
+      setStatus('Scoring failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // ── watsonx status indicator ───────────────────────────────────────────────
+  async function loadWatsonxStatus() {
+    try {
+      const res  = await fetch('/api/watsonx-status');
+      const data = await res.json();
+      const dot  = document.getElementById('wx-dot');
+      const txt  = document.getElementById('wx-status-text');
+      dot.className = `wx-dot ${data.mode}`;
+      if (data.mode === 'live') {
+        txt.textContent = `watsonx: LIVE · ${data.scored}/${data.total} scored`;
+      } else {
+        txt.textContent = data.scored > 0
+          ? `watsonx: mock · ${data.scored}/${data.total} scored`
+          : 'watsonx: mock mode';
+      }
+    } catch {
+      document.getElementById('wx-status-text').textContent = 'watsonx: unavailable';
+    }
+  }
+
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '1.0.0';
+  const APP_VERSION = '2.0.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
@@ -1229,6 +1333,7 @@
   document.getElementById('footer-version').textContent = `v${APP_VERSION}`;
 
   loadOpportunities();
+  loadWatsonxStatus();
 </script>
 </body>
 </html>

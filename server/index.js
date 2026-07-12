@@ -2,21 +2,25 @@
  * server/index.js
  *
  * Local Express API server — the backbone of the ISC Automated Sales Forecast app.
- * Listens on http://localhost:3000
+ * Listens on http://localhost:3090
  *
  * Endpoints:
- *   GET  /api/opportunities           — fetch all opportunities from SQLite
- *   POST /api/opportunities/:id/select — update selected flag for one opportunity
- *   POST /api/scrape                  — trigger the Playwright ISC scraper
- *   POST /api/generate-ppt            — generate PowerPoint from selected opportunities
+ *   GET  /api/opportunities             — fetch all opportunities (rule + AI scores)
+ *   POST /api/opportunities/:id/select  — update selected flag for one opportunity
+ *   POST /api/scrape                    — trigger HAR/devtools/Playwright scraper
+ *   POST /api/score-opportunities       — run watsonx.ai scoring on all opportunities
+ *   GET  /api/watsonx-status            — returns current watsonx mode (live/mock)
+ *   POST /api/generate-ppt              — generate PowerPoint from selected opportunities
  */
 
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const { spawn } = require('child_process');
 const db = require('./db');
 const generatePpt = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
+const { batchScore, isLiveMode, modelId } = require('./watsonxScore');
 
 const app = express();
 const PORT = process.env.PORT || 3090;
@@ -28,22 +32,97 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // ---------------------------------------------------------------------------
 // GET /api/opportunities
-// Returns all opportunities ordered by close_date ascending.
+// Returns all opportunities with both rule-based and AI scores.
 // ---------------------------------------------------------------------------
 app.get('/api/opportunities', (req, res) => {
   try {
     const rows = db
       .prepare('SELECT * FROM opportunities ORDER BY close_date ASC, total_opportunity_amount DESC')
       .all();
-    // Inject confidence score into each row before sending to frontend
     const scored = rows.map(row => {
       const { score, tier, closeQuarter, breakdown } = scoreOpportunity(row);
-      return { ...row, score, tier, closeQuarter, breakdown };
+      return {
+        ...row,
+        // Rule-based score (always available)
+        score, tier, closeQuarter, breakdown,
+        // AI score fields (null until /api/score-opportunities is called)
+        ai_score:     row.ai_score     ?? null,
+        ai_rationale: row.ai_rationale ?? null,
+        ai_scored_at: row.ai_scored_at ?? null,
+      };
     });
     res.json(scored);
   } catch (err) {
     console.error('GET /api/opportunities error:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/watsonx-status
+// Returns the current watsonx mode so the frontend can show the right UI.
+// ---------------------------------------------------------------------------
+app.get('/api/watsonx-status', (req, res) => {
+  const scored = db.prepare('SELECT COUNT(*) as n FROM opportunities WHERE ai_score IS NOT NULL').get();
+  res.json({
+    enabled:  isLiveMode(),
+    mode:     isLiveMode() ? 'live' : 'mock',
+    model:    modelId,
+    scored:   scored.n,
+    total:    db.prepare('SELECT COUNT(*) as n FROM opportunities').get().n,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/score-opportunities
+// Runs watsonx.ai (or mock) scoring on all opportunities in the database.
+// Streams progress back as plain text so the UI can show a progress indicator.
+// Re-scores all rows on every call — scores are cheap and data may have changed.
+// ---------------------------------------------------------------------------
+app.post('/api/score-opportunities', async (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+  res.setHeader('Transfer-Encoding', 'chunked');
+
+  const mode = isLiveMode() ? `LIVE (${modelId})` : 'MOCK';
+  res.write(`Starting watsonx.ai scoring in ${mode} mode...\n`);
+
+  try {
+    const rows = db
+      .prepare('SELECT * FROM opportunities ORDER BY close_date ASC')
+      .all();
+
+    res.write(`Scoring ${rows.length} opportunities...\n`);
+
+    const updateStmt = db.prepare(
+      'UPDATE opportunities SET ai_score = ?, ai_rationale = ?, ai_scored_at = ? WHERE id = ?'
+    );
+
+    const results = await batchScore(
+      rows,
+      (opp) => scoreOpportunity(opp).score,  // rule-based score as anchor
+      (done, total) => {
+        if (done % 10 === 0 || done === total) {
+          res.write(`  Scored ${done} of ${total}...\n`);
+        }
+      }
+    );
+
+    // Persist results in a single transaction
+    const now = new Date().toISOString();
+    db.transaction(() => {
+      results.forEach(r => {
+        updateStmt.run(r.score, r.rationale, now, r.id);
+      });
+    })();
+
+    const mockCount = results.filter(r => r.mock).length;
+    const liveCount = results.length - mockCount;
+    res.write(`\nDone. ${liveCount > 0 ? liveCount + ' live' : ''} ${mockCount > 0 ? mockCount + ' mock' : ''} scores saved.\n`);
+    res.end();
+  } catch (err) {
+    console.error('POST /api/score-opportunities error:', err.message);
+    res.write(`\nError: ${err.message}`);
+    res.end();
   }
 });
 
