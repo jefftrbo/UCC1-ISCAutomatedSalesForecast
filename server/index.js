@@ -12,6 +12,8 @@
  *   GET  /api/watsonx-status            — returns current watsonx mode (live/mock)
  *   POST /api/generate-narrative        — generate GM meeting executive narrative (watsonx)
  *   POST /api/generate-ppt              — generate PowerPoint from selected opportunities
+ *   POST /api/snapshot                  — save a week-over-week snapshot of current pipeline
+ *   GET  /api/diff                      — return week-over-week diff (last two snapshots)
  */
 
 require('dotenv').config();
@@ -21,7 +23,8 @@ const { spawn } = require('child_process');
 const db = require('./db');
 const generatePpt = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
-const { batchScore, isLiveMode, modelId, generateNarrative } = require('./watsonxScore');
+const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
+const { saveSnapshot, computeDiff } = require('./diffEngine');
 
 const app = express();
 const PORT = process.env.PORT || 3090;
@@ -245,6 +248,58 @@ app.get('/api/save-cookies', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// POST /api/snapshot
+// Saves a point-in-time snapshot of all current opportunities, tagged with
+// the current ISO week label (e.g. "2026-W29"). Safe to call multiple times
+// in a week — duplicate rows are silently ignored (INSERT OR IGNORE).
+// Also auto-called at the end of POST /api/scrape so every data refresh
+// automatically records a snapshot.
+// Returns: { weekLabel, saved, skipped }
+// ---------------------------------------------------------------------------
+app.post('/api/snapshot', (req, res) => {
+  try {
+    const result = saveSnapshot(db);
+    res.json(result);
+  } catch (err) {
+    console.error('POST /api/snapshot error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/diff
+// Compares the two most-recent week_labels in the snapshots table and returns
+// a structured diff object. If fewer than 2 snapshots exist, returns
+// { hasData: false } so the UI can show a "Not enough history yet" message.
+// Optional query param: ?summary=true — also triggers watsonx delta summary.
+// Returns: diff object from diffEngine.computeDiff()
+// ---------------------------------------------------------------------------
+app.get('/api/diff', async (req, res) => {
+  try {
+    const diff = computeDiff(db);
+    if (!diff.hasData) {
+      return res.json(diff);
+    }
+
+    // Optionally generate a watsonx AI summary of the changes
+    if (req.query.summary === 'true') {
+      try {
+        const aiSummary = await generateDeltaSummary(diff);
+        diff.aiSummary = aiSummary;
+      } catch (e) {
+        console.warn('GET /api/diff: delta summary skipped —', e.message);
+        diff.aiSummary = null;
+      }
+    }
+
+    res.json(diff);
+  } catch (err) {
+    console.error('GET /api/diff error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/scrape
 // Spawns the appropriate scraper as a child process.
 // - If scraper/devtools-response.json exists → load-from-devtools.js (recommended)
@@ -292,6 +347,13 @@ app.post('/api/scrape', (req, res) => {
 
   child.on('close', (code) => {
     if (code === 0) {
+      // Auto-snapshot: every successful scrape records history for week-over-week diff
+      try {
+        const snap = saveSnapshot(db);
+        res.write(`\nSnapshot saved: ${snap.saved} rows → ${snap.weekLabel} (${snap.skipped} already existed).`);
+      } catch (snapErr) {
+        res.write(`\nWarning: snapshot failed — ${snapErr.message}`);
+      }
       res.write('\nScrape complete.');
     } else {
       res.write(`\nScrape exited with code ${code}.`);
@@ -333,7 +395,20 @@ app.post('/api/generate-ppt', async (req, res) => {
       console.warn('POST /api/generate-ppt: narrative generation skipped —', e.message);
     }
 
-    await generatePpt(selected, outputPath, narrative);
+    // Auto-fetch week-over-week diff and AI delta summary (non-blocking)
+    let diff = null;
+    let deltaSummary = null;
+    try {
+      diff = computeDiff(db);
+      if (diff.hasData) {
+        const { generateDeltaSummary } = require('./watsonxScore');
+        deltaSummary = await generateDeltaSummary(diff);
+      }
+    } catch (e) {
+      console.warn('POST /api/generate-ppt: diff/delta skipped —', e.message);
+    }
+
+    await generatePpt(selected, outputPath, narrative, diff, deltaSummary);
 
     // Return the download URL (served as static file)
     res.json({ file: `/output/${fileName}`, count: selected.length });

@@ -526,11 +526,150 @@ async function generateNarrative(opps) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// generateDeltaSummary — week-over-week change summary (v2.1.0)
+// ---------------------------------------------------------------------------
+const DELTA_MODEL_ID = 'ibm/granite-3-8b-instruct';
+
+/**
+ * Build a prompt for the delta summary — concise, structured.
+ * Uses Granite 3-8b (fast, efficient — appropriate for structured change summary).
+ * @param {object} diff — result from diffEngine.computeDiff()
+ * @returns {string}
+ */
+function buildDeltaPrompt(diff) {
+  const fmt$ = v => v != null ? `$${(v/1e6).toFixed(1)}M` : '—';
+
+  const newList = diff.new.slice(0,5).map(r =>
+    `  - ${r.opportunity_name} (${r.account_name}) — ${fmt$(r.total_opportunity_amount)} · ${r.stage}`
+  ).join('\n');
+
+  const droppedList = diff.dropped.slice(0,5).map(r =>
+    `  - ${r.opportunity_name} (${r.account_name}) — ${fmt$(r.total_opportunity_amount)}`
+  ).join('\n');
+
+  const promotedList = diff.promoted.slice(0,5).map(r =>
+    `  - ${r.opportunity_name}: ${r.prevStage} → ${r.curStage}`
+  ).join('\n');
+
+  const demotedList = diff.demoted.slice(0,5).map(r =>
+    `  - ${r.opportunity_name}: ${r.prevStage} → ${r.curStage}`
+  ).join('\n');
+
+  const slippedList = diff.slipped.slice(0,5).map(r =>
+    `  - ${r.opportunity_name}: close date slipped ${r.daysDiff} days (${r.prevCloseDate} → ${r.curCloseDate})`
+  ).join('\n');
+
+  return `You are a sales operations analyst preparing a week-over-week change briefing for a General Manager.
+Compare ${diff.previousWeek} to ${diff.currentWeek} and write a concise executive summary.
+Respond ONLY with a JSON object in this exact format:
+{"paragraph":"<2-3 sentence summary>","bullets":["<bullet 1>","<bullet 2>","<bullet 3>"]}
+
+CHANGE DATA:
+New deals this week (${diff.new.length} total):
+${newList || '  (none)'}
+Dropped deals (${diff.dropped.length} total):
+${droppedList || '  (none)'}
+Stage promotions (${diff.promoted.length}):
+${promotedList || '  (none)'}
+Stage demotions (${diff.demoted.length}):
+${demotedList || '  (none)'}
+Slipped close dates (${diff.slipped.length}):
+${slippedList || '  (none)'}
+Amount changes: ${diff.amount.length}
+Overall: ${diff.summary}
+
+Respond with only the JSON object.`;
+}
+
+/**
+ * Generate a mock delta summary when watsonx is not enabled.
+ * @param {object} diff
+ * @returns {{ paragraph: string, bullets: string[], mock: true }}
+ */
+function mockDeltaSummary(diff) {
+  const total = diff.new.length + diff.dropped.length + diff.promoted.length +
+                diff.demoted.length + diff.amount.length + diff.slipped.length;
+
+  const paragraph = total === 0
+    ? `Pipeline was stable this week (${diff.currentWeek} vs ${diff.previousWeek}). No significant changes detected across stage, amount, or close dates.`
+    : `This week's pipeline review (${diff.currentWeek} vs ${diff.previousWeek}) shows ${diff.summary.split(': ')[1]}. ` +
+      (diff.new.length    ? `${diff.new.length} new deal${diff.new.length>1?'s':''} entered the pipeline. ` : '') +
+      (diff.dropped.length ? `${diff.dropped.length} deal${diff.dropped.length>1?'s':''} dropped out. ` : '') +
+      (diff.demoted.length ? `${diff.demoted.length} stage regression${diff.demoted.length>1?'s':''} require attention.` : '');
+
+  const bullets = [];
+  if (diff.new.length)       bullets.push(`${diff.new.length} new deal${diff.new.length>1?'s':''} added to pipeline`);
+  if (diff.dropped.length)   bullets.push(`${diff.dropped.length} deal${diff.dropped.length>1?'s':''} removed from pipeline`);
+  if (diff.promoted.length)  bullets.push(`${diff.promoted.length} deal${diff.promoted.length>1?'s':''} advanced in stage`);
+  if (diff.demoted.length)   bullets.push(`⚠ ${diff.demoted.length} deal${diff.demoted.length>1?'s':''} regressed in stage — review needed`);
+  if (diff.slipped.length)   bullets.push(`⚠ ${diff.slipped.length} deal${diff.slipped.length>1?'s':''} with slipped close dates`);
+  if (diff.amount.length)    bullets.push(`${diff.amount.length} deal${diff.amount.length>1?'s':''} with significant amount changes`);
+  if (bullets.length === 0)  bullets.push('No significant changes detected this week');
+
+  return { paragraph, bullets, mock: true };
+}
+
+/**
+ * Generate a watsonx AI delta summary of week-over-week pipeline changes.
+ * Uses ibm/granite-3-8b-instruct (fast) with graceful fallback to mock.
+ * @param {object} diff — result from diffEngine.computeDiff()
+ * @returns {Promise<{ paragraph: string, bullets: string[], mock: boolean }>}
+ */
+async function generateDeltaSummary(diff) {
+  if (!diff.hasData) {
+    return { paragraph: 'Not enough history to generate a delta summary yet. Run a second scrape next week.', bullets: [], mock: true };
+  }
+
+  if (!WATSONX_ENABLED) return mockDeltaSummary(diff);
+
+  try {
+    const token   = await getIamToken();
+    const url     = new URL(`${WATSONX_URL}/ml/v1/text/generation?version=${API_VERSION}`);
+    const payload = JSON.stringify({
+      model_id:   DELTA_MODEL_ID,
+      project_id: WATSONX_PROJECT,
+      input:      buildDeltaPrompt(diff),
+      parameters: { decoding_method: 'greedy', max_new_tokens: 400, min_new_tokens: 40, stop_sequences: ['}\n'], repetition_penalty: 1.05 },
+    });
+
+    const raw = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: url.hostname,
+        path:     url.pathname + url.search,
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      };
+      const req = https.request(options, res => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(json)}`));
+            resolve((json?.results?.[0]?.generated_text || '').trim());
+          } catch(e) { reject(e); }
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+
+    return { ...parseNarrativeOutput(raw), mock: false };
+  } catch (err) {
+    console.error('[watsonx] Delta summary failed:', err.message);
+    return { ...mockDeltaSummary(diff), mock: true, error: err.message };
+  }
+}
+
 module.exports = {
   scoreWithWatsonx,
   batchScore,
   generateNarrative,
+  generateDeltaSummary,
   isLiveMode:        () => WATSONX_ENABLED,
   modelId:           MODEL_ID,
   narrativeModelId:  NARRATIVE_MODEL_ID,
+  deltaModelId:      DELTA_MODEL_ID,
 };
