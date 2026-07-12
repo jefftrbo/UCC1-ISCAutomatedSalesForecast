@@ -3,26 +3,34 @@
  *
  * Week-over-week diff engine for the ISC Automated Sales Forecast app (v2.1.0).
  *
- * Two public functions:
+ * DESIGN (revised):
+ *   "Previous" = the most-recent snapshot in the `snapshots` table (frozen baseline
+ *                saved deliberately by the user via "📌 Save Baseline" after the GM call).
+ *   "Current"  = the live `opportunities` table as it stands right now.
+ *
+ *   This means Dushyant can refresh the pipeline as many times as he wants during
+ *   the week (high-velocity deals updating frequently) and "⇄ What Changed" always
+ *   shows: "here is what is different RIGHT NOW vs. the last time we held a GM call."
  *
  *   saveSnapshot(db)
- *     Copies all current opportunities into the `snapshots` table tagged with
- *     the current ISO week label (e.g. "2026-W29").  Safe to call multiple
- *     times in a week — subsequent calls for the same week_label are ignored
- *     (INSERT OR IGNORE).
+ *     Freezes the current `opportunities` table as the new baseline, tagged with
+ *     the current ISO week label (e.g. "2026-W29").
+ *     Uses INSERT OR REPLACE — calling it multiple times in the same week
+ *     intentionally OVERWRITES the prior snapshot for that week, so the baseline
+ *     always reflects the pipeline at the moment "Save Baseline" was clicked.
+ *     (Typically called once after the Friday GM call.)
  *
  *   computeDiff(db)
- *     Compares the two most-recent distinct week_labels in `snapshots`.
- *     Returns a structured diff object suitable for rendering in the UI,
- *     injecting into the GM narrative prompt, and generating a PPT slide.
+ *     Compares the most-recent snapshot (previous/baseline) against the live
+ *     `opportunities` table (current). Returns a structured diff object.
  *
  * Diff categories returned:
- *   new      — opportunities present this week but not last week
- *   dropped  — opportunities present last week but gone this week
- *   promoted — stage moved forward (e.g. Qualify → Propose)
- *   demoted  — stage moved backward (e.g. Propose → Qualify)
- *   amount   — total_opportunity_amount changed by ≥ $50k or ≥ 10%
- *   slipped  — close_date pushed out by ≥ 7 days
+ *   new       — in live opportunities, not in the baseline snapshot
+ *   dropped   — in the baseline snapshot, not in live opportunities
+ *   promoted  — stage moved forward (e.g. Qualify → Propose)
+ *   demoted   — stage moved backward (e.g. Propose → Qualify)
+ *   amount    — total_opportunity_amount changed by ≥ $50k AND ≥ 10%
+ *   slipped   — close_date pushed out by ≥ 7 days
  *   pulled_in — close_date moved earlier by ≥ 7 days
  *   unchanged — no tracked fields changed
  */
@@ -69,13 +77,19 @@ function isoWeekLabel(date = new Date()) {
 }
 
 // ---------------------------------------------------------------------------
-// saveSnapshot
+// saveSnapshot — deliberate "Save Baseline" action
 // ---------------------------------------------------------------------------
 /**
- * Snapshot all current opportunities into the snapshots table.
- * Uses INSERT OR IGNORE so re-runs in the same week are no-ops.
+ * Freeze the current opportunities table as the new baseline snapshot.
+ * Uses INSERT OR REPLACE — every call is a deliberate overwrite of any prior
+ * snapshot for the same week_label. This ensures the baseline always reflects
+ * the pipeline at the exact moment the user clicked "Save Baseline."
+ *
+ * Typical usage: called once after the Friday GM call to lock in this week's
+ * final state for next week's diff comparison.
+ *
  * @param {import('better-sqlite3').Database} db
- * @returns {{ weekLabel: string, saved: number, skipped: number }}
+ * @returns {{ weekLabel: string, saved: number }}
  */
 function saveSnapshot(db) {
   const weekLabel = isoWeekLabel();
@@ -84,7 +98,7 @@ function saveSnapshot(db) {
   const rows = db.prepare('SELECT * FROM opportunities').all();
 
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO snapshots
+    INSERT OR REPLACE INTO snapshots
       (id, week_label, snapped_at,
        opportunity_name, account_name, stage, forecast_category,
        close_date, filtered_opportunity_amount, total_opportunity_amount,
@@ -93,35 +107,35 @@ function saveSnapshot(db) {
       (?, ?, ?,  ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?)
   `);
 
-  let saved = 0;
-  let skipped = 0;
-
   db.transaction(() => {
     for (const r of rows) {
-      const changes = insert.run(
+      insert.run(
         r.id, weekLabel, snappedAt,
         r.opportunity_name, r.account_name, r.stage, r.forecast_category,
         r.close_date, r.filtered_opportunity_amount, r.total_opportunity_amount,
         r.opportunity_owner, r.flm_judgement, r.next_steps
       );
-      if (changes.changes > 0) saved++;
-      else skipped++;
     }
   })();
 
-  return { weekLabel, saved, skipped };
+  return { weekLabel, saved: rows.length };
 }
 
 // ---------------------------------------------------------------------------
-// computeDiff
+// computeDiff — live opportunities vs. most-recent snapshot
 // ---------------------------------------------------------------------------
 /**
- * Compare the two most-recent distinct week_labels in the snapshots table.
+ * Compare the live opportunities table (current) against the most-recent
+ * snapshot (previous/baseline).
+ *
+ * Returns { hasData: false } when no snapshot exists yet — the UI shows
+ * "Save a baseline first by clicking 📌 Save Baseline after your GM call."
+ *
  * @param {import('better-sqlite3').Database} db
  * @returns {{
  *   hasData: boolean,
- *   currentWeek: string,
- *   previousWeek: string,
+ *   currentWeek: string,   — always "live"
+ *   previousWeek: string,  — week_label of the most-recent snapshot
  *   new: object[],
  *   dropped: object[],
  *   promoted: object[],
@@ -134,19 +148,21 @@ function saveSnapshot(db) {
  * }}
  */
 function computeDiff(db) {
-  // Get the two most recent distinct week labels
-  const weeks = db
-    .prepare("SELECT DISTINCT week_label FROM snapshots ORDER BY week_label DESC LIMIT 2")
-    .all()
-    .map(r => r.week_label);
+  // Get the single most-recent snapshot week_label (the baseline)
+  const baselineRow = db
+    .prepare("SELECT DISTINCT week_label FROM snapshots ORDER BY week_label DESC LIMIT 1")
+    .get();
 
-  if (weeks.length < 2) {
-    return { hasData: false, currentWeek: weeks[0] || null, previousWeek: null };
+  if (!baselineRow) {
+    return { hasData: false, currentWeek: 'live', previousWeek: null };
   }
 
-  const [currentWeek, previousWeek] = weeks;
+  const previousWeek = baselineRow.week_label;
+  const currentWeek  = 'live';
 
-  const currentRows  = db.prepare('SELECT * FROM snapshots WHERE week_label = ?').all(currentWeek);
+  // Current = live opportunities table
+  const currentRows  = db.prepare('SELECT * FROM opportunities').all();
+  // Previous = most-recent snapshot
   const previousRows = db.prepare('SELECT * FROM snapshots WHERE week_label = ?').all(previousWeek);
 
   const currentMap  = new Map(currentRows.map(r => [r.id, r]));
@@ -235,8 +251,8 @@ function computeDiff(db) {
   if (result.slipped.length)   parts.push(`${result.slipped.length} slipped`);
   if (result.pulled_in.length) parts.push(`${result.pulled_in.length} pulled in`);
   result.summary = parts.length > 0
-    ? `${currentWeek} vs ${previousWeek}: ${parts.join(', ')}`
-    : `${currentWeek} vs ${previousWeek}: no significant changes detected`;
+    ? `live vs ${previousWeek}: ${parts.join(', ')}`
+    : `live vs ${previousWeek}: no significant changes detected`;
 
   return result;
 }

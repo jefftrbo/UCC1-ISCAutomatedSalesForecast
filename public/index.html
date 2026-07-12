@@ -639,6 +639,7 @@
   <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
   <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
   <button class="btn-primary"   id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
+  <button class="btn-secondary" id="btn-snapshot">📌 Save Baseline</button>
   <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
   <button class="btn-secondary" id="btn-select-all">Select All</button>
   <button class="btn-secondary" id="btn-clear-all">Clear All</button>
@@ -747,7 +748,7 @@
   <p id="diff-ai-paragraph"></p>
   <ul id="diff-bullets"></ul>
   <p class="diff-no-data" id="diff-no-data" style="display:none">
-    Not enough history yet — run a second scrape next week to see week-over-week changes.
+    No baseline saved yet. Click <strong>📌 Save Baseline</strong> after your GM call to lock in this week's pipeline — then next week's "⇄ What Changed" will compare live data against it.
   </p>
   <div class="narrative-actions">
     <button class="btn-copy" id="btn-close-diff">✕ Close</button>
@@ -1662,16 +1663,16 @@
 
       if (!data.hasData) {
         noData.style.display = 'block';
-        heading.textContent = 'What Changed This Week';
-        tag.textContent = 'no history';
+        heading.textContent = 'What Changed';
+        tag.textContent = 'no baseline';
         panel.classList.remove('mock-mode');
         panel.style.display = 'block';
-        setStatus('Not enough history yet — run a second scrape next week.', 'info');
+        setStatus('No baseline saved yet — click 📌 Save Baseline after your GM call.', 'info');
         return;
       }
 
       noData.style.display = 'none';
-      heading.textContent = `What Changed: ${data.previousWeek} → ${data.currentWeek}`;
+      heading.textContent = `What Changed: live vs ${data.previousWeek}`;
 
       // Build tiles
       const tiles = [
@@ -1714,6 +1715,25 @@
     } finally {
       btn.disabled = false;
       btn.textContent = '⇄ What Changed';
+    }
+  });
+
+  // ── Save Baseline ──────────────────────────────────────────────────────────
+  document.getElementById('btn-snapshot').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-snapshot');
+    btn.disabled = true;
+    btn.textContent = '📌 Saving…';
+    setStatus('Saving pipeline baseline…', 'loading');
+    try {
+      const res  = await fetch('/api/snapshot', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Baseline save failed.', 'error'); return; }
+      setStatus(`✅ Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Use "⇄ What Changed" next week to see deltas.`, 'success');
+    } catch (err) {
+      setStatus('Save Baseline failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📌 Save Baseline';
     }
   });
 

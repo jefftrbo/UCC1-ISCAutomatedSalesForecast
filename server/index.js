@@ -12,8 +12,8 @@
  *   GET  /api/watsonx-status            — returns current watsonx mode (live/mock)
  *   POST /api/generate-narrative        — generate GM meeting executive narrative (watsonx)
  *   POST /api/generate-ppt              — generate PowerPoint from selected opportunities
- *   POST /api/snapshot                  — save a week-over-week snapshot of current pipeline
- *   GET  /api/diff                      — return week-over-week diff (last two snapshots)
+ *   POST /api/snapshot                  — save baseline snapshot (deliberate action, after GM call)
+ *   GET  /api/diff                      — return diff: live opportunities vs. most-recent snapshot
  */
 
 require('dotenv').config();
@@ -249,12 +249,12 @@ app.get('/api/save-cookies', (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/snapshot
-// Saves a point-in-time snapshot of all current opportunities, tagged with
-// the current ISO week label (e.g. "2026-W29"). Safe to call multiple times
-// in a week — duplicate rows are silently ignored (INSERT OR IGNORE).
-// Also auto-called at the end of POST /api/scrape so every data refresh
-// automatically records a snapshot.
-// Returns: { weekLabel, saved, skipped }
+// Deliberately freezes the current pipeline as the new baseline for
+// week-over-week diff. Should be called AFTER the GM meeting to lock in
+// "this week's final state" so next week's diff compares against it.
+// Uses INSERT OR REPLACE — re-calling in the same week updates the baseline
+// to the current moment (intentional, not a no-op).
+// Returns: { weekLabel, saved }
 // ---------------------------------------------------------------------------
 app.post('/api/snapshot', (req, res) => {
   try {
@@ -347,14 +347,7 @@ app.post('/api/scrape', (req, res) => {
 
   child.on('close', (code) => {
     if (code === 0) {
-      // Auto-snapshot: every successful scrape records history for week-over-week diff
-      try {
-        const snap = saveSnapshot(db);
-        res.write(`\nSnapshot saved: ${snap.saved} rows → ${snap.weekLabel} (${snap.skipped} already existed).`);
-      } catch (snapErr) {
-        res.write(`\nWarning: snapshot failed — ${snapErr.message}`);
-      }
-      res.write('\nScrape complete.');
+      res.write('\nScrape complete. Click "📌 Save Baseline" after your GM call to lock in this week for future diffs.');
     } else {
       res.write(`\nScrape exited with code ${code}.`);
     }
