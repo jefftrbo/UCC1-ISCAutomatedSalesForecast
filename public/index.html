@@ -1920,7 +1920,7 @@
       setStatus('watsonx.ai scoring complete. Reloading scores…', 'success');
       await loadOpportunities();
       await loadWatsonxStatus();
-      setPipelineStatus('✅', `watsonx scoring complete — 206 opportunities scored.`, true);
+      setPipelineStatus('✅', `Scoring complete — ${allOpportunities.length} opportunities scored as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, true);
       setWorkflowStep(3);
     } catch (err) {
       setStatus('Scoring failed: ' + err.message, 'error');
@@ -2371,15 +2371,44 @@
     }
   }
 
-  // ── Patch loadOpportunities to update workflow + GM Ready after load ───────
+  // ── Patch loadOpportunities — auto-score after every refresh ──────────────
+  // After data loads, silently trigger POST /api/score-opportunities in the
+  // background so confidence scores always reflect the current field values
+  // (stage, close date, amount). Workflow Step 2 completes automatically.
   const _origLoad = loadOpportunities;
   loadOpportunities = async function() {
     await _origLoad();
-    if (allOpportunities.length > 0) {
+    if (allOpportunities.length === 0) return;
+
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    setPipelineStatus('⬡', `Pipeline loaded — scoring ${allOpportunities.length} opportunities with watsonx…`, false);
+
+    try {
+      // Stream the scoring response silently into the scrape log (user can reveal via Show details)
+      const log = document.getElementById('scrape-log');
+      const res = await fetch('/api/score-opportunities', { method: 'POST' });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        log.textContent += decoder.decode(value);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // Reload opportunities so allOpportunities carries fresh scores
+      await _origLoad();
+      await loadWatsonxStatus();
+
+      setWorkflowStep(3);
+      setPipelineStatus('✅', `Pipeline loaded & scored — ${allOpportunities.length} opportunities as of ${dateStr}.`, true);
+    } catch (err) {
+      // Scoring failure is non-fatal — pipeline data is still usable
       setWorkflowStep(2);
-      setPipelineStatus('✅', `Pipeline loaded — ${allOpportunities.length} opportunities as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, true);
-      updateGmReady();
+      setPipelineStatus('⚠', `Pipeline loaded — auto-scoring failed (${err.message}). Click Step 2 to retry.`, false);
     }
+
+    updateGmReady();
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
