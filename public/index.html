@@ -196,7 +196,7 @@
       gap: 10px;
       flex-wrap: wrap;
       position: sticky;
-      top: 92px;
+      top: 96px;
       z-index: 98;
     }
     .filter-bar label {
@@ -964,42 +964,62 @@
   </div>
 </header>
 
-<!-- Workflow strip — guides Dushyant through his weekly steps -->
-<div class="workflow-strip">
-  <button class="workflow-step step-active has-tip" id="ws-refresh"
-    data-tip="Imports the latest pipeline from Salesforce via HAR export. Run this each time you want to update the opportunity list. watsonx scoring runs automatically after refresh.">
-    <span class="step-num" id="ws-refresh-num">1</span>
+<!-- Action bar — Model 3: status-driven, fully re-entrant (no numbered sequence) -->
+<div class="action-bar" id="action-bar">
+
+  <!-- ⟳ Refresh Data -->
+  <button class="action-btn primary has-tip" id="ab-refresh"
+    data-tip="Imports the latest pipeline from Salesforce via HAR export. Run any time to update the opportunity list. watsonx scoring runs automatically.">
     ⟳ Refresh Data
   </button>
-  <button class="workflow-step step-disabled has-tip" id="ws-score"
-    data-tip="Re-runs watsonx.ai confidence scoring on all opportunities. Completes automatically after Step 1 — click manually to force a re-score mid-week.">
-    <span class="step-num" id="ws-score-num">2</span>
-    ⬡ Score with watsonx
+  <span class="action-status-chip" id="chip-refresh">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ⬡ Score with watsonx -->
+  <button class="action-btn has-tip" id="ab-score"
+    data-tip="Re-runs watsonx.ai confidence scoring on all opportunities. Runs automatically after Refresh — click to force a manual re-score.">
+    ⬡ Score
   </button>
-  <button class="workflow-step step-disabled has-tip" id="ws-narrative"
-    data-tip="Uses watsonx.ai to write a GM meeting narrative based on your currently filtered view. Apply filters first to scope it to the right deals.">
-    <span class="step-num" id="ws-narrative-num">3</span>
-    ✍ Generate Narrative
+  <span class="action-status-chip" id="chip-score">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ✍ Generate Narrative -->
+  <button class="action-btn has-tip" id="ab-narrative"
+    data-tip="Uses watsonx.ai to write a GM meeting narrative from the currently filtered view. Apply filters first to scope to the right deals.">
+    ✍ Narrative
   </button>
-  <button class="workflow-step step-disabled has-tip" id="ws-diff"
-    data-tip="Compares your live pipeline against the last GM Report baseline. Shows which deals were promoted, demoted, slipped, or added since your last GM call.">
-    <span class="step-num" id="ws-diff-num">4</span>
+  <span class="action-status-chip" id="chip-narrative">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ⇄ What Changed -->
+  <button class="action-btn has-tip" id="ab-diff"
+    data-tip="Compares live pipeline against the last GM Report baseline. Shows promoted, demoted, slipped, and added deals since your last GM call.">
     ⇄ What Changed
   </button>
-  <button class="workflow-step step-disabled has-tip" id="ws-ppt"
-    data-tip="Saves today's pipeline as your new baseline, then generates the PowerPoint for your GM meeting. Next week's 'What Changed' will compare against this exact snapshot.">
-    <span class="step-num" id="ws-ppt-num">5</span>
-    📊 Baseline &amp; Generate GM Report
+  <span class="action-status-chip" id="chip-diff">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- 📊 Baseline & Generate GM Report -->
+  <button class="action-btn success has-tip" id="ab-ppt"
+    data-tip="Saves today's pipeline as the new baseline and generates the PowerPoint for your GM meeting. Next week's 'What Changed' compares against this snapshot.">
+    &#x1F4CA; Baseline &amp; GM Report
   </button>
-  <div class="workflow-utilities">
+  <span class="action-status-chip" id="chip-ppt">Not run</span>
+
+  <!-- Right-side utilities -->
+  <div class="action-utilities">
     <button class="btn-secondary has-tip" id="btn-snapshot-util"
       style="height:28px;padding:0 12px;font-size:12px;"
-      data-tip="Advanced: manually save a pipeline baseline outside the normal workflow. Opens a warning dialog explaining the impact on your week-over-week diff.">
-      📌 Save Baseline
+      data-tip="Advanced: manually save a pipeline baseline outside the normal workflow. Opens a warning explaining the impact on your week-over-week diff.">
+      &#x1F4CC; Save Baseline
     </button>
-    <button class="btn-secondary" id="btn-select-all" style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
-    <button class="btn-secondary" id="btn-clear-all"  style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
-    <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">🟢 High</button>
+    <button class="btn-secondary" id="btn-select-all"  style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
+    <button class="btn-secondary" id="btn-clear-all"   style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
+    <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">&#x1F7E2; High</button>
     <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
     <span style="font-size:12px;color:var(--cds-text-secondary)" id="selection-summary">0 selected</span>
   </div>
@@ -1910,7 +1930,7 @@
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate PowerPoint.', 'error'); return; }
       setPipelineStatus('✅', `PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
-      setWorkflowStep(6);  // step 6 done
+      updateActionBar('ppt', 'fresh');
       const a = document.createElement('a');
       a.href = data.file;
       a.download = data.file.split('/').pop();
@@ -2011,7 +2031,7 @@
       await loadOpportunities();
       await loadWatsonxStatus();
       setPipelineStatus('✅', `Scoring complete — ${allOpportunities.length} opportunities scored as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, true);
-      setWorkflowStep(3);
+      updateActionBar('score', 'fresh');
     } catch (err) {
       setStatus('Scoring failed: ' + err.message, 'error');
       setPipelineStatus('⚠', 'Scoring failed — see details.', true);
@@ -2063,7 +2083,7 @@
       const isSubset = filteredIds.length < allOpportunities.length;
       const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
       setPipelineStatus('✅', `Narrative generated from ${viewLabel}.`, false);
-      setWorkflowStep(4);  // step 3 done → step 4 (What Changed) now active
+      updateActionBar('narrative', 'fresh');
     } catch (err) {
       setStatus('Narrative failed: ' + err.message, 'error');
     } finally {
@@ -2202,7 +2222,7 @@
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       setPipelineStatus('⇄', `What Changed: ${data.summary}`, false);
-      setWorkflowStep(5);  // step 4 done → step 5 (Baseline + GM Report) now active
+      updateActionBar('diff', 'fresh');
     } catch (err) {
       setStatus('Diff failed: ' + err.message, 'error');
     } finally {
@@ -2449,7 +2469,7 @@
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate GM Report.', 'error'); return; }
       setPipelineStatus('✅', `GM Report generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
-      setWorkflowStep(6); // all done
+      updateActionBar('ppt', 'fresh');
       const a = document.createElement('a');
       a.href = data.file;
       a.download = data.file.split('/').pop();
@@ -2486,34 +2506,6 @@
 
   // Utility Save Baseline button opens the warning modal
   document.getElementById('btn-snapshot-util').addEventListener('click', openBaselineWarn);
-
-  // ── Workflow strip — wire visible buttons to hidden real buttons ───────────
-  (function initWorkflowStrip() {
-    const map = [
-      ['ws-refresh',  'btn-refresh'],
-      ['ws-score',    'btn-score-wx'],
-      ['ws-narrative','btn-narrative'],
-      ['ws-diff',     'btn-diff'],
-      // ws-ppt opens the confirm modal instead of directly triggering btn-generate
-    ];
-    map.forEach(([wsId, btnId]) => {
-      const wsBtn  = document.getElementById(wsId);
-      const realBtn = document.getElementById(btnId);
-      if (!wsBtn || !realBtn) return;
-      wsBtn.addEventListener('click', () => {
-        if (wsBtn.classList.contains('step-disabled')) return;
-        realBtn.click();
-      });
-    });
-    // Step 5 opens confirm modal
-    const wsPpt = document.getElementById('ws-ppt');
-    if (wsPpt) {
-      wsPpt.addEventListener('click', () => {
-        if (wsPpt.classList.contains('step-disabled')) return;
-        openPptConfirm();
-      });
-    }
-  })();
 
   // ── GM Ready indicator ─────────────────────────────────────────────────────
   function updateGmReady() {
@@ -2556,35 +2548,32 @@
     toggle.textContent  = visible ? 'Show details' : 'Hide details';
   });
 
-  // ── Workflow step state manager ────────────────────────────────────────────
-  // Steps: 1=Refresh, 2=Score, 3=Narrative, 4=What Changed, 5=Baseline+PPT
-  // step=6 means all done (Step 5 complete)
-  function setWorkflowStep(step) {
-    const steps = ['ws-refresh','ws-score','ws-narrative','ws-diff','ws-ppt'];
-    steps.forEach((id, i) => {
-      const btn = document.getElementById(id);
-      if (!btn) return;
-      if (i + 1 < step) {
-        btn.classList.remove('step-active','step-disabled');
-        btn.classList.add('step-done');
-      } else if (i + 1 === step) {
-        btn.classList.remove('step-done','step-disabled');
-        btn.classList.add('step-active');
-      } else {
-        btn.classList.remove('step-done','step-active');
-        btn.classList.add('step-disabled');
-      }
-    });
-    // After data loads (step ≥ 2), unlock all steps immediately
-    if (step >= 2) {
-      steps.forEach(id => {
-        const btn = document.getElementById(id);
-        if (btn && btn.classList.contains('step-disabled')) {
-          btn.classList.remove('step-disabled');
-        }
-      });
-    }
+  // ── Action bar — Model 3 (status-driven, fully re-entrant) ────────────────
+  // Updates the status chip next to each action button with a timestamp.
+  // action: 'refresh' | 'score' | 'narrative' | 'diff' | 'ppt'
+  // state:  'fresh' | 'stale' | '' (neutral)
+  // label:  optional override text (defaults to "Done · HH:MM AM/PM")
+  function updateActionBar(action, state, label) {
+    const chip = document.getElementById('chip-' + action);
+    if (!chip) return;
+    const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chip.textContent = label || ('Done · ' + now);
+    chip.className = 'action-status-chip' + (state ? ' ' + state : '');
   }
+
+  // ── Action bar proxy wiring ────────────────────────────────────────────────
+  // Each visible action-bar button delegates to the corresponding hidden real
+  // button so all existing event listeners remain unchanged.
+  document.getElementById('ab-refresh').addEventListener('click', () =>
+    document.getElementById('btn-refresh').click());
+  document.getElementById('ab-score').addEventListener('click', () =>
+    document.getElementById('btn-score-wx').click());
+  document.getElementById('ab-narrative').addEventListener('click', () =>
+    document.getElementById('btn-narrative').click());
+  document.getElementById('ab-diff').addEventListener('click', () =>
+    document.getElementById('btn-diff').click());
+  document.getElementById('ab-ppt').addEventListener('click', () =>
+    openPptConfirm());
 
   // ── Patch loadOpportunities — auto-score after every refresh ──────────────
   // After data loads, silently trigger POST /api/score-opportunities in the
@@ -2615,12 +2604,14 @@
       await _origLoad();
       await loadWatsonxStatus();
 
-      setWorkflowStep(3);
+      updateActionBar('refresh', 'fresh');
+      updateActionBar('score', 'fresh');
       setPipelineStatus('✅', `Pipeline loaded & scored — ${allOpportunities.length} opportunities as of ${dateStr}.`, true);
     } catch (err) {
       // Scoring failure is non-fatal — pipeline data is still usable
-      setWorkflowStep(2);
-      setPipelineStatus('⚠', `Pipeline loaded — auto-scoring failed (${err.message}). Click Step 2 to retry.`, false);
+      updateActionBar('refresh', 'fresh');
+      updateActionBar('score', 'stale', 'Score failed');
+      setPipelineStatus('⚠', `Pipeline loaded — auto-scoring failed (${err.message}). Click Score to retry.`, false);
     }
 
     updateGmReady();
