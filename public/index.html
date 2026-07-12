@@ -1119,6 +1119,12 @@
 
   function setStatus(msg, type) {
     const bar = document.getElementById('status-bar');
+    // Pipeline status line handles info/success/loading feedback.
+    // Only show the status bar for errors — they need prominent attention.
+    if (type !== 'error') {
+      bar.className = '';   // hide
+      return;
+    }
     bar.textContent = msg;
     bar.className = type;
   }
