@@ -1626,3 +1626,106 @@ git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseli
   ```
 
   ---
+
+  ## Session 5 (continued) — v2.1.0-rc1 Merge to Main + GitHub Release (July 13, 2026)
+
+  ### Context
+
+  After the UI end-to-end test confirmed all 7 diff categories working correctly, the decision was made to promote `develop` to `main` rather than leave `v1.0.0` as the visible default branch. Rationale: v1.0.0 is a skeleton by comparison — no watsonx, no diff engine, no PPT "What Changed" slide. Any handoff to Dushyant or IBM judging committee should land on the current build.
+
+  ### Decision: v2.1.0-rc1 (not v2.1.0 final)
+
+  watsonx endpoints are still running in mock mode (`WATSONX_ENABLED=false`). Rather than tag `v2.1.0` before live credential validation, we tagged `v2.1.0-rc1` to signal: *feature-complete, pending one live API test*. Promotion to `v2.1.0` is a single `git tag` command after credentials are validated — no re-merge needed.
+
+  ### Git Commands Executed
+
+  ```bash
+  git checkout main
+  git merge develop --no-ff -m "merge: develop → main — v2.1.0-rc1 candidate (watsonx mock, diff engine, GM narrative, PPT)"
+  git tag v2.1.0-rc1
+  git push origin main --tags
+  git checkout develop
+  ```
+
+  ### Merge Stats
+
+  ```
+  13 files changed, 3,288 insertions(+), 42 deletions(-)
+  New files: .env.example, scripts/seed-changes.js, scripts/test-diff.js,
+             server/diffEngine.js, server/watsonxScore.js
+  ```
+
+  ### GitHub Release — v2.1.0-rc1
+
+  Created via GitHub UI: Releases → Draft a new release → tag `v2.1.0-rc1` → marked **Pre-release**.
+
+  **Release title:** `v2.1.0-rc1 — watsonx Integration Candidate`
+
+  **Release notes:**
+  ```
+  ## ISC Automated Sales Forecast — v2.1.0 Release Candidate
+
+  This release candidate represents a full rebuild from v1.0.0 and is feature-complete
+  pending one live watsonx.ai credential validation before final v2.1.0 tag.
+
+  ---
+
+  ### What's New Since v1.0.0
+
+  **watsonx.ai Integration (mock mode — goes live this week)**
+  - Granite-13b confidence scoring across all 206 opportunities (POST /api/score-opportunities)
+  - Llama-3-70b GM narrative generation, scoped to current filtered view with next-steps health analysis (POST /api/generate-narrative)
+  - Granite-3-8b week-over-week delta summary embedded in diff panel and PPT (GET /api/diff?summary=true)
+  - All three endpoints degrade gracefully to mock responses when WATSONX_ENABLED=false
+
+  **Week-Over-Week Diff Engine**
+  - Live vs. baseline model: "What Changed" always compares the live pipeline against a deliberately saved GM-call baseline
+  - 7 change categories: new, dropped, promoted, demoted, amount changed, slipped, pulled in
+  - 📌 Save Baseline button — Dushyant saves the baseline after each GM call; diffs are always meaningful
+  - "What Changed" slide auto-included in generated PPT when diff data exists
+
+  **Developer / Test Tooling**
+  - scripts/seed-changes.js — simulates 8 real deal mutations for full UI end-to-end testing; --restore and --status flags included
+  - scripts/test-diff.js — unit test covering all 8 diff scenarios against live DB with synthetic week labels; cleans up after itself
+
+  ---
+
+  ### Known State
+  - watsonx endpoints are running in mock mode (WATSONX_ENABLED=false in .env)
+  - Live credential test (API key + project ID) is in progress — expected this week
+  - Second real HAR scrape (week of 7/14) will populate first live diff comparison
+
+  ### Blocking Items Before v2.1.0 Final
+  - [ ] Live watsonx credential test — validate all 3 endpoints against real watsonx.ai
+  - [ ] Re-tag as v2.1.0 after credential test passes
+
+  ---
+
+  ### Handoff Notes for Dushyant
+  Weekly workflow is approximately 2 minutes:
+  1. Export HAR from Salesforce CRM Analytics (Deal List tab trigger)
+  2. Drop HAR into the app → click ⟳ Refresh Data
+  3. After GM call → click 📌 Save Baseline
+  4. Next week: click ⇄ What Changed to see pipeline movement since last GM call
+  5. Click ↓ Generate PPT for a ready-to-present deck
+  ```
+
+  ### What Triggers v2.1.0 Final
+
+  When live watsonx credential test passes:
+  ```bash
+  git tag v2.1.0
+  git push origin v2.1.0
+  ```
+  No re-merge required — `main` is already at the correct commit.
+
+  ### Updated Remaining Backlog
+
+  1. **Live credential test** — `WATSONX_ENABLED=true` + API key + project ID → test all 3 AI endpoints (blocked on access)
+  2. **Second scrape** (week of 7/14) — second HAR import for first live diff comparison
+  3. **Promote to v2.1.0** — single `git tag` after credential test passes
+  4. **IBM watsonx Challenge submission** — portal registration, deliverables (target: w/c 7/21)
+  5. **Complete `PLAN-3067F00C01E4`** on Your Learning at IBM (required education)
+  6. **Register entry** at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
+
+  ---
