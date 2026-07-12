@@ -1,3 +1,72 @@
+---
+
+## Session 8 — Model 3 Action Bar: HTML + JS wiring complete
+
+**Date:** 2025-07-14
+**Branch:** `feature/ux-carbon-guided-workflow`
+**Commit:** `c0c2d9a`
+
+### What was done
+
+Completed the Model 3 action bar — the work that was CSS-only after Session 7's commit `38a5750`.
+
+**HTML replacement (`public/index.html` ~line 967):**
+- Removed `<div class="workflow-strip">` with its 5 `workflow-step` buttons (numbered steps, disabled state logic, `step-num` spans)
+- Replaced with `<div class="action-bar">` containing:
+  - 5 flat `action-btn` buttons (`ab-refresh`, `ab-score`, `ab-narrative`, `ab-diff`, `ab-ppt`)
+  - A `action-status-chip` span next to each button, initialised to `"Not run"`
+  - `action-sep` dividers between each action group
+  - Utilities (`btn-snapshot-util`, `btn-select-all`, `btn-clear-all`, `btn-select-high`, `wx-status`, `selection-summary`) moved into `.action-utilities` (right-aligned via `margin-left:auto`)
+- Emoji in utility buttons swapped to HTML entities (`&#x1F4CC;`, `&#x1F7E2;`) to avoid encoding issues
+
+**JS replacement:**
+- Removed `function setWorkflowStep(step)` (31 lines) — entire numbered-step state machine gone
+- Removed `(function initWorkflowStrip() { … })()` IIFE — proxy wiring was inline with step-disabled guards, no longer needed
+- Added `function updateActionBar(action, state, label)`:
+  - `action`: `'refresh' | 'score' | 'narrative' | 'diff' | 'ppt'`
+  - `state`: `'fresh'` (green) | `'stale'` (amber) | `''` (neutral)
+  - Chip text: `label` if provided, else `"Done · HH:MM AM/PM"`
+- Added 5 direct proxy `addEventListener` calls (no IIFE, no disabled guards — always clickable)
+- `ab-ppt` calls `openPptConfirm()` directly (no hidden button needed)
+
+**Call site replacements (6 total):**
+
+| Old call | Replaced with |
+|---|---|
+| `setWorkflowStep(6)` (btn-generate handler) | `updateActionBar('ppt', 'fresh')` |
+| `setWorkflowStep(3)` (btn-score-wx handler) | `updateActionBar('score', 'fresh')` |
+| `setWorkflowStep(4)` (btn-narrative handler) | `updateActionBar('narrative', 'fresh')` |
+| `setWorkflowStep(5)` (btn-diff handler) | `updateActionBar('diff', 'fresh')` |
+| `setWorkflowStep(6)` (ppt-confirm-ok handler) | `updateActionBar('ppt', 'fresh')` |
+| `setWorkflowStep(3)` + `setWorkflowStep(2)` (auto-score patch) | `updateActionBar('refresh','fresh')` + `updateActionBar('score','fresh'/'stale')` |
+
+**CSS fix:**
+- Filter-bar `sticky top` corrected from `92px` → `96px` (48px header + 48px action-bar)
+
+**Validation:** Node sanity script — 10/10 checks passed.
+
+### State after session
+
+- All `setWorkflowStep` references: **0**
+- All `workflow-strip`/`workflow-step` references: **0**
+- All action-bar HTML IDs present: ✅
+- All chip IDs present: ✅
+- Filter-bar offset correct: ✅
+
+### Remaining backlog
+
+1. Named view presets (GM Prep / At Risk / Full Pipeline) — planned, not built
+2. Merge `feature/ux-carbon-guided-workflow` → `develop` → `main` as `v2.2.0-rc1`
+3. Update GitHub Release
+4. Live watsonx credential test (blocked on access — week of 7/14)
+5. Second HAR scrape (week of 7/14) for first real diff comparison
+6. IBM watsonx Challenge submission (target: w/c 7/21)
+7. Complete `PLAN-3067F00C01E4` on Your Learning at IBM
+8. Register at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers
+
+---
+
+
 # UCC1 — Technical Session Log
 ## ISC Salesforce Authentication & Data Extraction Attempts
 
@@ -1727,5 +1796,246 @@ git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseli
   4. **IBM watsonx Challenge submission** — portal registration, deliverables (target: w/c 7/21)
   5. **Complete `PLAN-3067F00C01E4`** on Your Learning at IBM (required education)
   6. **Register entry** at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
+
+  ---
+
+  ## Session 6 — Phase 1 & 2 UX: Carbon Design + Guided Workflow + Diff Tile Modals (July 13, 2026)
+
+  ### Branch: `feature/ux-carbon-guided-workflow`
+
+  ### Context / Motivation
+
+  With v2.1.0-rc1 stable on `main`, the decision was made to invest in a significant UX upgrade before the 7/22 IBM watsonx Challenge submission. Rationale: the existing UI is an engineer's UI — all tools presented equally, no workflow guidance, raw terminal output visible. For Dushyant (Sales VP) and his GM (and potential wider Public Market adoption across 5 other Sales VPs), the app needs to feel like an IBM-developed product that guides the user through their weekly workflow, not a renegade tool they have to figure out.
+
+  **Three design principles agreed for this phase:**
+  1. IBM Carbon Design System visual language (tokens + IBM Plex Sans) — no full Carbon library dependency, just inline CSS tokens
+  2. Guided workflow UX — replace flat button row with a stepped workflow strip
+  3. Accessibility first — color is never the only signal (WCAG 2.1 AA)
+
+  ---
+
+  ### Phase 1 — Carbon Skin + Layout Restructure
+
+  #### Changes made (`public/index.html`)
+
+  **CSS additions:**
+  - Added `<link>` for IBM Plex Sans (Google Fonts CDN — weights 300/400/600/700) + IBM Plex Mono
+  - Added `:root` block with full Carbon Design System tokens (`--cds-background`, `--cds-interactive`, `--cds-support-*`, `--ibm-blue-70`, `--wx-purple`, etc.)
+  - All hardcoded colors replaced with `var(--cds-*)` tokens throughout
+  - `border-radius: 0` on all buttons/inputs (Carbon uses square corners)
+  - `font-family: 'IBM Plex Sans'` on body, buttons, table cells, footer
+  - `-webkit-font-smoothing: antialiased` on body
+
+  **Header redesign:**
+  - Height reduced: 56px → 48px (Carbon standard)
+  - `IBM` wordmark in top-left with `font-weight: 300`, separated by a right border
+  - `header-right` group: week/version meta + GM Ready indicator pill
+
+  **GM Ready indicator:**
+  - Pill in top-right of header, always visible
+  - Three states: `no-data` (muted), `needs-action` (amber — N deals missing next steps), `ready` (green — GM Prep Ready · N High)
+  - Color + dot + text label — accessibility compliant (never color-only)
+  - Updates automatically after `loadOpportunities()` resolves
+
+  **Workflow strip (replaces toolbar):**
+  - 6 numbered steps: ⟳ Refresh Data → ⬡ Score with watsonx → ✍ Generate Narrative → 📌 Save Baseline → ⇄ What Changed → ↓ Generate PPT
+  - Step states: `step-active` (blue underline + blue circle), `step-done` (green underline + green circle with checkmark), `step-disabled` (40% opacity, cursor: not-allowed)
+  - Step 1 active on load; all others unlock after data loads; each step marks done as user progresses
+  - Select All / Clear All / 🟢 High + watsonx status dot + selection summary moved to right-side utility area
+  - Hidden real buttons (`btn-refresh` etc.) preserve all existing JS event listeners — workflow strip buttons proxy via `.click()`
+
+  **Pipeline status line (replaces raw scrape terminal):**
+  - Clean white bar below totals: `📋 No data loaded` → `⟳ Refreshing…` → `✅ Pipeline loaded — N opportunities as of DATE`
+  - `Show details / Hide details` toggle reveals/hides the scrape log
+  - Scrape log: font changed to `IBM Plex Mono`, hidden by default
+  - `#status-bar` now shows **errors only** — `setStatus()` patched to return early for info/success/loading types
+
+  **Commits:**
+  ```
+  73dd2f0  feat: Phase 1 UX — Carbon design tokens, IBM Plex Sans, workflow strip, GM Ready indicator, pipeline status line
+  9168019  fix: score-wx handler — suppress auto-show of scrape log, use pipeline status line instead
+  0b64df2  fix: suppress redundant status-bar on info/success/loading — errors only, pipeline-status handles the rest
+  a791c50  fix: suppress auto-show of scrape log on Refresh Data, remove redundant capture listener
+  ```
+
+  ---
+
+  ### Phase 2 — Per-Tile Diff Detail Modals
+
+  #### Design decision
+
+  User proposed: make the 7 diff tiles clickable, opening a modal showing which deals are affected. Decision: **per-tile modal** (not a single combined modal) — each category tells a different story with different urgency. A GM taps "DEMOTED (2)" and immediately sees exactly which deals regressed and why. A combined modal would force mental re-sorting by category.
+
+  #### Accessibility note (applied throughout)
+  All modal delta blocks use direction symbol + numeric change + text label — color is additive, never load-bearing. e.g. `↓ Stage: 4 - Propose → 2 - Qualify — review needed` — the arrow and text carry the meaning even without color vision.
+
+  #### Changes made (`public/index.html`)
+
+  **CSS — modal styles added:**
+  - `.diff-tile.clickable` — hover shadow + border-color transition
+  - `.diff-tile-link` — "View deals" underlined link text on clickable tiles
+  - `.diff-modal-backdrop` — fixed full-screen overlay, `rgba(22,22,22,0.6)`, z-index 1000
+  - `.diff-modal` — white panel, max-width 720px, Carbon square border
+  - `.diff-modal-header` — IBM blue (`--ibm-blue-70`) with white title + subtitle + close button
+  - `.diff-deal-card` — per-deal card with scores, name, meta, delta block, financials row
+  - `.diff-deal-delta` with variants: `delta-risk` (red left border), `delta-positive` (green), `delta-warn` (amber), `delta-neutral` (gray)
+
+  **HTML — modal markup:**
+  - `#diff-modal-backdrop` with `role="dialog"`, `aria-modal="true"`, `aria-labelledby="diff-modal-title"`
+  - `#diff-modal-close` button with `aria-label="Close"`
+
+  **JS — modal engine:**
+  - `DIFF_MODAL_CONFIG` — per-category config: title, icon, default delta class
+  - `buildDeltaBlock(category, deal)` — renders the "What Changed" block with direction symbol and full text for all 7 categories
+  - `buildDealCard(category, deal)` — renders a deal card: looks up live `allOpportunities` for confidence scores (tier/score/ai_score), renders Rules badge + watsonx badge side by side, delta block, financials row (IBM Tech Amt, Total Amt, Close date, Quarter, Stage)
+  - `openDiffModal(category, deals, label, previousWeek)` — populates and opens the modal
+  - `closeDiffModal()` — removes `.open` class
+  - Close triggers: ✕ button, click outside modal, `Escape` key
+  - Keyboard accessibility: tiles have `role="button"`, `tabindex="0"`, `aria-label`, respond to `Enter` and `Space`
+  - `_diffData` variable stores last diff API response for modal access
+
+  **Tile builder patched:**
+  - Each tile now carries `key`, `deals` array from the diff response
+  - Tiles with count > 0 get `.clickable` class + `View deals` link
+  - Tiles with count = 0 get `role="presentation"` and no click handler
+
+  **Commit:**
+  ```
+  1c8ee58  feat: diff tile modals — per-tile clickable cards with confidence badges, delta blocks, accessibility (aria, keyboard, Escape)
+  ```
+
+  #### Test results (all 4 modals validated by user)
+  - ↓ Demoted Deals (2): `2026_Labcorp_sRenewal` (4→2 Qualify), `Corporate ELA` (5→4 Propose) ✅
+  - 📅 Slipped Close Dates (1): `Data Withheld` (+14 days) ✅
+  - $ Amount Changes (2): `Corporate z17` (−$3M, −33%), `2026_Labcorp_uRenewal` (+$2.55M, +67%) ✅
+  - ⏫ Pulled-In Dates (2): `BCBS Virtual Vault` (−21d), `HCSC Fusion Phase 1` (−14d) ✅
+
+  ---
+
+  ### What Remains for Phase 2 (UX branch)
+  - Named view presets (GM Prep / At Risk / Full Pipeline) — planned but not yet built
+  - Session log commit + push to remote
+  - Merge `feature/ux-carbon-guided-workflow` → `develop` → `main` as v2.2.0-rc1
+
+  ---
+
+  ## Session 7 — Model B Workflow + Model 3 Action Bar (July 13, 2026)
+
+  ### Branch: `feature/ux-carbon-guided-workflow`
+
+  ### Context
+  Continuing from Session 6. All work on this branch. Key decisions and builds this session:
+
+  ---
+
+  ### Step 1 — Timestamp-Based Snapshots (replaces ISO week labels)
+
+  **Problem identified:** `computeDiff` ordered by `week_label DESC` — two saves in the same ISO week produced the same label (`2026-W28`), second save overwrote the first, making intra-week testing impossible.
+
+  **Fix (`server/diffEngine.js`):**
+  - Added `snapshotLabel()` function — returns human-readable timestamp string e.g. `"Jul 13, 2026 · 2:34 PM"`
+  - `saveSnapshot()` now uses `snapshotLabel()` as `week_label` instead of `isoWeekLabel()`
+  - `computeDiff()` now orders by `snapped_at DESC` instead of `week_label DESC`
+  - `isoWeekLabel` kept and exported for test scripts
+
+  ---
+
+  ### Step 2 — Model B Workflow: Step 5 "Baseline & Generate GM Report"
+
+  **Decision:** PPT generation and baseline save are combined into one action (Step 5). This ensures the baseline always matches exactly what the GM saw in the last report. Baseline save was removed from the numbered workflow strip as a primary step.
+
+  **New workflow strip (5 steps):**
+  ```
+  1 ⟳ Refresh Data → 2 ⬡ Score with watsonx → 3 ✍ Generate Narrative → 4 ⇄ What Changed → 5 📊 Baseline & Generate GM Report
+  ```
+
+  **Step 5 confirm modal** (`#ppt-confirm-backdrop`):
+  - IBM blue header: "📊 Baseline & Generate GM Report — Step 5 of 5"
+  - Two delta blocks explaining: (1) Save Pipeline Baseline, (2) Generate GM Report (PowerPoint)
+  - Buttons: Cancel | ✅ Confirm & Generate
+  - On confirm: `POST /api/snapshot` → `POST /api/generate-ppt` in sequence
+  - Pipeline status line updates through both phases
+
+  **Save Baseline utility** — moved to right-side utility area with warning modal (`#baseline-warn-backdrop`):
+  - Purple header: "📌 Save Baseline — Manual Override"
+  - Warning block: "outside normal weekly workflow"
+  - Risk block: "⇄ What Changed will compare live data against RIGHT NOW, not your last GM Report"
+  - Buttons: Cancel | 📌 Save Baseline Now
+
+  **Tooltips on all action buttons** — `data-tip` attributes using existing `.has-tip` / `#global-tooltip` engine. Tooltip text explains purpose of each step. `title` attributes removed (caused native browser tooltip interference).
+
+  ---
+
+  ### Step 3 — Persist Rules-Based score + tier to opportunities table
+
+  **Root cause:** `score` and `tier` were computed by `scoreOpportunity()` in memory only — never written to the DB. Snapshot `saveSnapshot()` was trying to save `r.score` / `r.tier` but both were always `null`.
+
+  **Fix (`server/db.js`):** Added `score INTEGER` and `tier TEXT` columns to `opportunities` via v2.2.0 migration block.
+
+  **Fix (`server/index.js` — `POST /api/score-opportunities`):**
+  - Pre-computes rules scores via `Map` before `batchScore()` call
+  - `UPDATE` statement expanded: `ai_score, ai_rationale, ai_scored_at, score, tier`
+  - Both AI and rules scores now persisted in the same transaction
+
+  **Result:** `saveSnapshot()` now captures real `score` and `tier` values → diff modals can show before→after confidence deltas correctly.
+
+  ---
+
+  ### Step 4 — All Action Success Feedback Through Pipeline Status Line
+
+  All `setStatus(msg, 'success')` and `setStatus(msg, 'loading')` calls replaced with `setPipelineStatus()` calls throughout:
+  - Narrative generated → `✅ Narrative generated from N-opp filtered view`
+  - What Changed → `⇄ What Changed: live vs Jul 13, 2026 · 2:34 PM: 2 promoted…`
+  - Save Baseline → `✅ Baseline saved — N opportunities locked as Jul 13, 2026 · 2:34 PM`
+  - Baseline+PPT → `✅ GM Report generated with N opportunities — downloading…`
+  - Scoring → `✅ Scoring complete — N opportunities scored as of Jul 13, 2026`
+  - `setStatus()` patched to show **errors only** — all other types return early
+
+  ---
+
+  ### Step 5 — Model 3 Action Bar Design Decision
+
+  **Problem identified (user):** The numbered workflow strip (1→2→3→4→5) implies a linear one-time sequence. Dushyant's real workflow is multi-reentrant — he refreshes, scores, and checks What Changed multiple times per week, not just once. The progression bar becomes meaningless and potentially confusing after the first run.
+
+  **Decision: Model 3 — Status-driven action bar, fully re-entrant.**
+
+  Design:
+  ```
+  ┌─ Pipeline: 206 opps · Scored Jul 13 2:34PM · Baseline: Jul 12 6:00PM ──────────────┐
+  │  [⟳ Refresh]  [⬡ Score]  [⇄ What Changed]  [✍ Narrative]  [📊 Baseline+PPT]       │
+  └──────────────────────────────────────────────────────────────────────────────────────┘
+  ```
+  - No numbered steps, no locked/disabled states
+  - Status chips next to each button show last-run timestamp
+  - Status tells the story; buttons are always available
+  - `fresh` chip (green) = run recently; `stale` chip (amber) = may need refresh
+
+  **CSS committed (`38a5750`):** `.action-bar`, `.action-btn`, `.action-btn.primary`, `.action-btn.success`, `.action-status-chip`, `.action-sep`, `.action-utilities`
+
+  **HTML + JS wiring: IN PROGRESS** — session ended at token limit before HTML/JS was completed.
+
+  ---
+
+  ### Current Git State (end of Session 7)
+
+  | Branch | Commit | Status |
+  |---|---|---|
+  | `feature/ux-carbon-guided-workflow` | `38a5750` | Model 3 CSS done, HTML+JS wiring pending |
+  | `develop` | `662624e` | Stable |
+  | `main` | `9f7f149` | Tagged `v2.1.0-rc1` |
+
+  ### How to Resume (Session 8)
+
+  Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  **Remaining work on `feature/ux-carbon-guided-workflow`:**
+  1. Complete Model 3 HTML — replace `<div class="workflow-strip">` with `<div class="action-bar">`, new action buttons with status chips
+  2. Complete Model 3 JS — replace `setWorkflowStep()` with `updateActionBar()` that updates status chips with real timestamps
+  3. Wire all 5 action buttons to hidden real buttons (same proxy pattern as before)
+  4. Remove all `setWorkflowStep()` calls throughout JS, replace with `updateActionBar()` calls
+  5. Test full re-entrant workflow: Refresh → Score → Baseline+PPT → Refresh again → Score again → What Changed (should work without any sequence lock)
+  6. Named view presets (GM Prep / At Risk / Full Pipeline) — still on backlog
+  7. Merge `feature/ux-carbon-guided-workflow` → `develop` → `main` as `v2.2.0-rc1`
+  8. Update GitHub Release
 
   ---

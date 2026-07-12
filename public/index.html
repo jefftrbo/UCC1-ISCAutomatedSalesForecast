@@ -4,64 +4,205 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ISC Sales Forecast — GM Meeting Prep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;600;700&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
   <style>
+    /* ── Carbon Design System tokens ── */
+    :root {
+      --cds-background:         #ffffff;
+      --cds-background-hover:   #e8e8e8;
+      --cds-layer-01:           #f4f4f4;
+      --cds-layer-02:           #e0e0e0;
+      --cds-border-subtle:      #e0e0e0;
+      --cds-border-strong:      #8d8d8d;
+      --cds-text-primary:       #161616;
+      --cds-text-secondary:     #525252;
+      --cds-text-placeholder:   #a8a8a8;
+      --cds-text-disabled:      #c6c6c6;
+      --cds-interactive:        #0f62fe;
+      --cds-interactive-hover:  #0050e6;
+      --cds-focus:              #0f62fe;
+      --cds-support-success:    #198038;
+      --cds-support-warning:    #f1c21b;
+      --cds-support-error:      #da1e28;
+      --cds-support-info:       #0043ce;
+      --cds-highlight:          #d0e2ff;
+      /* IBM brand blue for header */
+      --ibm-blue-70:            #0043ce;
+      --ibm-blue-60:            #0f62fe;
+      /* watsonx purple */
+      --wx-purple:              #6929c4;
+      --wx-purple-light:        #e8daff;
+      --wx-purple-dark:         #491d8b;
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      font-family: 'IBM Plex Sans', -apple-system, "Segoe UI", system-ui, sans-serif;
       font-size: 14px;
-      background: #f4f4f4;
-      color: #161616;
+      background: var(--cds-layer-01);
+      color: var(--cds-text-primary);
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── Header ── */
     header {
-      background: #0043ce;
+      background: var(--ibm-blue-70);
       color: #fff;
       padding: 0 24px;
-      height: 56px;
+      height: 48px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 100;
+      border-bottom: 1px solid #003ab5;
     }
-    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.01em; }
-    header span { font-size: 12px; opacity: 0.8; }
+    .header-left { display: flex; align-items: center; gap: 16px; }
+    .header-logo {
+      font-size: 13px;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      opacity: 0.75;
+      text-transform: uppercase;
+      border-right: 1px solid rgba(255,255,255,0.3);
+      padding-right: 16px;
+      white-space: nowrap;
+    }
+    header h1 { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; white-space: nowrap; }
+    .header-right { display: flex; align-items: center; gap: 20px; }
+    .header-meta { font-size: 12px; opacity: 0.75; white-space: nowrap; }
 
-    /* ── Toolbar ── */
-    .toolbar {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 10px 24px;
+    /* ── GM Ready indicator ── */
+    .gm-ready {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      position: sticky;
-      top: 56px;
-      z-index: 99;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 12px;
+      white-space: nowrap;
+      transition: all 0.2s;
     }
-    .toolbar .selection-summary { margin-left: auto; font-size: 13px; color: #6f6f6f; }
+    .gm-ready.ready    { background: rgba(25,128,56,0.25); color: #6fdc8c; }
+    .gm-ready.needs-action { background: rgba(241,194,27,0.25); color: #f1c21b; }
+    .gm-ready.no-data  { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); }
+    .gm-ready-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .gm-ready.ready .gm-ready-dot    { background: #6fdc8c; }
+    .gm-ready.needs-action .gm-ready-dot { background: #f1c21b; }
+    .gm-ready.no-data .gm-ready-dot  { background: rgba(255,255,255,0.35); }
+
+    /* ── Action bar (Model 3 — status-driven, fully re-entrant) ── */
+    .action-bar {
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 48px;
+      z-index: 99;
+      height: 48px;
+      gap: 2px;
+      overflow-x: auto;
+    }
+
+    /* Action buttons — always enabled, no sequence lock */
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 14px;
+      height: 36px;
+      border: 1px solid var(--cds-border-subtle);
+      background: var(--cds-background);
+      color: var(--cds-text-primary);
+      font-size: 13px;
+      font-family: 'IBM Plex Sans', inherit;
+      font-weight: 400;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.12s, border-color 0.12s;
+      border-radius: 0;
+      flex-shrink: 0;
+    }
+    .action-btn:hover { background: var(--cds-layer-01); border-color: var(--cds-border-strong); }
+    .action-btn:active { background: var(--cds-layer-02); }
+    .action-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Primary actions (refresh, score) */
+    .action-btn.primary { background: var(--ibm-blue-70); color: #fff; border-color: var(--ibm-blue-70); }
+    .action-btn.primary:hover { background: #002fa3; border-color: #002fa3; }
+
+    /* Success action (baseline+ppt) */
+    .action-btn.success { background: var(--cds-support-success); color: #fff; border-color: var(--cds-support-success); }
+    .action-btn.success:hover { background: #12622b; border-color: #12622b; }
+
+    /* Status chip — shows last-run timestamp */
+    .action-status-chip {
+      font-size: 11px;
+      color: var(--cds-text-secondary);
+      background: var(--cds-layer-01);
+      border: 1px solid var(--cds-border-subtle);
+      padding: 2px 8px;
+      white-space: nowrap;
+      margin-left: -2px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .action-status-chip.fresh { color: var(--cds-support-success); background: #defbe6; border-color: #a7f0ba; }
+    .action-status-chip.stale { color: #9b6900; background: #fef3cd; border-color: #f1c21b; }
+
+    /* Vertical separator */
+    .action-sep {
+      width: 1px;
+      height: 28px;
+      background: var(--cds-border-subtle);
+      margin: 0 8px;
+      flex-shrink: 0;
+    }
+
+    /* Right-side utilities */
+    .action-utilities {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 12px;
+      flex-shrink: 0;
+    }
+    .wx-status {
+      font-size: 11px; color: var(--cds-text-secondary); display: flex; align-items: center; gap: 5px;
+    }
+    .wx-status .wx-dot {
+      width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0;
+    }
+    .wx-dot.live { background: #198038; }
+    .wx-dot.mock { background: #f59e0b; }
 
     /* ── Filter bar ── */
     .filter-bar {
-      background: #f4f4f4;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 8px 24px;
+      background: var(--cds-layer-01);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 6px 24px;
       display: flex;
       align-items: center;
       gap: 10px;
       flex-wrap: wrap;
       position: sticky;
-      top: 105px;
+      top: 96px;
       z-index: 98;
     }
     .filter-bar label {
       font-size: 11px;
       font-weight: 600;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
       text-transform: uppercase;
       letter-spacing: 0.04em;
       white-space: nowrap;
@@ -70,12 +211,13 @@
       font-size: 12px;
       font-family: inherit;
       border: 1px solid #c6c6c6;
-      border-radius: 2px;
+      border-radius: 0;
       padding: 4px 8px;
-      background: #fff;
-      color: #161616;
+      background: var(--cds-background);
+      color: var(--cds-text-primary);
       height: 28px;
     }
+    .filter-bar input[type="text"]:focus { outline: 2px solid var(--cds-focus); outline-offset: -2px; }
     .filter-bar input[type="text"]          { width: 160px; }
     .filter-bar input[type="text"].f-amount-input { width: 130px; }
     .filter-bar .filter-sep {
@@ -87,30 +229,30 @@
     .filter-count {
       margin-left: auto;
       font-size: 12px;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
       white-space: nowrap;
     }
 
     /* ── Totals bar ── */
     #totals-bar {
-      background: #fff;
-      border-bottom: 1px solid #e0e0e0;
-      padding: 6px 24px;
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      padding: 5px 24px;
       display: flex;
       align-items: center;
       gap: 24px;
       position: sticky;
-      top: 149px;
+      top: 136px;
       z-index: 97;
       font-size: 12px;
-      color: #6f6f6f;
+      color: var(--cds-text-secondary);
     }
     .totals-label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; font-size: 11px; }
-    .totals-value { font-weight: 700; font-size: 13px; color: #161616; font-variant-numeric: tabular-nums; }
-    .totals-value.ibm  { color: #0043ce; }
-    .totals-value.total { color: #198038; }
-    .totals-sep { width: 1px; height: 16px; background: #e0e0e0; }
-    .totals-note { margin-left: auto; font-size: 11px; color: #a8a8a8; }
+    .totals-value { font-weight: 700; font-size: 13px; color: var(--cds-text-primary); font-variant-numeric: tabular-nums; }
+    .totals-value.ibm  { color: var(--ibm-blue-70); }
+    .totals-value.total { color: var(--cds-support-success); }
+    .totals-sep { width: 1px; height: 16px; background: var(--cds-border-subtle); }
+    .totals-note { margin-left: auto; font-size: 11px; color: var(--cds-text-placeholder); }
 
     /* ── Multi-select dropdown ── */
     .ms-wrap { position: relative; display: inline-block; }
@@ -185,57 +327,84 @@
     button {
       cursor: pointer;
       border: none;
-      border-radius: 2px;
+      border-radius: 0;
       font-size: 13px;
-      font-family: inherit;
+      font-family: 'IBM Plex Sans', inherit;
       padding: 7px 16px;
       transition: background 0.15s;
+      font-weight: 400;
     }
-    .btn-primary   { background: #0043ce; color: #fff; }
-    .btn-primary:hover:not(:disabled)   { background: #0035a8; }
-    .btn-primary:disabled               { background: #a8c0f0; cursor: not-allowed; }
-    .btn-secondary { background: #e0e0e0; color: #161616; }
+    .btn-primary   { background: var(--ibm-blue-70); color: #fff; }
+    .btn-primary:hover:not(:disabled)   { background: #002fa3; }
+    .btn-primary:disabled               { background: var(--cds-text-disabled); cursor: not-allowed; color: var(--cds-text-secondary); }
+    .btn-secondary { background: var(--cds-layer-02); color: var(--cds-text-primary); }
     .btn-secondary:hover:not(:disabled) { background: #c6c6c6; }
     .btn-secondary:disabled             { opacity: 0.5; cursor: not-allowed; }
-    .btn-success   { background: #198038; color: #fff; }
+    .btn-success   { background: var(--cds-support-success); color: #fff; }
     .btn-success:hover:not(:disabled)   { background: #12622b; }
     .btn-success:disabled               { background: #a3c9ae; cursor: not-allowed; }
     .btn-ghost {
       background: none;
-      color: #0043ce;
+      color: var(--cds-interactive);
       padding: 4px 8px;
       font-size: 12px;
       text-decoration: underline;
       cursor: pointer;
       border: none;
     }
-    .btn-ghost:hover { color: #0035a8; }
+    .btn-ghost:hover { color: var(--cds-interactive-hover); }
 
-    /* ── Status banner ── */
-    #status-bar {
+    /* ── Pipeline status line (replaces raw scrape log) ── */
+    #pipeline-status {
+      padding: 8px 24px;
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      background: var(--cds-background);
+      border-bottom: 1px solid var(--cds-border-subtle);
       display: none;
-      padding: 9px 24px;
-      font-size: 13px;
-      border-bottom: 1px solid transparent;
+      align-items: center;
+      gap: 8px;
     }
-    #status-bar.info    { background: #edf5ff; color: #0043ce; border-color: #a6c8ff; display: block; }
-    #status-bar.success { background: #defbe6; color: #198038; border-color: #a7f0ba; display: block; }
-    #status-bar.error   { background: #fff1f1; color: #da1e28; border-color: #ffa4a9; display: block; }
-    #status-bar.loading { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; display: block; }
+    #pipeline-status.visible { display: flex; }
+    #pipeline-status .ps-icon { font-size: 14px; }
+    #pipeline-status .ps-text { flex: 1; }
+    #pipeline-status .ps-detail-toggle {
+      font-size: 11px;
+      color: var(--cds-interactive);
+      cursor: pointer;
+      text-decoration: underline;
+      white-space: nowrap;
+      background: none;
+      border: none;
+      padding: 0;
+      font-family: inherit;
+    }
 
-    /* ── Scrape log ── */
+    /* ── Scrape log (hidden, toggled via "Details") ── */
     #scrape-log {
       display: none;
       background: #161616;
       color: #42be65;
-      font-family: "Courier New", monospace;
-      font-size: 12px;
+      font-family: 'IBM Plex Mono', "Courier New", monospace;
+      font-size: 11px;
       padding: 10px 24px;
-      max-height: 120px;
+      max-height: 100px;
       overflow-y: auto;
       white-space: pre-wrap;
       border-bottom: 1px solid #393939;
     }
+
+    /* ── Status banner ── */
+    #status-bar {
+      display: none;
+      padding: 8px 24px;
+      font-size: 13px;
+      border-bottom: 1px solid transparent;
+    }
+    #status-bar.info    { background: #edf5ff; color: var(--cds-support-info); border-color: #a6c8ff; display: block; }
+    #status-bar.success { background: #defbe6; color: var(--cds-support-success); border-color: #a7f0ba; display: block; }
+    #status-bar.error   { background: #fff1f1; color: var(--cds-support-error); border-color: #ffa4a9; display: block; }
+    #status-bar.loading { background: var(--cds-layer-01); color: var(--cds-text-secondary); border-color: var(--cds-border-subtle); display: block; }
 
     /* ── GM Narrative panel ── */
     #narrative-panel {
@@ -371,13 +540,164 @@
       color: #57606a;
       margin-top: 2px;
     }
-    .diff-tile.new     .diff-tile-count { color: #198038; }
-    .diff-tile.dropped .diff-tile-count { color: #da1e28; }
+    .diff-tile.new      .diff-tile-count { color: #198038; }
+    .diff-tile.dropped  .diff-tile-count { color: #da1e28; }
     .diff-tile.promoted .diff-tile-count { color: #0043ce; }
     .diff-tile.demoted  .diff-tile-count { color: #f59e0b; }
     .diff-tile.slipped  .diff-tile-count { color: #da1e28; }
     .diff-tile.amount   .diff-tile-count { color: #525252; }
     .diff-tile.pulled   .diff-tile-count { color: #198038; }
+
+    /* Clickable tiles */
+    .diff-tile.clickable {
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .diff-tile.clickable:hover {
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      border-color: #a8a8a8;
+    }
+    .diff-tile-link {
+      font-size: 10px;
+      color: var(--cds-interactive);
+      text-decoration: underline;
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* ── Diff detail modal ── */
+    .diff-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(22,22,22,0.6);
+      z-index: 1000;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 24px;
+      overflow-y: auto;
+    }
+    .diff-modal-backdrop.open { display: flex; }
+    .diff-modal {
+      background: var(--cds-background);
+      width: 100%;
+      max-width: 720px;
+      border: 1px solid var(--cds-border-subtle);
+      position: relative;
+    }
+    .diff-modal-header {
+      background: var(--ibm-blue-70);
+      color: #fff;
+      padding: 16px 20px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .diff-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'IBM Plex Sans', inherit;
+    }
+    .diff-modal-subtitle {
+      font-size: 12px;
+      opacity: 0.75;
+    }
+    .diff-modal-close {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+      opacity: 0.75;
+      flex-shrink: 0;
+    }
+    .diff-modal-close:hover { opacity: 1; }
+    .diff-modal-body {
+      padding: 16px 20px;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    .diff-modal-empty {
+      font-size: 13px;
+      color: var(--cds-text-secondary);
+      padding: 16px 0;
+      font-style: italic;
+    }
+
+    /* Deal card inside modal */
+    .diff-deal-card {
+      border: 1px solid var(--cds-border-subtle);
+      background: var(--cds-background);
+      margin-bottom: 12px;
+      padding: 14px 16px;
+    }
+    .diff-deal-card:last-child { margin-bottom: 0; }
+    .diff-deal-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .diff-deal-scores {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex-shrink: 0;
+      min-width: 60px;
+      align-items: center;
+    }
+    .diff-deal-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--cds-text-primary);
+      line-height: 1.3;
+    }
+    .diff-deal-meta {
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      margin-top: 2px;
+    }
+    .diff-deal-delta {
+      background: var(--cds-layer-01);
+      border-left: 3px solid var(--cds-border-strong);
+      padding: 8px 12px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .diff-deal-delta.delta-risk   { border-left-color: #da1e28; }
+    .diff-deal-delta.delta-positive { border-left-color: #198038; }
+    .diff-deal-delta.delta-warn   { border-left-color: #f59e0b; }
+    .diff-deal-delta.delta-neutral { border-left-color: #8d8d8d; }
+    .diff-delta-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      margin-bottom: 4px;
+    }
+    .diff-delta-value {
+      font-size: 13px;
+      color: var(--cds-text-primary);
+      font-weight: 400;
+    }
+    .diff-delta-direction {
+      font-weight: 700;
+      margin-right: 4px;
+    }
+    .diff-deal-financials {
+      display: flex;
+      gap: 20px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      flex-wrap: wrap;
+    }
+    .diff-deal-financials span { white-space: nowrap; }
+    .diff-deal-financials strong { color: var(--cds-text-primary); }
     #diff-ai-paragraph {
       font-size: 14px;
       line-height: 1.65;
@@ -584,14 +904,15 @@
       z-index: 9999;
       background: #161616;
       color: #f4f4f4;
-      font-size: 11px;
-      border-radius: 4px;
-      padding: 10px 12px;
-      width: 260px;
+      font-size: 12px;
+      border-radius: 0;
+      padding: 10px 14px;
+      width: 300px;
       white-space: normal;
       box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       pointer-events: none;
-      line-height: 1.5;
+      line-height: 1.6;
+      font-family: 'IBM Plex Sans', inherit;
     }
     .tooltip-row {
       display: flex;
@@ -630,22 +951,88 @@
 <body>
 
 <header>
-  <h1>ISC Sales Forecast — GM Meeting Prep</h1>
-  <span id="header-meta"></span>
+  <div class="header-left">
+    <span class="header-logo">IBM</span>
+    <h1>ISC Sales Forecast — GM Meeting Prep</h1>
+  </div>
+  <div class="header-right">
+    <span class="header-meta" id="header-meta"></span>
+    <div class="gm-ready no-data" id="gm-ready">
+      <span class="gm-ready-dot"></span>
+      <span id="gm-ready-text">No data loaded</span>
+    </div>
+  </div>
 </header>
 
-<div class="toolbar">
-  <button class="btn-primary"   id="btn-refresh">⟳ Refresh Data</button>
-  <button class="btn-primary"   id="btn-score-wx" style="background:#7c5cd8;">⬡ Score with watsonx</button>
-  <button class="btn-primary"   id="btn-narrative" style="background:#0f62fe;" disabled>✍ Generate Narrative</button>
-  <button class="btn-primary"   id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
-  <button class="btn-secondary" id="btn-snapshot">📌 Save Baseline</button>
-  <button class="btn-success"   id="btn-generate" disabled>↓ Generate PPT</button>
-  <button class="btn-secondary" id="btn-select-all">Select All</button>
-  <button class="btn-secondary" id="btn-clear-all">Clear All</button>
-  <button class="btn-secondary" id="btn-select-high">Select 🟢 High</button>
-  <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
-  <span class="selection-summary" id="selection-summary">0 selected</span>
+<!-- Action bar — Model 3: status-driven, fully re-entrant (no numbered sequence) -->
+<div class="action-bar" id="action-bar">
+
+  <!-- ⟳ Refresh Data -->
+  <button class="action-btn primary has-tip" id="ab-refresh"
+    data-tip="Imports the latest pipeline from Salesforce via HAR export. Run any time to update the opportunity list. watsonx scoring runs automatically.">
+    ⟳ Refresh Data
+  </button>
+  <span class="action-status-chip" id="chip-refresh">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ⬡ Score with watsonx -->
+  <button class="action-btn has-tip" id="ab-score"
+    data-tip="Re-runs watsonx.ai confidence scoring on all opportunities. Runs automatically after Refresh — click to force a manual re-score.">
+    ⬡ Score
+  </button>
+  <span class="action-status-chip" id="chip-score">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ✍ Generate Narrative -->
+  <button class="action-btn has-tip" id="ab-narrative"
+    data-tip="Uses watsonx.ai to write a GM meeting narrative from the currently filtered view. Apply filters first to scope to the right deals.">
+    ✍ Narrative
+  </button>
+  <span class="action-status-chip" id="chip-narrative">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- ⇄ What Changed -->
+  <button class="action-btn has-tip" id="ab-diff"
+    data-tip="Compares live pipeline against the last GM Report baseline. Shows promoted, demoted, slipped, and added deals since your last GM call.">
+    ⇄ What Changed
+  </button>
+  <span class="action-status-chip" id="chip-diff">Not run</span>
+
+  <div class="action-sep"></div>
+
+  <!-- 📊 Baseline & Generate GM Report -->
+  <button class="action-btn success has-tip" id="ab-ppt"
+    data-tip="Saves today's pipeline as the new baseline and generates the PowerPoint for your GM meeting. Next week's 'What Changed' compares against this snapshot.">
+    &#x1F4CA; Baseline &amp; GM Report
+  </button>
+  <span class="action-status-chip" id="chip-ppt">Not run</span>
+
+  <!-- Right-side utilities -->
+  <div class="action-utilities">
+    <button class="btn-secondary has-tip" id="btn-snapshot-util"
+      style="height:28px;padding:0 12px;font-size:12px;"
+      data-tip="Advanced: manually save a pipeline baseline outside the normal workflow. Opens a warning explaining the impact on your week-over-week diff.">
+      &#x1F4CC; Save Baseline
+    </button>
+    <button class="btn-secondary" id="btn-select-all"  style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
+    <button class="btn-secondary" id="btn-clear-all"   style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
+    <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">&#x1F7E2; High</button>
+    <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
+    <span style="font-size:12px;color:var(--cds-text-secondary)" id="selection-summary">0 selected</span>
+  </div>
+</div>
+
+<!-- Hidden real buttons — keep original IDs for all JS event listeners -->
+<div style="display:none">
+  <button id="btn-refresh">⟳ Refresh Data</button>
+  <button id="btn-score-wx">⬡ Score with watsonx</button>
+  <button id="btn-narrative">✍ Generate Narrative</button>
+  <button id="btn-diff">⇄ What Changed</button>
+  <button id="btn-snapshot">📌 Save Baseline</button>
+  <button id="btn-generate">↓ Generate PPT</button>
 </div>
 
 <!-- Filter bar -->
@@ -721,8 +1108,14 @@
 </div>
 
 <div id="global-tooltip"></div>
-<div id="status-bar"></div>
+<!-- Pipeline status line — clean summary replacing raw scrape terminal -->
+<div id="pipeline-status">
+  <span class="ps-icon" id="ps-icon">📋</span>
+  <span class="ps-text" id="ps-text">No data loaded — click Step 1 to refresh.</span>
+  <button class="ps-detail-toggle" id="ps-detail-toggle" style="display:none">Show details</button>
+</div>
 <pre id="scrape-log"></pre>
+<div id="status-bar"></div>
 
 <!-- GM Narrative Panel — shown after Generate Narrative is clicked -->
 <div id="narrative-panel">
@@ -801,6 +1194,96 @@
 </main>
 
 <footer>ISC Automated Sales Forecast &mdash; US Public Sector &mdash; <span id="footer-version"></span></footer>
+
+<!-- ── Step 5: Baseline & Generate GM Report — confirm modal ── -->
+<div class="diff-modal-backdrop" id="ppt-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="ppt-confirm-title">
+  <div class="diff-modal" style="max-width:520px;">
+    <div class="diff-modal-header">
+      <div>
+        <div class="diff-modal-title" id="ppt-confirm-title">📊 Baseline &amp; Generate GM Report</div>
+        <div class="diff-modal-subtitle">Step 5 of 5</div>
+      </div>
+      <button class="diff-modal-close" id="ppt-confirm-close" aria-label="Cancel">✕</button>
+    </div>
+    <div class="diff-modal-body">
+      <p style="font-size:14px;line-height:1.7;color:var(--cds-text-primary);margin-bottom:16px;">
+        This will do <strong>two things</strong> in sequence:
+      </p>
+      <div class="diff-deal-delta delta-positive" style="margin-bottom:12px;">
+        <div class="diff-delta-label">1 — Save Pipeline Baseline</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          The current pipeline will be locked as your reference point, timestamped to right now.
+          Next week, <strong>⇄ What Changed</strong> will compare live data against exactly
+          what is in today's GM report — so your diff always reflects real movement since the last call.
+        </div>
+      </div>
+      <div class="diff-deal-delta delta-positive" style="margin-bottom:20px;">
+        <div class="diff-delta-label">2 — Generate GM Report (PowerPoint)</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          A PowerPoint deck will be generated from your selected opportunities
+          and downloaded automatically.
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn-secondary" id="ppt-confirm-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-success" id="ppt-confirm-ok" style="padding:8px 20px;font-weight:600;">✅ Confirm &amp; Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Save Baseline utility — manual override warning modal ── -->
+<div class="diff-modal-backdrop" id="baseline-warn-backdrop" role="dialog" aria-modal="true" aria-labelledby="baseline-warn-title">
+  <div class="diff-modal" style="max-width:520px;">
+    <div class="diff-modal-header" style="background:#6929c4;">
+      <div>
+        <div class="diff-modal-title" id="baseline-warn-title">📌 Save Baseline — Manual Override</div>
+        <div class="diff-modal-subtitle">Advanced action — read before proceeding</div>
+      </div>
+      <button class="diff-modal-close" id="baseline-warn-close" aria-label="Cancel">✕</button>
+    </div>
+    <div class="diff-modal-body">
+      <div class="diff-deal-delta delta-warn" style="margin-bottom:14px;">
+        <div class="diff-delta-label">⚠ This is outside the normal weekly workflow</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          Normally, your baseline is saved automatically when you click
+          <strong>📊 Baseline &amp; Generate GM Report</strong> (Step 5).
+          That ensures your diff always reflects exactly what your GM saw in the last report.
+        </div>
+      </div>
+      <p style="font-size:13px;line-height:1.7;color:var(--cds-text-primary);margin-bottom:12px;">
+        Use this only if you need to reset the baseline mid-week — for example,
+        after a major pipeline restructure that you want to treat as the new reference point.
+      </p>
+      <div class="diff-deal-delta delta-risk" style="margin-bottom:20px;">
+        <div class="diff-delta-label">⚠ Impact on What Changed</div>
+        <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
+          <strong>⇄ What Changed</strong> will compare live data against <strong>right now</strong>,
+          not against your last GM Report. Your next PPT diff may not reflect the full
+          week's pipeline movement.
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn-secondary" id="baseline-warn-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-primary" id="baseline-warn-ok" style="padding:8px 20px;background:#6929c4;">📌 Save Baseline Now</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Diff Detail Modal ── -->
+<div class="diff-modal-backdrop" id="diff-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="diff-modal-title">
+  <div class="diff-modal">
+    <div class="diff-modal-header">
+      <div>
+        <div class="diff-modal-title" id="diff-modal-title">Deal Detail</div>
+        <div class="diff-modal-subtitle" id="diff-modal-subtitle"></div>
+      </div>
+      <button class="diff-modal-close" id="diff-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="diff-modal-body" id="diff-modal-body"></div>
+  </div>
+</div>
 
 <script>
   // ── State ──────────────────────────────────────────────────────────────────
@@ -910,6 +1393,12 @@
 
   function setStatus(msg, type) {
     const bar = document.getElementById('status-bar');
+    // Pipeline status line handles info/success/loading feedback.
+    // Only show the status bar for errors — they need prominent attention.
+    if (type !== 'error') {
+      bar.className = '';   // hide
+      return;
+    }
     bar.textContent = msg;
     bar.className = type;
   }
@@ -1409,8 +1898,8 @@
     const log = document.getElementById('scrape-log');
     btn.disabled = true;
     log.textContent = '';
-    log.style.display = 'block';
-    setStatus('Loading data…', 'loading');
+    // Do NOT auto-show scrape log — accumulate silently; user reveals via "Show details"
+    setPipelineStatus('⟳', 'Refreshing pipeline data from Salesforce…', false);
     try {
       const res = await fetch('/api/scrape', { method: 'POST' });
       const reader = res.body.getReader();
@@ -1421,10 +1910,11 @@
         log.textContent += decoder.decode(value);
         log.scrollTop = log.scrollHeight;
       }
-      setStatus('Data refreshed successfully.', 'success');
       await loadOpportunities();
+      // loadOpportunities patch sets the pipeline status on success
     } catch (err) {
       setStatus('Refresh failed: ' + err.message, 'error');
+      setPipelineStatus('⚠', 'Refresh failed — see details.', true);
     } finally {
       btn.disabled = false;
     }
@@ -1439,7 +1929,8 @@
       const res = await fetch('/api/generate-ppt', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate PowerPoint.', 'error'); return; }
-      setStatus(`PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'}. Downloading…`, 'success');
+      setPipelineStatus('✅', `PowerPoint generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
+      updateActionBar('ppt', 'fresh');
       const a = document.createElement('a');
       a.href = data.file;
       a.download = data.file.split('/').pop();
@@ -1523,7 +2014,8 @@
     const log = document.getElementById('scrape-log');
     btn.disabled = true;
     log.textContent = '';
-    log.style.display = 'block';
+    // Do NOT auto-show the scrape log — accumulate silently; user can reveal via "Show details"
+    setPipelineStatus('⬡', 'Running watsonx.ai scoring…', false);
     setStatus('Running watsonx.ai scoring…', 'loading');
     try {
       const res = await fetch('/api/score-opportunities', { method: 'POST' });
@@ -1538,8 +2030,11 @@
       setStatus('watsonx.ai scoring complete. Reloading scores…', 'success');
       await loadOpportunities();
       await loadWatsonxStatus();
+      setPipelineStatus('✅', `Scoring complete — ${allOpportunities.length} opportunities scored as of ${new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, true);
+      updateActionBar('score', 'fresh');
     } catch (err) {
       setStatus('Scoring failed: ' + err.message, 'error');
+      setPipelineStatus('⚠', 'Scoring failed — see details.', true);
     } finally {
       btn.disabled = false;
     }
@@ -1587,7 +2082,8 @@
 
       const isSubset = filteredIds.length < allOpportunities.length;
       const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
-      setStatus(`Narrative generated from ${viewLabel}.`, 'success');
+      setPipelineStatus('✅', `Narrative generated from ${viewLabel}.`, false);
+      updateActionBar('narrative', 'fresh');
     } catch (err) {
       setStatus('Narrative failed: ' + err.message, 'error');
     } finally {
@@ -1674,20 +2170,36 @@
       noData.style.display = 'none';
       heading.textContent = `What Changed: live vs ${data.previousWeek}`;
 
-      // Build tiles
+      // Store diff data for modal use
+      _diffData = data;
+
+      // Build tiles — clickable when count > 0
       const tiles = [
-        { cls: 'new',      label: 'New',         count: data.new?.length      || 0 },
-        { cls: 'dropped',  label: 'Dropped',      count: data.dropped?.length  || 0 },
-        { cls: 'promoted', label: 'Promoted',     count: data.promoted?.length || 0 },
-        { cls: 'demoted',  label: 'Demoted',      count: data.demoted?.length  || 0 },
-        { cls: 'slipped',  label: 'Slipped',      count: data.slipped?.length  || 0 },
-        { cls: 'amount',   label: 'Amt Changed',  count: data.amount?.length   || 0 },
-        { cls: 'pulled',   label: 'Pulled In',    count: data.pulled_in?.length|| 0 },
+        { cls: 'new',      label: 'New',        count: data.new?.length       || 0, deals: data.new       || [], key: 'new'      },
+        { cls: 'dropped',  label: 'Dropped',    count: data.dropped?.length   || 0, deals: data.dropped   || [], key: 'dropped'  },
+        { cls: 'promoted', label: 'Promoted',   count: data.promoted?.length  || 0, deals: data.promoted  || [], key: 'promoted' },
+        { cls: 'demoted',  label: 'Demoted',    count: data.demoted?.length   || 0, deals: data.demoted   || [], key: 'demoted'  },
+        { cls: 'slipped',  label: 'Slipped',    count: data.slipped?.length   || 0, deals: data.slipped   || [], key: 'slipped'  },
+        { cls: 'amount',   label: 'Amt Changed',count: data.amount?.length    || 0, deals: data.amount    || [], key: 'amount'   },
+        { cls: 'pulled',   label: 'Pulled In',  count: data.pulled_in?.length || 0, deals: data.pulled_in || [], key: 'pulled'   },
       ];
       tiles.forEach(t => {
         const tile = document.createElement('div');
-        tile.className = `diff-tile ${t.cls}`;
-        tile.innerHTML = `<div class="diff-tile-count">${t.count}</div><div class="diff-tile-label">${t.label}</div>`;
+        const isClickable = t.count > 0;
+        tile.className = `diff-tile ${t.cls}${isClickable ? ' clickable' : ''}`;
+        tile.setAttribute('role', isClickable ? 'button' : 'presentation');
+        tile.setAttribute('tabindex', isClickable ? '0' : '-1');
+        tile.setAttribute('aria-label', isClickable ? `${t.label}: ${t.count} deal${t.count !== 1 ? 's' : ''} — click to view` : `${t.label}: 0`);
+        tile.innerHTML = `
+          <div class="diff-tile-count">${t.count}</div>
+          <div class="diff-tile-label">${t.label}</div>
+          ${isClickable ? `<span class="diff-tile-link">View deals</span>` : ''}
+        `;
+        if (isClickable) {
+          const handler = () => openDiffModal(t.key, t.deals, t.label, data.previousWeek);
+          tile.addEventListener('click', handler);
+          tile.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); } });
+        }
         grid.appendChild(tile);
       });
 
@@ -1709,7 +2221,8 @@
 
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      setStatus(`Week-over-week diff: ${data.summary}`, 'success');
+      setPipelineStatus('⇄', `What Changed: ${data.summary}`, false);
+      updateActionBar('diff', 'fresh');
     } catch (err) {
       setStatus('Diff failed: ' + err.message, 'error');
     } finally {
@@ -1722,18 +2235,17 @@
   document.getElementById('btn-snapshot').addEventListener('click', async () => {
     const btn = document.getElementById('btn-snapshot');
     btn.disabled = true;
-    btn.textContent = '📌 Saving…';
-    setStatus('Saving pipeline baseline…', 'loading');
+    setPipelineStatus('📌', 'Saving pipeline baseline…', false);
     try {
       const res  = await fetch('/api/snapshot', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Baseline save failed.', 'error'); return; }
-      setStatus(`✅ Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}. Use "⇄ What Changed" next week to see deltas.`, 'success');
+      setPipelineStatus('✅', `Baseline saved — ${data.saved} opportunities locked as ${data.weekLabel}.`, false);
+      // manual save baseline doesn't advance workflow step — it's an override
     } catch (err) {
       setStatus('Save Baseline failed: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = '📌 Save Baseline';
     }
   });
 
@@ -1741,8 +2253,372 @@
     document.getElementById('diff-panel').style.display = 'none';
   });
 
+  // ── Diff detail modal ─────────────────────────────────────────────────────
+  let _diffData = null; // holds the last diff API response for modal use
+
+  const DIFF_MODAL_CONFIG = {
+    new:      { title: 'New Deals',           icon: '＋', deltaClass: 'delta-positive' },
+    dropped:  { title: 'Dropped Deals',       icon: '✕',  deltaClass: 'delta-risk'     },
+    promoted: { title: 'Promoted Deals',      icon: '↑',  deltaClass: 'delta-positive' },
+    demoted:  { title: 'Demoted Deals',       icon: '↓',  deltaClass: 'delta-risk'     },
+    slipped:  { title: 'Slipped Close Dates', icon: '📅', deltaClass: 'delta-warn'     },
+    amount:   { title: 'Amount Changes',      icon: '$',  deltaClass: 'delta-neutral'  },
+    pulled:   { title: 'Pulled-In Dates',     icon: '⏫', deltaClass: 'delta-positive' },
+  };
+
+  function fmt$M(val) {
+    if (val == null) return '—';
+    return '$' + (val / 1e6).toFixed(2) + 'M';
+  }
+
+  function buildDeltaBlock(category, deal) {
+    const cfg = DIFF_MODAL_CONFIG[category];
+    let label = 'What Changed';
+    let value = '';
+    let dirSymbol = '';
+    let deltaClass = cfg.deltaClass;
+
+    if (category === 'promoted') {
+      dirSymbol = '↑ ';
+      value = `Stage: ${deal.prevStage} → ${deal.curStage}`;
+      deltaClass = 'delta-positive';
+    } else if (category === 'demoted') {
+      dirSymbol = '↓ ';
+      value = `Stage: ${deal.prevStage} → ${deal.curStage} — review needed`;
+      deltaClass = 'delta-risk';
+    } else if (category === 'slipped') {
+      const days = deal.daysDiff;
+      dirSymbol = '↓ ';
+      value = `Close date: ${deal.prevCloseDate} → ${deal.curCloseDate} (+${days} day${days !== 1 ? 's' : ''})`;
+      deltaClass = 'delta-warn';
+    } else if (category === 'pulled') {
+      const days = Math.abs(deal.daysDiff);
+      dirSymbol = '↑ ';
+      value = `Close date: ${deal.prevCloseDate} → ${deal.curCloseDate} (−${days} day${days !== 1 ? 's' : ''})`;
+      deltaClass = 'delta-positive';
+    } else if (category === 'amount') {
+      const diff = deal.amtDiff;
+      const pct  = deal.prevAmt !== 0 ? Math.round((diff / deal.prevAmt) * 100) : 100;
+      const dir  = diff > 0 ? '↑ ' : '↓ ';
+      const sign = diff > 0 ? '+' : '';
+      dirSymbol  = dir;
+      value = `Amount: ${fmt$M(deal.prevAmt)} → ${fmt$M(deal.curAmt)} (${sign}${fmt$M(diff)}, ${sign}${pct}%)`;
+      deltaClass = diff > 0 ? 'delta-positive' : 'delta-risk';
+    } else if (category === 'new') {
+      label = 'Status';
+      value = 'Added to pipeline this week';
+      deltaClass = 'delta-positive';
+    } else if (category === 'dropped') {
+      label = 'Status';
+      value = 'Removed from pipeline — no longer in live data';
+      deltaClass = 'delta-risk';
+    }
+
+    return `<div class="diff-deal-delta ${deltaClass}">
+      <div class="diff-delta-label">${label}</div>
+      <div class="diff-delta-value"><span class="diff-delta-direction" aria-hidden="true">${dirSymbol}</span>${esc(value)}</div>
+    </div>`;
+  }
+
+  function scoreBadgeSmall(score, tier) {
+    if (score == null) return `<span style="font-size:11px;color:var(--cds-text-secondary)">—</span>`;
+    const dot = tier === 'High' ? '🟢' : tier === 'Medium' ? '🟡' : tier === 'Low' ? '🔴' : '○';
+    const cls = tier === 'High' ? 'score-high' : tier === 'Medium' ? 'score-medium' : 'score-low';
+    const label = tier || 'Unknown';
+    return `<span class="score-badge ${cls}" title="Rules confidence: ${score}/100 · ${label}">${dot} ${score}</span>`;
+  }
+
+  function buildScoreChangeBlock(deal, live) {
+    // Only show if we have a baseline score to compare against
+    const prevScore = deal.prevScore;
+    const prevTier  = deal.prevTier;
+    const curScore  = live.score != null ? Math.round(live.score) : null;
+    const curTier   = live.tier  || null;
+    const curAiScore = live.ai_score != null ? Math.round(live.ai_score) : null;
+
+    if (prevScore == null && curScore == null) return '';
+
+    const scoreDiff = (prevScore != null && curScore != null) ? curScore - prevScore : null;
+    const diffStr   = scoreDiff != null
+      ? ` <span style="font-weight:700;color:${scoreDiff >= 0 ? '#198038' : '#da1e28'}">(${scoreDiff >= 0 ? '+' : ''}${scoreDiff} pts)</span>`
+      : '';
+
+    const prevBadge = scoreBadgeSmall(prevScore, prevTier);
+    const curBadge  = scoreBadgeSmall(curScore, curTier);
+    const wxBadge   = curAiScore != null
+      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai: ${curAiScore}/100">⬡ ${curAiScore}</span>`
+      : '';
+
+    // Only show the row if something actually changed or if we have both values
+    const hasChange = prevScore != null && curScore != null;
+    const arrow     = hasChange ? ' → ' : '';
+    const before    = hasChange ? `${prevBadge}${arrow}` : '';
+
+    return `<div class="diff-deal-delta delta-neutral" style="margin-top:6px;">
+      <div class="diff-delta-label">Confidence Score</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        ${before}${curBadge}${diffStr}
+        ${wxBadge ? `<span style="color:var(--cds-text-secondary);font-size:11px;">watsonx:</span>${wxBadge}` : ''}
+      </div>
+    </div>`;
+  }
+
+  function buildDealCard(category, deal) {
+    // Look up live confidence scores from allOpportunities (has tier/score/ai_score)
+    const live    = allOpportunities.find(o => o.id === deal.id) || deal;
+    const curScore  = live.score != null ? Math.round(live.score) : null;
+    const curTier   = live.tier || '—';
+    const dot       = curTier === 'High' ? '🟢' : curTier === 'Medium' ? '🟡' : curTier === 'Low' ? '🔴' : '○';
+
+    // Top-right score column: just show current scores (before→after is in the score change block)
+    const rulesBadgeHtml = scoreBadgeSmall(curScore, curTier);
+    const wxBadgeHtml = live.ai_score != null
+      ? `<span class="ai-score-badge${live.mock ? ' mock' : ''}" title="watsonx.ai: ${Math.round(live.ai_score)}/100">⬡ ${Math.round(live.ai_score)}</span>`
+      : '';
+
+    return `<div class="diff-deal-card">
+      <div class="diff-deal-top">
+        <div class="diff-deal-scores">
+          ${rulesBadgeHtml}
+          ${wxBadgeHtml}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="diff-deal-name">${esc(deal.opportunity_name || '—')}</div>
+          <div class="diff-deal-meta">${esc(deal.account_name || '—')} · ${esc(deal.opportunity_owner || '—')}</div>
+        </div>
+      </div>
+      ${buildDeltaBlock(category, deal)}
+      ${buildScoreChangeBlock(deal, live)}
+      <div class="diff-deal-financials">
+        <span><strong>IBM Tech Amt:</strong> ${fmt$(deal.filtered_opportunity_amount)}</span>
+        <span><strong>Total Amt:</strong> ${fmt$(deal.total_opportunity_amount)}</span>
+        <span><strong>Close:</strong> ${esc(deal.close_date || deal.curCloseDate || '—')}</span>
+        <span><strong>Quarter:</strong> ${esc(deal.closeQuarter || '—')}</span>
+        <span><strong>Stage:</strong> ${esc(deal.stage || deal.curStage || '—')}</span>
+      </div>
+    </div>`;
+  }
+
+  function openDiffModal(category, deals, label, previousWeek) {
+    const cfg      = DIFF_MODAL_CONFIG[category] || {};
+    const backdrop = document.getElementById('diff-modal-backdrop');
+    const title    = document.getElementById('diff-modal-title');
+    const subtitle = document.getElementById('diff-modal-subtitle');
+    const body     = document.getElementById('diff-modal-body');
+
+    title.textContent    = `${cfg.icon || ''} ${cfg.title || label}`.trim();
+    subtitle.textContent = `Live vs ${previousWeek} · ${deals.length} deal${deals.length !== 1 ? 's' : ''}`;
+
+    if (deals.length === 0) {
+      body.innerHTML = `<p class="diff-modal-empty">No deals in this category.</p>`;
+    } else {
+      body.innerHTML = deals.map(d => buildDealCard(category, d)).join('');
+    }
+
+    backdrop.classList.add('open');
+    document.getElementById('diff-modal-close').focus();
+  }
+
+  function closeDiffModal() {
+    document.getElementById('diff-modal-backdrop').classList.remove('open');
+  }
+
+  document.getElementById('diff-modal-close').addEventListener('click', closeDiffModal);
+  document.getElementById('diff-modal-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('diff-modal-backdrop')) closeDiffModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeDiffModal();
+      closePptConfirm();
+      closeBaselineWarn();
+    }
+  });
+
+  // ── Step 5 confirm modal ───────────────────────────────────────────────────
+  function openPptConfirm() {
+    document.getElementById('ppt-confirm-backdrop').classList.add('open');
+    document.getElementById('ppt-confirm-ok').focus();
+  }
+  function closePptConfirm() {
+    document.getElementById('ppt-confirm-backdrop').classList.remove('open');
+  }
+  document.getElementById('ppt-confirm-close').addEventListener('click', closePptConfirm);
+  document.getElementById('ppt-confirm-cancel').addEventListener('click', closePptConfirm);
+  document.getElementById('ppt-confirm-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('ppt-confirm-backdrop')) closePptConfirm();
+  });
+
+  document.getElementById('ppt-confirm-ok').addEventListener('click', async () => {
+    closePptConfirm();
+    setPipelineStatus('📌', 'Saving pipeline baseline…', false);
+    // Step 1 — save baseline
+    try {
+      const snapRes  = await fetch('/api/snapshot', { method: 'POST' });
+      const snapData = await snapRes.json();
+      if (!snapRes.ok) { setStatus(snapData.error || 'Baseline save failed.', 'error'); return; }
+      setPipelineStatus('📊', `Baseline saved (${snapData.weekLabel}) — generating GM Report…`, false);
+    } catch (err) {
+      setStatus('Baseline save failed: ' + err.message, 'error'); return;
+    }
+    // Step 2 — generate PPT
+    const btn = document.getElementById('btn-generate');
+    btn.disabled = true;
+    try {
+      const res = await fetch('/api/generate-ppt', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) { setStatus(data.error || 'Failed to generate GM Report.', 'error'); return; }
+      setPipelineStatus('✅', `GM Report generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
+      updateActionBar('ppt', 'fresh');
+      const a = document.createElement('a');
+      a.href = data.file;
+      a.download = data.file.split('/').pop();
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      setStatus('GM Report generation failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      updateSelectionSummary();
+    }
+  });
+
+  // ── Save Baseline utility — manual override warning modal ─────────────────
+  function openBaselineWarn() {
+    document.getElementById('baseline-warn-backdrop').classList.add('open');
+    document.getElementById('baseline-warn-ok').focus();
+  }
+  function closeBaselineWarn() {
+    document.getElementById('baseline-warn-backdrop').classList.remove('open');
+  }
+  document.getElementById('baseline-warn-close').addEventListener('click', closeBaselineWarn);
+  document.getElementById('baseline-warn-cancel').addEventListener('click', closeBaselineWarn);
+  document.getElementById('baseline-warn-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('baseline-warn-backdrop')) closeBaselineWarn();
+  });
+
+  document.getElementById('baseline-warn-ok').addEventListener('click', async () => {
+    closeBaselineWarn();
+    // Delegate to the existing hidden btn-snapshot handler
+    document.getElementById('btn-snapshot').click();
+  });
+
+  // Utility Save Baseline button opens the warning modal
+  document.getElementById('btn-snapshot-util').addEventListener('click', openBaselineWarn);
+
+  // ── GM Ready indicator ─────────────────────────────────────────────────────
+  function updateGmReady() {
+    const el   = document.getElementById('gm-ready');
+    const text = document.getElementById('gm-ready-text');
+    if (!allOpportunities.length) {
+      el.className = 'gm-ready no-data';
+      text.textContent = 'No data loaded';
+      return;
+    }
+    // Count attention signals: demoted + slipped visible in diff, or check overall pipeline
+    const highCount = allOpportunities.filter(o => o.tier === 'High').length;
+    const noNextSteps = allOpportunities.filter(o =>
+      (o.tier === 'High' || o.tier === 'Medium') && !o.next_steps
+    ).length;
+    if (noNextSteps > 0) {
+      el.className = 'gm-ready needs-action';
+      text.textContent = `${noNextSteps} deal${noNextSteps > 1 ? 's' : ''} need attention`;
+    } else {
+      el.className = 'gm-ready ready';
+      text.textContent = `GM Prep Ready · ${highCount} High`;
+    }
+  }
+
+  // ── Pipeline status line ───────────────────────────────────────────────────
+  function setPipelineStatus(icon, msg, showDetails) {
+    const ps = document.getElementById('pipeline-status');
+    document.getElementById('ps-icon').textContent  = icon;
+    document.getElementById('ps-text').textContent  = msg;
+    const toggle = document.getElementById('ps-detail-toggle');
+    toggle.style.display = showDetails ? 'inline' : 'none';
+    ps.classList.add('visible');
+  }
+
+  document.getElementById('ps-detail-toggle').addEventListener('click', () => {
+    const log    = document.getElementById('scrape-log');
+    const toggle = document.getElementById('ps-detail-toggle');
+    const visible = log.style.display !== 'none';
+    log.style.display   = visible ? 'none' : 'block';
+    toggle.textContent  = visible ? 'Show details' : 'Hide details';
+  });
+
+  // ── Action bar — Model 3 (status-driven, fully re-entrant) ────────────────
+  // Updates the status chip next to each action button with a timestamp.
+  // action: 'refresh' | 'score' | 'narrative' | 'diff' | 'ppt'
+  // state:  'fresh' | 'stale' | '' (neutral)
+  // label:  optional override text (defaults to "Done · HH:MM AM/PM")
+  function updateActionBar(action, state, label) {
+    const chip = document.getElementById('chip-' + action);
+    if (!chip) return;
+    const now = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    chip.textContent = label || ('Done · ' + now);
+    chip.className = 'action-status-chip' + (state ? ' ' + state : '');
+  }
+
+  // ── Action bar proxy wiring ────────────────────────────────────────────────
+  // Each visible action-bar button delegates to the corresponding hidden real
+  // button so all existing event listeners remain unchanged.
+  document.getElementById('ab-refresh').addEventListener('click', () =>
+    document.getElementById('btn-refresh').click());
+  document.getElementById('ab-score').addEventListener('click', () =>
+    document.getElementById('btn-score-wx').click());
+  document.getElementById('ab-narrative').addEventListener('click', () =>
+    document.getElementById('btn-narrative').click());
+  document.getElementById('ab-diff').addEventListener('click', () =>
+    document.getElementById('btn-diff').click());
+  document.getElementById('ab-ppt').addEventListener('click', () =>
+    openPptConfirm());
+
+  // ── Patch loadOpportunities — auto-score after every refresh ──────────────
+  // After data loads, silently trigger POST /api/score-opportunities in the
+  // background so confidence scores always reflect the current field values
+  // (stage, close date, amount). Workflow Step 2 completes automatically.
+  const _origLoad = loadOpportunities;
+  loadOpportunities = async function() {
+    await _origLoad();
+    if (allOpportunities.length === 0) return;
+
+    const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    setPipelineStatus('⬡', `Pipeline loaded — scoring ${allOpportunities.length} opportunities with watsonx…`, false);
+
+    try {
+      // Stream the scoring response silently into the scrape log (user can reveal via Show details)
+      const log = document.getElementById('scrape-log');
+      const res = await fetch('/api/score-opportunities', { method: 'POST' });
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        log.textContent += decoder.decode(value);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // Reload opportunities so allOpportunities carries fresh scores
+      await _origLoad();
+      await loadWatsonxStatus();
+
+      updateActionBar('refresh', 'fresh');
+      updateActionBar('score', 'fresh');
+      setPipelineStatus('✅', `Pipeline loaded & scored — ${allOpportunities.length} opportunities as of ${dateStr}.`, true);
+    } catch (err) {
+      // Scoring failure is non-fatal — pipeline data is still usable
+      updateActionBar('refresh', 'fresh');
+      updateActionBar('score', 'stale', 'Score failed');
+      setPipelineStatus('⚠', `Pipeline loaded — auto-scoring failed (${err.message}). Click Score to retry.`, false);
+    }
+
+    updateGmReady();
+  };
+
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.1.0';
+  const APP_VERSION = '2.2.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });

@@ -72,6 +72,9 @@ const v2Columns = [
   { name: 'ai_score',      ddl: 'ALTER TABLE opportunities ADD COLUMN ai_score INTEGER'      },
   { name: 'ai_rationale',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_rationale TEXT'     },
   { name: 'ai_scored_at',  ddl: 'ALTER TABLE opportunities ADD COLUMN ai_scored_at TEXT'     },
+  // v2.2.0 — persist rules-based score + tier so snapshots capture before→after confidence
+  { name: 'score',         ddl: 'ALTER TABLE opportunities ADD COLUMN score INTEGER'          },
+  { name: 'tier',          ddl: 'ALTER TABLE opportunities ADD COLUMN tier TEXT'              },
 ];
 v2Columns.forEach(({ name, ddl }) => {
   if (!existingCols.includes(name)) {
@@ -102,5 +105,20 @@ db.exec(`
     PRIMARY KEY (id, week_label)
   )
 `);
+
+// ── v2.2.0 migration — add score/tier columns to snapshots ───────────────────
+// Stores the rules-based confidence score at baseline time so the diff modal
+// can show "before → after" score deltas for changed deals.
+const snapshotCols = db.pragma('table_info(snapshots)').map(c => c.name);
+const v22SnapshotColumns = [
+  { name: 'score', ddl: 'ALTER TABLE snapshots ADD COLUMN score INTEGER' },
+  { name: 'tier',  ddl: 'ALTER TABLE snapshots ADD COLUMN tier TEXT'     },
+];
+v22SnapshotColumns.forEach(({ name, ddl }) => {
+  if (!snapshotCols.includes(name)) {
+    db.exec(ddl);
+    console.log(`[db] Migration: added column snapshots.${name}`);
+  }
+});
 
 module.exports = db;
