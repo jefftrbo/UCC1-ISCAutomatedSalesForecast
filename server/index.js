@@ -10,6 +10,7 @@
  *   POST /api/scrape                    — trigger HAR/devtools/Playwright scraper
  *   POST /api/score-opportunities       — run watsonx.ai scoring on all opportunities
  *   GET  /api/watsonx-status            — returns current watsonx mode (live/mock)
+ *   POST /api/generate-narrative        — generate GM meeting executive narrative (watsonx)
  *   POST /api/generate-ppt              — generate PowerPoint from selected opportunities
  */
 
@@ -20,7 +21,7 @@ const { spawn } = require('child_process');
 const db = require('./db');
 const generatePpt = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
-const { batchScore, isLiveMode, modelId } = require('./watsonxScore');
+const { batchScore, isLiveMode, modelId, generateNarrative } = require('./watsonxScore');
 
 const app = express();
 const PORT = process.env.PORT || 3090;
@@ -123,6 +124,53 @@ app.post('/api/score-opportunities', async (req, res) => {
     console.error('POST /api/score-opportunities error:', err.message);
     res.write(`\nError: ${err.message}`);
     res.end();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/generate-narrative
+// Body (optional): { ids: string[] }
+//   ids — the ordered list of opportunity IDs currently visible in the UI
+//         (filtered set). When provided, narrative reflects that exact view.
+//         When omitted, falls back to all selected=1 rows (backward compat).
+// Returns: { paragraph, bullets, mock, model, count }
+// ---------------------------------------------------------------------------
+app.post('/api/generate-narrative', async (req, res) => {
+  try {
+    let opps;
+    const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
+
+    if (ids && ids.length > 0) {
+      // Fetch only the rows the frontend is currently showing, preserving frontend order
+      const placeholders = ids.map(() => '?').join(',');
+      const byId = db
+        .prepare(`SELECT * FROM opportunities WHERE id IN (${placeholders})`)
+        .all(...ids);
+      // Re-sort to match the order the frontend sent (ids are already sorted by the UI)
+      const idIndex = new Map(ids.map((id, i) => [id, i]));
+      opps = byId.sort((a, b) => (idIndex.get(a.id) ?? 0) - (idIndex.get(b.id) ?? 0));
+    } else {
+      // Fallback: all selected rows
+      opps = db
+        .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC')
+        .all();
+    }
+
+    if (opps.length === 0) {
+      return res.status(400).json({ error: 'No opportunities in the current view. Adjust your filters or select opportunities first.' });
+    }
+
+    const result = await generateNarrative(opps);
+    res.json({
+      paragraph: result.paragraph,
+      bullets:   result.bullets,
+      mock:      result.mock,
+      model:     result.mock ? 'mock' : 'meta-llama/llama-3-70b-instruct',
+      count:     opps.length,
+    });
+  } catch (err) {
+    console.error('POST /api/generate-narrative error:', err.message);
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -277,7 +325,15 @@ app.post('/api/generate-ppt', async (req, res) => {
     const outputDir = path.join(__dirname, '..', 'output');
     const outputPath = path.join(outputDir, fileName);
 
-    await generatePpt(selected, outputPath);
+    // Auto-generate narrative for cover slide (non-blocking — PPT still works if this fails)
+    let narrative = null;
+    try {
+      narrative = await generateNarrative(selected);
+    } catch (e) {
+      console.warn('POST /api/generate-ppt: narrative generation skipped —', e.message);
+    }
+
+    await generatePpt(selected, outputPath, narrative);
 
     // Return the download URL (served as static file)
     res.json({ file: `/output/${fileName}`, count: selected.length });

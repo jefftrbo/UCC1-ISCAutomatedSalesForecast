@@ -300,9 +300,237 @@ async function batchScore(opportunities, getRuleScore, onProgress = () => {}) {
   return results;
 }
 
+// ── GM Narrative generation ───────────────────────────────────────────────────
+
+const NARRATIVE_MODEL_ID = 'meta-llama/llama-3-70b-instruct';
+
+// STALE_DAYS: next steps with a date older than this are considered stale
+const STALE_DAYS = 14;
+
+/**
+ * Classify the next_steps field of a single opportunity into one of four buckets:
+ *   'fresh'  — has a date within STALE_DAYS of today
+ *   'stale'  — has a date but it's older than STALE_DAYS
+ *   'weak'   — has text but no recognisable date (no activity timestamp)
+ *   'blank'  — null, empty, or whitespace only
+ *
+ * Date patterns recognised: M/D, M/D/YY, M/D/YYYY
+ * Uses the most recent date found in the text.
+ *
+ * @param {string|null} ns   next_steps field value
+ * @param {Date}        [now] reference date (defaults to today; injectable for tests)
+ * @returns {'fresh'|'stale'|'weak'|'blank'}
+ */
+function classifyNextSteps(ns, now = new Date()) {
+  if (!ns || !ns.trim()) return 'blank';
+  const dates = [...ns.matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g)];
+  if (dates.length === 0) return 'weak';
+  // Use the last date mentioned (sellers typically prepend newest entry)
+  const last = dates[dates.length - 1];
+  const mon  = parseInt(last[1], 10);
+  const day  = parseInt(last[2], 10);
+  const yr   = last[3]
+    ? (last[3].length === 2 ? 2000 + parseInt(last[3], 10) : parseInt(last[3], 10))
+    : now.getFullYear();
+  const d = new Date(yr, mon - 1, day);
+  const ageDays = (now - d) / 86400000;
+  return ageDays <= STALE_DAYS ? 'fresh' : 'stale';
+}
+
+/**
+ * Compute next-steps health stats for a set of opportunities.
+ * Returns counts for each bucket plus a breakdown of low-confidence opps.
+ *
+ * @param {Array<Object>} opps
+ * @returns {{ fresh, stale, weak, blank, lowBlank, lowStale, lowWeak, lowTotal }}
+ */
+function nextStepsStats(opps) {
+  let fresh = 0, stale = 0, weak = 0, blank = 0;
+  let lowBlank = 0, lowStale = 0, lowWeak = 0;
+  const now = new Date();
+
+  for (const o of opps) {
+    const bucket  = classifyNextSteps(o.next_steps, now);
+    const isLow   = (o.ai_score ?? o.score ?? 0) < 40;
+    if (bucket === 'fresh') fresh++;
+    else if (bucket === 'stale') { stale++; if (isLow) lowStale++; }
+    else if (bucket === 'weak')  { weak++;  if (isLow) lowWeak++;  }
+    else                         { blank++; if (isLow) lowBlank++; }
+  }
+
+  const lowTotal = opps.filter(o => (o.ai_score ?? o.score ?? 0) < 40).length;
+  return { fresh, stale, weak, blank, lowBlank, lowStale, lowWeak, lowTotal };
+}
+
+function buildNarrativePrompt(opps) {
+  const fmt$ = (v) => v ? '$' + (v / 1e6).toFixed(1) + 'M' : '—';
+  const ibmTotal = opps.reduce((s, o) => s + (o.filtered_opportunity_amount || 0), 0);
+  const totalAmt = opps.reduce((s, o) => s + (o.total_opportunity_amount    || 0), 0);
+  const highConf = opps.filter(o => (o.ai_score ?? o.score ?? 0) >= 70);
+  const midConf  = opps.filter(o => { const s = o.ai_score ?? o.score ?? 0; return s >= 40 && s < 70; });
+  const lowConf  = opps.filter(o => (o.ai_score ?? o.score ?? 0) < 40);
+  const flmYes   = opps.filter(o => (o.flm_judgement || '').toLowerCase() === 'yes');
+  const ns       = nextStepsStats(opps);
+
+  const topDeals = [...opps]
+    .sort((a, b) => (b.total_opportunity_amount || 0) - (a.total_opportunity_amount || 0))
+    .slice(0, 8)
+    .map(o => {
+      const score     = o.ai_score ?? o.score ?? '—';
+      const rationale = o.ai_rationale ? ` — "${o.ai_rationale.slice(0, 80)}"` : '';
+      return `  • ${o.opportunity_name || 'Unnamed'} | ${o.account_name || '—'} | ${fmt$(o.total_opportunity_amount)} | ${o.stage || '—'} | Score: ${score}/100${rationale}`;
+    }).join('\n');
+
+  return `<|system|>
+You are an executive communications specialist for IBM US Public Sector sales leadership.
+Write a concise, professional GM meeting briefing based on the forecast data below.
+Tone: confident, executive, data-driven. No fluff. Reference specific numbers.
+Respond ONLY with valid JSON — no text outside the JSON object.
+<|user|>
+Weekly forecast — VP Dushyant K Patel — Q3 2026 GM Meeting:
+
+Selected opportunities: ${opps.length}
+IBM Technology Amount: ${fmt$(ibmTotal)}
+Total Contract Amount: ${fmt$(totalAmt)}
+High confidence (≥70): ${highConf.length} deals
+Medium confidence (40–69): ${midConf.length} deals
+Low confidence (<40): ${lowConf.length} deals
+FLM confirmed: ${flmYes.length} deals
+
+Next Steps health across all selected opportunities:
+  Fresh (updated ≤${STALE_DAYS} days): ${ns.fresh}
+  Stale (last update >${STALE_DAYS} days ago): ${ns.stale}
+  Weak (no date recorded): ${ns.weak}
+  Blank (no next steps at all): ${ns.blank}
+
+Low-confidence deals next-steps breakdown (${ns.lowTotal} deals <40 score):
+  No next steps at all: ${ns.lowBlank}
+  Stale next steps: ${ns.lowStale}
+  Weak/undated next steps: ${ns.lowWeak}
+
+Top deals by amount:
+${topDeals}
+
+Respond with JSON:
+{"paragraph": "<3-5 sentence executive summary with specific amounts, counts, and next-steps health>", "bullets": ["<talking point 1>", "<talking point 2>", "<talking point 3>", "<talking point 4 — specific low-confidence next-steps action>"]}
+<|assistant|>
+{`;
+}
+
+function parseNarrativeOutput(raw) {
+  try {
+    const json = JSON.parse('{' + raw);
+    return {
+      paragraph: (json.paragraph || '').trim(),
+      bullets:   Array.isArray(json.bullets) ? json.bullets.slice(0, 5) : [],
+    };
+  } catch {
+    const paraMatch    = raw.match(/"paragraph"\s*:\s*"((?:[^"\\]|\\.)*)"/s);
+    const bulletsMatch = [...raw.matchAll(/"([^"]{10,})"/g)].slice(1).map(m => m[1]);
+    return {
+      paragraph: paraMatch ? paraMatch[1].replace(/\\n/g, ' ').trim() : 'Unable to generate narrative.',
+      bullets:   bulletsMatch.slice(0, 3),
+    };
+  }
+}
+
+function mockNarrative(opps) {
+  const fmt$ = (v) => v ? '$' + (v / 1e6).toFixed(1) + 'M' : '—';
+  const ibmTotal  = opps.reduce((s, o) => s + (o.filtered_opportunity_amount || 0), 0);
+  const totalAmt  = opps.reduce((s, o) => s + (o.total_opportunity_amount    || 0), 0);
+  const highConf  = opps.filter(o => (o.ai_score ?? o.score ?? 0) >= 70);
+  const flmYes    = opps.filter(o => (o.flm_judgement || '').toLowerCase() === 'yes');
+  const topDeal   = [...opps].sort((a, b) => (b.total_opportunity_amount || 0) - (a.total_opportunity_amount || 0))[0];
+  const ns        = nextStepsStats(opps);
+  const atRisk    = ns.lowBlank + ns.lowStale + ns.lowWeak;  // low-conf opps needing attention
+
+  // Build a specific action sentence based on what the data actually shows
+  let actionDetail = '';
+  const parts = [];
+  if (ns.lowBlank  > 0) parts.push(`${ns.lowBlank} with no Next Steps`);
+  if (ns.lowStale  > 0) parts.push(`${ns.lowStale} with stale updates`);
+  if (ns.lowWeak   > 0) parts.push(`${ns.lowWeak} with undated notes`);
+  if (parts.length > 0) {
+    actionDetail = ` Of the ${ns.lowTotal} low-confidence deals, ${parts.join(', ')} require immediate seller attention.`;
+  }
+
+  const paragraph =
+    `This week's US Public Sector IBM Technology forecast stands at ${fmt$(ibmTotal)} IBM Tech across ${opps.length} selected opportunities closing in Q3 2026, with a total contract value of ${fmt$(totalAmt)}. ` +
+    `${highConf.length} deal${highConf.length !== 1 ? 's are' : ' is'} rated High confidence and ${flmYes.length} have first-line manager confirmation. ` +
+    (topDeal ? `The largest opportunity is ${topDeal.opportunity_name} at ${fmt$(topDeal.total_opportunity_amount)}, currently in ${topDeal.stage}. ` : '') +
+    `Next Steps health: ${ns.fresh} fresh, ${ns.stale} stale, ${ns.weak} undated, ${ns.blank} blank across all selected opportunities.${actionDetail}`;
+
+  const bullets = [
+    `IBM Tech forecast: ${fmt$(ibmTotal)} across ${opps.length} opportunities — ${highConf.length} High confidence, ${flmYes.length} FLM confirmed`,
+    topDeal
+      ? `Top deal: ${topDeal.opportunity_name} (${topDeal.account_name}) — ${fmt$(topDeal.total_opportunity_amount)} | ${topDeal.stage}`
+      : `${opps.length} opportunities selected for GM review`,
+    `Next Steps health: ${ns.fresh} fresh · ${ns.stale} stale · ${ns.weak} undated · ${ns.blank} blank`,
+    atRisk > 0
+      ? `⚠ ${atRisk} low-confidence deal${atRisk !== 1 ? 's' : ''} need attention: ${parts.join(', ')}`
+      : `All low-confidence deals have current Next Steps — no immediate action required`,
+  ];
+
+  return { paragraph, bullets, mock: true };
+}
+
+/**
+ * Generate the GM executive narrative from selected opportunities.
+ * @param {Array<Object>} opps  selected opportunity rows (with scores populated)
+ * @returns {Promise<{ paragraph: string, bullets: string[], mock: boolean }>}
+ */
+async function generateNarrative(opps) {
+  if (opps.length === 0) {
+    return { paragraph: 'No opportunities selected. Please select opportunities before generating a narrative.', bullets: [], mock: true };
+  }
+
+  if (!WATSONX_ENABLED) return mockNarrative(opps);
+
+  try {
+    const token   = await getIamToken();
+    const url     = new URL(`${WATSONX_URL}/ml/v1/text/generation?version=${API_VERSION}`);
+    const payload = JSON.stringify({
+      model_id:   NARRATIVE_MODEL_ID,
+      project_id: WATSONX_PROJECT,
+      input:      buildNarrativePrompt(opps),
+      parameters: { decoding_method: 'greedy', max_new_tokens: 600, min_new_tokens: 80, stop_sequences: ['}\n'], repetition_penalty: 1.05 },
+    });
+
+    const raw = await new Promise((resolve, reject) => {
+      const options = {
+        hostname: url.hostname,
+        path:     url.pathname + url.search,
+        method:   'POST',
+        headers:  { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
+      };
+      const req = https.request(options, res => {
+        let data = '';
+        res.on('data', c => { data += c; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}: ${JSON.stringify(json)}`));
+            resolve((json?.results?.[0]?.generated_text || '').trim());
+          } catch(e) { reject(e); }
+        });
+      });
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+
+    return { ...parseNarrativeOutput(raw), mock: false };
+  } catch (err) {
+    console.error('[watsonx] Narrative failed:', err.message);
+    return { ...mockNarrative(opps), mock: true, error: err.message };
+  }
+}
+
 module.exports = {
   scoreWithWatsonx,
   batchScore,
-  isLiveMode: () => WATSONX_ENABLED,
-  modelId:    MODEL_ID,
+  generateNarrative,
+  isLiveMode:        () => WATSONX_ENABLED,
+  modelId:           MODEL_ID,
+  narrativeModelId:  NARRATIVE_MODEL_ID,
 };
