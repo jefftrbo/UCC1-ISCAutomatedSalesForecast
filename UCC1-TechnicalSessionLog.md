@@ -588,3 +588,61 @@ Checkbox · Confidence · Opportunity · Account Detail · IBM Tech Amt · Total
 
 ---
 
+## Session 3 — watsonx.ai Integration Planning & v2.0.0 Branch Setup (July 11, 2026)
+
+**Status:** 🔄 In Progress  
+**Branch:** `feature/watsonx-scoring` (from `develop`, from `main`)
+
+---
+
+### Context & Decisions Made
+
+#### Why v2.0.0 (not v1.1.0)
+Adding IBM watsonx.ai inference, a new server module (`server/watsonxScore.js`), new SQLite columns (`ai_score`, `ai_rationale`, `ai_scored_at`), and a fundamentally different confidence scoring engine constitutes a major architectural change. Semver MAJOR bump is correct. v1.x is rule-based; v2.x is AI-powered.
+
+#### IBM watsonx Challenge — Growth Enablers Track
+This app is a submission for the **2026 IBM watsonx Challenge**, Growth Enablers track. Judging criteria:
+1. Measurable time saved in a recurring workflow
+2. Fewer manual steps / reduced friction
+3. Faster access to information IBMers need
+
+**Submission headline:** *IBM's own US Public Sector sales team uses IBM watsonx.ai (Granite) to prepare their weekly General Manager forecast meeting — cutting 90 minutes of manual CRM analysis and slide-building to under 5 minutes.*
+
+#### watsonx Products Selected
+- **watsonx.ai** — foundation model inference (scoring, rationale, narrative)
+- **watsonx.governance** — AI Factsheets, model versioning, auditability (Tier 2)
+- **IBM Granite models** — primary models (IBM IP, strongest challenge story)
+  - `ibm/granite-13b-instruct-v2` — deal scoring + rationale
+  - `ibm/granite-3-8b-instruct` — staleness detection, change summary
+  - `meta-llama/llama-3-70b-instruct` (hosted on watsonx.ai) — GM narrative prose
+
+#### No competitor AI products
+Per challenge rules and IBM Bob usage policy, no OpenAI / Anthropic / Google models. All inference via IBM watsonx.ai REST API on IBM Cloud infrastructure.
+
+#### Session Log Rules (agreed with user)
+- Every interaction captured step-by-step as it happens — no summarization
+- Rationale: the learning is in the details, not the summary
+- Failed attempts documented as thoroughly as successes
+
+#### GitFlow Branching Structure
+```
+main                         ← v1.0.0 tagged here (production)
+develop                      ← integration branch
+feature/watsonx-scoring      ← Tier 1: AI scoring + rationale (CURRENT)
+feature/gm-narrative         ← Tier 2: GM meeting narrative generator (planned)
+feature/week-over-week-diff  ← Tier 2: change detection (planned)
+```
+
+Commands run:
+```bash
+git checkout -b develop && git push -u origin develop
+git checkout -b feature/watsonx-scoring && git push -u origin feature/watsonx-scoring
+```
+
+---
+
+### Next Step
+Obtain IBM Cloud API key with watsonx.ai access, then build `server/watsonxScore.js`.
+
+---
+
