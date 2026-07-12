@@ -786,3 +786,139 @@ feature/gm-narrative — current branch, COMMITTED (769e836)
 
 
 
+
+---
+
+## Session 3 (final) — Next-Steps Health + Filter-Scoped Narrative + GitHub Push (July 12, 2026)
+
+**Status:** ✅ Complete — all branches pushed to GitHub  
+**Branch:** `feature/gm-narrative` → merged to `develop`  
+**Commits this segment:** `8971fc7`, `2e14cd9`, merge `15cf3d5`
+
+---
+
+### Enhancement 1 — Next-Steps Health Analysis in Narrative
+
+**User request:** Narrative should include statistics on low-confidence opps that have no Next Steps, stale Next Steps, or weak/undated Next Steps.
+
+**Implementation (`server/watsonxScore.js`):**
+
+Added two new pure functions:
+
+`classifyNextSteps(ns, now)` — classifies a single `next_steps` field:
+- `fresh`  — contains a date within last 14 days (M/D, M/D/YY, M/D/YYYY pattern)
+- `stale`  — contains a date but >14 days old
+- `weak`   — has text but no recognisable date at all
+- `blank`  — null, empty, or whitespace only
+
+Uses `matchAll(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g)` — picks last date found since sellers prepend newest entries. `now` is injectable for testing.
+
+`nextStepsStats(opps)` — runs classifier over all opps, returns:
+```js
+{ fresh, stale, weak, blank, lowBlank, lowStale, lowWeak, lowTotal }
+```
+where `low*` = those counts intersected with opps scoring <40 (low confidence).
+
+`mockNarrative()` updated to use `nextStepsStats()`:
+- Paragraph now includes: *"Next Steps health: 66 fresh, 55 stale, 39 undated, 46 blank..."*
+- Bullet 3: portfolio-wide health summary
+- Bullet 4 (conditional): *"⚠ N low-confidence deals need attention: X with no Next Steps, Y with stale updates, Z with undated notes"* — only appears when `atRisk > 0`
+
+`buildNarrativePrompt()` updated — same stats passed to live Llama model in the prompt.
+
+**Validated against full 206-row DB:**
+```
+fresh: 66  stale: 55  weak: 39  blank: 46
+low-conf: 146 total — 114 needing attention (46 blank, 32 stale, 36 weak)
+```
+Commit: `8971fc7`
+
+---
+
+### Enhancement 2 — Narrative Scoped to Current Filtered View
+
+**User request:** Narrative was always showing $122M (full DB), but the screen showed $22M for a filtered view. Narrative must reflect whatever filters Dushyant has active — enabling "what-if" scenarios and per-filter action lists.
+
+**Root cause:** `POST /api/generate-narrative` always queried `WHERE selected = 1` regardless of frontend state.
+
+**Fix — `server/index.js`:**
+Endpoint now accepts optional `{ ids: string[] }` in the request body:
+```js
+const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
+if (ids && ids.length > 0) {
+  // fetch only those rows, re-sort to match frontend order
+} else {
+  // fallback: all selected=1 rows (PPT flow unchanged)
+}
+```
+
+**Fix — `public/index.html` (3 changes):**
+
+1. `btn-narrative` click sends `{ ids: filteredIds }` — IDs of visible filtered rows sorted by amount desc
+2. `btn-narrative` enabled when `filtered.length > 0` (not tied to checkboxes — narrative is about what you see, not what you've ticked)
+3. `applyFilters()` now calls `updateSelectionSummary()` so button state refreshes on every filter change
+4. Status message distinguishes `"N-opp filtered view"` vs `"all N opportunities"`
+
+**Validated:**
+- 5-opp filtered view → `$44.7M` IBM Tech (correct — matches totals bar)
+- 206-opp full view → `$122.1M` (correct)
+
+Commit: `2e14cd9`
+
+---
+
+### GitHub Push — End of Night
+
+```bash
+git checkout develop
+git merge --no-ff feature/gm-narrative -m "Merge feature/gm-narrative into develop ..."
+git push origin develop
+```
+
+**Final GitHub state:**
+```
+main                    — v1.0.0 stable (unchanged, rule-based app)
+develop                 — v2.0.0 candidate, 7 commits ahead of main ← HEAD
+feature/watsonx-scoring — merged + pushed
+feature/gm-narrative    — merged + pushed
+```
+
+---
+
+### How to Resume (Sunday 7/13 or Monday 7/14)
+
+Tell Bob:
+> **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+Optionally add:
+> **"Also run `git log --oneline --all --decorate -10` and `git status`."**
+
+---
+
+### What Remains for v2.0.0 Release
+
+1. **Live credential test** — IBM Cloud access → set `.env`:
+   ```
+   WATSONX_ENABLED=true
+   WATSONX_API_KEY=<key>
+   WATSONX_PROJECT_ID=<project>
+   ```
+   Then test `POST /api/score-opportunities` and `POST /api/generate-narrative` end-to-end.
+
+2. **`feature/week-over-week-diff`** — compare current HAR export to previous week:
+   - Detect new deals, dropped deals, stage regressions, amount changes
+   - watsonx summarizes the delta for the GM call
+   - Adds a "What Changed" section to the PPT
+
+3. **Merge `develop` → `main` as v2.0.0** once credentials tested:
+   ```bash
+   git checkout main
+   git merge develop
+   git tag v2.0.0
+   git push origin main --tags
+   ```
+
+4. **IBM watsonx Challenge submission** — app is the story:
+   *IBM's own US Public Sector sales team uses IBM watsonx.ai (Granite + Llama-3-70b) to prepare their weekly General Manager forecast meeting — cutting 90 minutes of manual CRM analysis and slide-building to under 5 minutes.*
+
+---
