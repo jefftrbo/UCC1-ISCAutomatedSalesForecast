@@ -129,27 +129,44 @@ app.post('/api/score-opportunities', async (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/generate-narrative
-// Body: (none) — reads all selected opportunities from DB (with ai scores)
-// then calls generateNarrative() from watsonxScore.
+// Body (optional): { ids: string[] }
+//   ids — the ordered list of opportunity IDs currently visible in the UI
+//         (filtered set). When provided, narrative reflects that exact view.
+//         When omitted, falls back to all selected=1 rows (backward compat).
 // Returns: { paragraph, bullets, mock, model, count }
 // ---------------------------------------------------------------------------
 app.post('/api/generate-narrative', async (req, res) => {
   try {
-    const selected = db
-      .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC')
-      .all();
+    let opps;
+    const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
 
-    if (selected.length === 0) {
-      return res.status(400).json({ error: 'No opportunities selected. Please select at least one opportunity.' });
+    if (ids && ids.length > 0) {
+      // Fetch only the rows the frontend is currently showing, preserving frontend order
+      const placeholders = ids.map(() => '?').join(',');
+      const byId = db
+        .prepare(`SELECT * FROM opportunities WHERE id IN (${placeholders})`)
+        .all(...ids);
+      // Re-sort to match the order the frontend sent (ids are already sorted by the UI)
+      const idIndex = new Map(ids.map((id, i) => [id, i]));
+      opps = byId.sort((a, b) => (idIndex.get(a.id) ?? 0) - (idIndex.get(b.id) ?? 0));
+    } else {
+      // Fallback: all selected rows
+      opps = db
+        .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC')
+        .all();
     }
 
-    const result = await generateNarrative(selected);
+    if (opps.length === 0) {
+      return res.status(400).json({ error: 'No opportunities in the current view. Adjust your filters or select opportunities first.' });
+    }
+
+    const result = await generateNarrative(opps);
     res.json({
       paragraph: result.paragraph,
       bullets:   result.bullets,
       mock:      result.mock,
       model:     result.mock ? 'mock' : 'meta-llama/llama-3-70b-instruct',
-      count:     selected.length,
+      count:     opps.length,
     });
   } catch (err) {
     console.error('POST /api/generate-narrative error:', err.message);
