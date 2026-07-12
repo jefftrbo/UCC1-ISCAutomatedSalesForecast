@@ -922,3 +922,472 @@ Optionally add:
    *IBM's own US Public Sector sales team uses IBM watsonx.ai (Granite + Llama-3-70b) to prepare their weekly General Manager forecast meeting — cutting 90 minutes of manual CRM analysis and slide-building to under 5 minutes.*
 
 ---
+
+---
+
+## Session 4 — Compliance Audit + Week-Over-Week Diff Feature (July 13, 2026)
+
+**Status:** 🔄 In Progress  
+**Branch:** `develop` (clean, up to date with `origin/develop`)  
+**Session started:** User resumed with standard resume prompt: *"Read UCC1-TechnicalSessionLog.md and pick up where we left off."*
+
+---
+
+### Session Rules (reaffirmed)
+- Every interaction logged step-by-step — no summarization
+- Rationale, outcome, and failure analysis captured for every action
+- Details matter for learning; failed attempts documented as thoroughly as successes
+
+---
+
+### Step 1 — Resume Context Reconstruction
+
+**Why:** User resumed a new context window. Bob must reconstruct full project state before doing anything else to avoid acting on stale assumptions.
+
+**Actions taken:**
+1. Read `UCC1-TechnicalSessionLog.md` — full file scan to locate last session boundary
+2. Read lines 591–925 — full detail of Sessions 3, 3-continued, and 3-final
+3. Ran `git log --oneline --all --decorate -10` and `git status`
+
+**Git output:**
+```
+49bcac8 (HEAD -> develop, origin/develop) docs: session log — Session 3 final
+15cf3d5 Merge feature/gm-narrative into develop
+2e14cd9 (origin/feature/gm-narrative) fix: narrative scoped to current filtered view
+8971fc7 feat: next-steps health analysis in GM narrative
+...
+Branch: develop — clean, up to date with origin/develop
+```
+
+**Outcome:** ✅ Full state confirmed. No surprises. Develop is the correct working branch.
+
+**What remains for v2.0.0 (from prior session log):**
+1. Live credential test (watsonx API key + project ID)
+2. `feature/week-over-week-diff`
+3. Merge develop → main as v2.0.0
+4. IBM watsonx Challenge submission
+
+---
+
+### Step 2 — Official Rules Compliance Audit
+
+**Why:** User asked Bob to read the official contest PDF and assess how the submission adheres to the rules. This had not been done in any prior session — an important pre-submission check with ~9 days left before the July 22, 2026 deadline.
+
+**File read:** `output/2026 IBMer Challenge_Official Rules.pdf` — full 321-line document
+
+**Method:** Bob read the PDF directly, cross-referenced each rule section against the session log and known project state, then produced a structured HTML compliance report artifact.
+
+**Findings — Fully Compliant (11 of 14 rule areas):**
+- §5 — Team size (solo) + IBM Bob usage ✅
+- §8-b — Submission substantially developed July 8–22, 2026 ✅ (git timestamps confirm July 11–12)
+- §8-d — Technology ownership (all open-source or IBM-owned APIs) ✅
+- §8-e — No competitor AI products ✅ (documented decision in Session 3)
+- §13-b — No IBM client data ✅
+- §13-c — No personal information (PI) ✅
+- §13-d — No social media data ✅
+- §14 — No cheating/hacking ✅
+
+**Findings — Action Required (3 blocking items):**
+
+1. **§8-a — Required education not confirmed**
+   - Rule: All IBMers must complete `PLAN-3067F00C01E4` on Your Learning at IBM before July 22, 2026 at 10 AM ET
+   - Status: No record of completion in the session log or any project file
+   - Risk: Hard eligibility gate — submission could be disqualified regardless of app quality
+   - Action: User must complete this learning plan on `yourlearning.ibm.com` before deadline
+
+2. **§8-c — Formal submission on challenge portal not confirmed**
+   - Rule: Must visit `w3.ibm.com/w3publisher/challenge`, register the entry, select a judging committee (Business Area), and explicitly mark submission for competitive judging
+   - Status: Session log references "Growth Enablers track" but no formal portal registration recorded
+   - Risk: Without this step, the entry will not proceed to judging and will not be eligible for prizes
+   - Action: Must be done on the challenge portal before July 22 deadline
+
+3. **§13-a — Real CRM data in repo not audited**
+   - Rule: Do not use IBM Confidential data
+   - Risk: HAR files and SQLite DB contain internal ISC pipeline data (deal names, amounts, stages). If these are committed to the GitHub repo, it is a rule violation
+   - Action: Audit `.gitignore` and confirm `*.db`, `*.har`, and exports are excluded; no real deal data in committed files
+
+**Findings — Watch items (2):**
+- §2 — Manager approval needed if eligible for overtime/weekend premiums
+- §4 — ~9 days remaining to July 22 deadline; all remaining build work must be complete by then
+
+**Judging criteria alignment:**
+- Practicality & Coherence: Very Strong — real tool, 206 live deals, end-to-end pipeline
+- Effectiveness & Efficiency: Very Strong — 90-minute workflow → under 5 minutes, quantified
+- Design & Usability: Good — clean UI, one-click PPT; consider demo video for submission
+- Creativity & Innovation: Strong — HAR pipeline, date-aware next-steps health, filter-scoped AI narratives
+
+**Outcome:** ✅ HTML compliance report artifact created and displayed to user. Three blocking actions identified.
+
+---
+
+### Step 3 — Session Logging Rules Reaffirmed
+
+**Why:** Before starting any technical work, user explicitly stated that all session activity must be logged to `UCC1-TechnicalSessionLog.md` in the same granular format as previous sessions — step-by-step, with rationale, outcome, and failure analysis. No summarization.
+
+**Action:** Bob appended this session header (Steps 1–3) to the log immediately, and committed to updating the log in real-time as work proceeds.
+
+**Outcome:** ✅ Session 4 log section initialized.
+
+---
+
+### Step 4 — .gitignore Audit + Repo State Inspection
+
+**Why:** Before any merges or new feature work, we need to confirm no real CRM data (HAR files, SQLite DB) is tracked by git — this is both a compliance requirement (§13-a of contest rules) and good security hygiene.
+
+**Command run:**
+```bash
+git log --oneline --all --decorate -20 && git branch -a && cat .gitignore && git status
+```
+
+**Outcome — .gitignore audit: ✅ CLEAN**
+
+The `.gitignore` already covers all sensitive file types:
+```
+opportunities.db          ← SQLite database (real CRM data)
+opportunities.db-shm      ← SQLite WAL shared memory
+opportunities.db-wal      ← SQLite WAL log
+scraper/cookies.json      ← Salesforce session cookies
+scraper/isc-export.har    ← HAR file (real deal data)
+scraper/devtools-response.json
+.env                      ← API keys, watsonx credentials
+output/*.pptx             ← Generated PowerPoint files
+```
+
+**No rule violations found.** Real CRM data cannot be accidentally committed. No action needed on §13-a.
+
+**Untracked files found (not committed, not a risk):**
+- `output/2026 IBMer Challenge_Official Rules.pdf` — the contest PDF we read this session
+- `output/how-to-get-more-Bob-coins.md` — unrelated to app
+
+These are benign. They can be added to `.gitignore` under `output/` non-pptx files if desired, but they are not a compliance risk since they are not committed.
+
+**Full branch state confirmed:**
+```
+Local branches:                     Remote tracking:
+* develop                           origin/develop
+  feature/gm-narrative              origin/feature/gm-narrative
+  feature/watsonx-scoring           origin/feature/watsonx-scoring
+  main                              origin/main
+```
+
+**Commit graph (relevant):**
+```
+main          → 9f34871  v1.0.0 (stable, rule-based app)
+develop       → 49bcac8  HEAD — 7 commits ahead of main
+feature/watsonx-scoring → cb9bdde  (already merged into develop)
+feature/gm-narrative    → 2e14cd9  (already merged into develop)
+```
+
+**Key observation:** Both feature branches (`watsonx-scoring`, `gm-narrative`) are already merged into `develop`. The `develop` branch is the v2.0.0 candidate. `main` is still at v1.0.0.
+
+**Outcome:** ✅ Audit complete. .gitignore is comprehensive. No CRM data exposure risk. 
+
+---
+
+### Step 5 — Git Merge Order Analysis (User Question)
+
+**Why:** User asked: "What steps do I have to execute in the remote git repo to merge all branches and in what order?" — needs a complete, sequenced answer before we create `feature/week-over-week-diff`.
+
+See response below for the full analysis and command sequence.
+
+---
+
+### Step 6 — Phase 2: feature/week-over-week-diff — Full Build
+
+**Why:** The `feature/week-over-week-diff` branch was the last major v2.0.0 feature. Week-over-week change detection is critical for the GM meeting context — knowing what changed vs. last week (new deals, stage regressions, slipped closes) is arguably more valuable than a static snapshot of the pipeline.
+
+**Branch created:**
+```bash
+git checkout develop
+git checkout -b feature/week-over-week-diff
+git push -u origin feature/week-over-week-diff
+```
+Output confirmed: new branch created and pushed to `origin/feature/week-over-week-diff`.
+
+---
+
+#### 6a — Full codebase read (design prerequisite)
+
+Before writing a single line of code, Bob read every file that would be touched:
+- `server/db.js` — to understand the schema and migration pattern (v2.0.0 ALTER TABLE approach)
+- `server/index.js` — all existing endpoints, import patterns, scrape auto-flow
+- `server/watsonxScore.js` — existing Granite/Llama inference pattern, module exports, `getIamToken()`, `callWatsonx()`, `parseNarrativeOutput()` (reused for delta summary)
+- `server/generatePpt.js` — slide geometry constants (`BOTTOM_BAR_Y`, `SLIDE_H`), function signature, table construction pattern
+- `public/index.html` — full CSS/HTML/JS: toolbar structure, narrative panel pattern (CSS classes, panel HTML, JS handler), `applyFilters()`, `setStatus()`, `esc()` helper, app version constant
+
+**Why this matters:** Every new file was designed to follow the exact patterns already in the codebase — same migration approach, same non-blocking try/catch for AI calls, same panel CSS structure as the narrative panel, same `data-tip` tooltip approach, same `--check` validation gate.
+
+---
+
+#### 6b — server/db.js: snapshots table (v2.1.0 migration)
+
+**Design decision:** The snapshot data should live in its own table (`snapshots`), not modify the `opportunities` table. Reasons:
+1. `opportunities` is a rolling current-state table — adding a `week_label` to it would break the existing data model
+2. Snapshots need multiple rows per opportunity (one per week)
+3. `PRIMARY KEY (id, week_label)` enforces one snapshot per deal per week — `INSERT OR IGNORE` handles idempotency without extra SELECT guards
+
+**Fields snapshotted:** Only the 12 fields that are meaningful for change detection: `opportunity_name`, `account_name`, `stage`, `forecast_category`, `close_date`, `filtered_opportunity_amount`, `total_opportunity_amount`, `opportunity_owner`, `flm_judgement`, `next_steps`. Not all 25 columns — only what the diff engine actually compares.
+
+**Implementation:** Appended a new `db.exec(CREATE TABLE IF NOT EXISTS snapshots ...)` block after the existing v2.0.0 migration section. No changes to the `opportunities` table or existing migration code.
+
+**Outcome:** ✅ Applied cleanly.
+
+---
+
+#### 6c — server/diffEngine.js: new file
+
+**Why a separate file:** The diff logic is pure, testable, and has no dependency on Express or watsonx. Keeping it separate from `index.js` and `watsonxScore.js` means it can be unit-tested independently and the logic is clearly separated from transport/AI concerns.
+
+**`isoWeekLabel(date)`:**
+- Returns ISO 8601 week label (e.g. `"2026-W28"`) for any date
+- Uses UTC arithmetic to avoid DST timezone issues
+- Thursday rule: the year a week belongs to is determined by which year contains its Thursday (standard ISO 8601)
+- `now` injectable for testing
+
+**`saveSnapshot(db)`:**
+- Copies all current `opportunities` rows into `snapshots` tagged with `isoWeekLabel()`
+- Uses `INSERT OR IGNORE` — first call per week saves all rows; subsequent calls in the same week are silent no-ops (skipped count returned for observability)
+- Wrapped in `db.transaction()` for atomicity — all 206 rows or none
+- Returns `{ weekLabel, saved, skipped }`
+
+**`computeDiff(db)`:**
+- Queries `SELECT DISTINCT week_label ... ORDER BY week_label DESC LIMIT 2` — gets the two most recent weeks
+- If fewer than 2 weeks exist → returns `{ hasData: false }` immediately
+- Builds `Map<id, row>` for each week → O(n) comparison
+- Five change categories detected:
+  - **New:** id in current, not in previous
+  - **Dropped:** id in previous, not in current
+  - **Promoted/Demoted:** `STAGE_ORDER` array maps stage names to indices; forward movement = promoted, backward = demoted. `stageIndex()` uses `toLowerCase().includes()` for fuzzy matching (Salesforce stage names aren't always exact)
+  - **Amount change:** both `Math.abs(amtDiff) >= 50000` AND `amtPct >= 0.10` — requires both threshold ($50k absolute and 10% relative) to avoid flagging tiny deals or rounding noise
+  - **Slipped/Pulled in:** `daysDiff >= 7` or `<= -7` — one week minimum to avoid day-of-week data entry noise
+- An opportunity can appear in multiple categories (e.g. both promoted AND amount changed)
+- `result.summary` — human-readable string for PPT footer and narrative prompt
+
+**Outcome:** ✅ Written, `node --check` passed.
+
+---
+
+#### 6d — server/index.js: two new endpoints + auto-snapshot in scrape
+
+**`POST /api/snapshot`:**
+- Simple wrapper: calls `saveSnapshot(db)`, returns `{ weekLabel, saved, skipped }`
+- Exposed as an explicit endpoint so future tooling can trigger a manual snapshot
+
+**`GET /api/diff`:**
+- Calls `computeDiff(db)` — returns `{ hasData: false }` if insufficient history
+- Optional `?summary=true` query param triggers `generateDeltaSummary(diff)` from `watsonxScore.js`
+- Non-blocking: if AI summary fails, `diff.aiSummary` is set to `null` and the diff data still returns
+- Pattern mirrors how `POST /api/generate-ppt` handles narrative generation failures
+
+**Auto-snapshot wired into POST /api/scrape:**
+- After a successful scrape (exit code 0), `saveSnapshot(db)` is called automatically
+- Progress message written to the streaming log: `"Snapshot saved: N rows → 2026-WXX (Y already existed)."`
+- **Why:** The user shouldn't need to remember to snapshot. Every Refresh Data click = automatic history point. This is the zero-friction design — Dushyant will have week-over-week data automatically after his second Monday scrape.
+- Non-blocking: wrapped in try/catch — snapshot failure only logs a warning and doesn't fail the scrape
+
+**`POST /api/generate-ppt` — diff injection:**
+- `computeDiff(db)` called before `generatePpt()`
+- If `diff.hasData`, `generateDeltaSummary(diff)` is also called
+- Both passed as new params: `generatePpt(selected, outputPath, narrative, diff, deltaSummary)`
+- Fully backwards compatible — both params default to `null` in `generatePpt` signature
+
+**Import line updated:**
+```js
+const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
+const { saveSnapshot, computeDiff } = require('./diffEngine');
+```
+
+**Outcome:** ✅ Applied cleanly, `node --check` passed.
+
+---
+
+#### 6e — server/watsonxScore.js: generateDeltaSummary()
+
+**Model choice:** `ibm/granite-3-8b-instruct` (not Llama-3-70b)
+- Granite-3-8b is faster and cheaper — appropriate for a structured change summary that is more formulaic than the creative GM narrative prose
+- Llama-3-70b is reserved for the GM narrative where prose quality matters
+- Both are IBM-hosted on watsonx.ai — no competitor AI
+
+**`buildDeltaPrompt(diff)`:**
+- Top 5 examples per category (not all — prompt length control)
+- JSON-only output instruction: `{"paragraph":"...","bullets":[...]}`
+- Re-uses `parseNarrativeOutput()` for the JSON parse + regex fallback — no code duplication
+
+**`mockDeltaSummary(diff)`:**
+- Fully deterministic mock — builds paragraph and bullets directly from diff counts
+- Used when `WATSONX_ENABLED=false` (default)
+- Conditional bullet for regressions (⚠ prefix) only when count > 0
+
+**`generateDeltaSummary(diff)`:**
+- Same pattern as `generateNarrative()`: IAM token → REST call → parse → fallback to mock on any error
+- `diff.hasData === false` → early return with "not enough history" message
+- Added to `module.exports` along with `deltaModelId`
+
+**Outcome:** ✅ Applied cleanly, `node --check` passed.
+
+---
+
+#### 6f — server/generatePpt.js: "What Changed" slide
+
+**Signature change:** `generatePpt(opportunities, outputPath, narrative = null, diff = null, deltaSummary = null)` — fully backwards compatible, both new params default to `null`.
+
+**Slide structure:**
+- IBM Blue header bar (matches other slides) + "What Changed This Week" title + week range in top-right
+- AI delta summary paragraph (if available) — 11pt, wrapping
+- Change category table: 3 columns (Category | Count | Top Examples), shows only non-zero categories, alternating row shading
+- Color-coded count column: green for New/Pulled In, red for Dropped/Slipped, blue for Promoted, amber for Demoted
+- AI delta bullets below the table (if available)
+- Bottom IBM Blue bar with week label (matches other slides)
+- Slide only rendered when `diff && diff.hasData` — no "What Changed" slide on first week (clean)
+
+**Outcome:** ✅ Applied cleanly, `node --check` passed.
+
+---
+
+#### 6g — public/index.html: UI changes
+
+**Toolbar button:**
+```html
+<button class="btn-primary" id="btn-diff" style="background:#6929c4;">⇄ What Changed</button>
+```
+Purple (`#6929c4`) — distinct from IBM Blue (narrative) and violet (watsonx score). Inserted between "Generate Narrative" and "Generate PPT".
+
+**CSS:** `#diff-panel`, `diff-header`, `diff-mode-tag`, `diff-grid`, `diff-tile` (with 7 color variants), `diff-ai-paragraph`, `diff-bullets`, `diff-no-data`. Mirrored structure of the narrative panel CSS but with purple accent. Mock mode amber variant (same pattern as narrative panel).
+
+**HTML panel:**
+- `diff-grid` — flexbox container for number tiles
+- `diff-ai-paragraph` + `diff-bullets` — AI summary
+- `diff-no-data` — shown when `hasData: false`
+- Close button reuses `.btn-copy` class (same as narrative)
+
+**JS handler (`btn-diff` click):**
+- Fetches `GET /api/diff?summary=true`
+- `hasData: false` → shows `diff-no-data` message, sets tag to `"no history"`
+- `hasData: true` → builds 7 tiles from diff counts, populates AI paragraph + bullets
+- Mode tag: `"mock"` or `"live · granite-3-8b"` — matching the narrative panel pattern
+- `mock-mode` CSS class toggled on panel for amber styling when AI is mocked
+- `btn-close-diff` closes panel
+
+**APP_VERSION bumped:** `'2.0.0'` → `'2.1.0'`
+
+**Outcome:** ✅ Applied cleanly.
+
+---
+
+#### 6h — Validation
+
+**All 5 server files syntax-checked:**
+```bash
+node --check server/diffEngine.js   → OK
+node --check server/db.js           → OK
+node --check server/index.js        → OK
+node --check server/watsonxScore.js → OK
+node --check server/generatePpt.js  → OK
+```
+
+**Functional smoke test:**
+```bash
+node -e "
+const db = require('./server/db');
+const { saveSnapshot, computeDiff, isoWeekLabel } = require('./server/diffEngine');
+const tables = db.prepare(\"SELECT name FROM sqlite_master WHERE type='table'\").all().map(r => r.name);
+console.log('Tables:', tables.join(', '));
+const snap = saveSnapshot(db);
+console.log('Snapshot result:', JSON.stringify(snap));
+const diff = computeDiff(db);
+console.log('Diff hasData:', diff.hasData);
+console.log('This week label:', isoWeekLabel());
+"
+```
+Output:
+```
+Tables: opportunities, snapshots
+Snapshot result: {"weekLabel":"2026-W28","saved":206,"skipped":0}
+Diff hasData: false
+Current week: 2026-W28
+This week label: 2026-W28
+```
+All correct. 206 deals snapshotted. `hasData: false` correctly — only one week of history. `isoWeekLabel()` returns `2026-W28`.
+
+---
+
+#### 6i — Commit
+
+```bash
+git add server/diffEngine.js server/db.js server/index.js server/watsonxScore.js server/generatePpt.js public/index.html
+git commit -m "feat: week-over-week diff — snapshot engine, diff API, UI panel, PPT slide, watsonx delta summary"
+# → 95d7413 | 6 files changed, 792 insertions(+), 4 deletions(-)
+#   create mode 100644 server/diffEngine.js
+```
+
+---
+
+### Step 7 — Merge feature/week-over-week-diff → develop + GitHub Push
+
+**Commands run:**
+```bash
+git checkout develop
+git merge --no-ff feature/week-over-week-diff -m "Merge feature/week-over-week-diff into develop — v2.1.0 candidate"
+git push origin develop
+git push origin feature/week-over-week-diff
+```
+
+**Merge output:**
+```
+Merge made by the 'ort' strategy.
+ public/index.html      | 202 +++++++++++++++++
+ server/db.js           |  23 +++++
+ server/diffEngine.js   | 244 ++++++++++++++++++++++++++++++++++++++++++
+ server/generatePpt.js  | 109 +++++++++++++++++++++
+ server/index.js        |  79 ++++++++++++++++
+ server/watsonxScore.js | 139 +++++++++++++++++++++++++
+ 6 files changed, 792 insertions(+), 4 deletions(-)
+ create mode 100644 server/diffEngine.js
+```
+
+**Final GitHub state:**
+```
+main                         — v1.0.0 (unchanged, rule-based app)
+develop                      — v2.1.0 candidate ← HEAD, pushed
+feature/watsonx-scoring      — merged + pushed (prior session)
+feature/gm-narrative         — merged + pushed (prior session)
+feature/week-over-week-diff  — merged + pushed ✅ this session
+```
+
+**Outcome:** ✅ All branches pushed. `develop` is the v2.1.0 candidate.
+
+---
+
+### What Remains for v2.1.0 Release
+
+1. **Live credential test** — set `.env`:
+   ```
+   WATSONX_ENABLED=true
+   WATSONX_API_KEY=<key>
+   WATSONX_PROJECT_ID=<project>
+   ```
+   Test all three AI endpoints:
+   - `POST /api/score-opportunities` (Granite-13b)
+   - `POST /api/generate-narrative` (Llama-3-70b)
+   - `GET /api/diff?summary=true` (Granite-3-8b)
+
+2. **Second scrape** (next Monday) — runs the scraper again to populate a second week of snapshot data, enabling live diff comparison. The `⇄ What Changed` button will show real change data after the second run.
+
+3. **Merge develop → main as v2.1.0** (after live credential test):
+   ```bash
+   git checkout main
+   git merge develop
+   git tag v2.1.0
+   git push origin main --tags
+   ```
+
+4. **IBM watsonx Challenge submission** — portal registration, deliverables, required learning plan
+
+5. **Non-code blocking items (user action required):**
+   - Complete `PLAN-3067F00C01E4` on Your Learning at IBM (required education)
+   - Register entry on `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
