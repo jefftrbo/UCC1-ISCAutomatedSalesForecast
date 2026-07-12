@@ -415,25 +415,22 @@
     .flm-no  { color: #6f6f6f; }
 
     /* ── Tooltip ── */
-    .tooltip-wrap { position: relative; display: inline-block; }
-    .tooltip-box {
+    /* ── Global floating tooltip — fixed position, never clipped by overflow ── */
+    #global-tooltip {
       display: none;
-      position: absolute;
-      top: calc(100% + 6px);
-      left: 50%;
-      transform: translateX(-50%);
+      position: fixed;
+      z-index: 9999;
       background: #161616;
       color: #f4f4f4;
       font-size: 11px;
       border-radius: 4px;
       padding: 10px 12px;
-      z-index: 200;
-      width: 220px;
+      width: 260px;
       white-space: normal;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
       pointer-events: none;
+      line-height: 1.5;
     }
-    .tooltip-wrap:hover .tooltip-box { display: block; }
     .tooltip-row {
       display: flex;
       justify-content: space-between;
@@ -558,6 +555,7 @@
   <span class="totals-note" id="totals-note"></span>
 </div>
 
+<div id="global-tooltip"></div>
 <div id="status-bar"></div>
 <pre id="scrape-log"></pre>
 
@@ -647,7 +645,7 @@
     const pct   = Math.round(score);
     const bd    = opp.breakdown || {};
 
-    // Rule-based breakdown rows
+    // Build rules tooltip HTML (stored in data-tip, rendered by global tooltip engine)
     const tooltipRows = [
       ['Stage',      bd.stage],
       ['Forecast',   bd.forecast],
@@ -663,38 +661,33 @@
       </div>`
     ).join('');
 
-    // AI score section — shown only when ai_score is populated
+    const rulesTipHtml = `<div class="tooltip-title">Rules: ${pct}/100 · ${tier}</div>${tooltipRows}`;
+
+    // Rules badge — data-tip carries the HTML for the global tooltip
+    const rulesBadge = `<span class="score-badge ${cls} has-tip" data-tip="${esc(rulesTipHtml)}">${dot} ${pct}</span>`;
+
+    // watsonx badge
     const hasAI = opp.ai_score != null;
-    const aiPct = hasAI ? Math.round(opp.ai_score) : null;
-    const delta = hasAI ? Math.abs(pct - aiPct) : 0;
-    const deltaWarn = delta >= 20 ? `<span class="ai-score-delta-warn" title="Rules and AI disagree by ${delta} pts — review manually">⚠️</span>` : '';
+    if (!hasAI) {
+      return `<div style="display:flex;flex-direction:column;align-items:center;">${rulesBadge}</div>`;
+    }
 
-    const aiSection = hasAI ? `
-      <div style="border-top:1px solid #393939;margin-top:8px;padding-top:8px;">
-        <div class="tooltip-title" style="margin-bottom:4px;">watsonx.ai · ${aiPct}/100${opp.mock ? ' (mock)' : ''}</div>
-        <div style="font-size:11px;color:#c6c6c6;line-height:1.4;">${esc(opp.ai_rationale || '—')}</div>
-      </div>` : `
-      <div style="border-top:1px solid #393939;margin-top:8px;padding-top:6px;font-size:10px;color:#6f6f6f;">
-        Click "Score with watsonx" to add AI analysis
-      </div>`;
+    const aiPct     = Math.round(opp.ai_score);
+    const delta     = Math.abs(pct - aiPct);
+    const mockLabel = opp.mock ? ' · mock' : '';
+    const deltaNote = delta >= 20
+      ? `<div style="margin-top:8px;font-size:10px;color:#f4a261;">⚠️ Rules and AI differ by ${delta} pts — review manually</div>`
+      : '';
 
-    const aiBadge = hasAI ? `
-      <div style="margin-top:3px;">
-        <span class="ai-score-badge${opp.mock ? ' mock' : ''}" title="${esc(opp.ai_rationale || '')}">
-          ⬡ ${aiPct}${deltaWarn}
-        </span>
-      </div>` : '';
+    const wxTipHtml = `<div class="tooltip-title">watsonx.ai · ${aiPct}/100${mockLabel}</div>`
+      + `<div style="font-size:11px;color:#c6c6c6;line-height:1.5;margin-top:4px;">${esc(opp.ai_rationale || '—')}</div>`
+      + deltaNote;
 
-    return `<div class="tooltip-wrap" style="display:flex;flex-direction:column;align-items:center;">
-      <span class="score-badge ${cls}">
-        ${dot} ${pct}
-      </span>
-      ${aiBadge}
-      <div class="tooltip-box">
-        <div class="tooltip-title">Rules: ${pct}/100 · ${tier}</div>
-        ${tooltipRows}
-        ${aiSection}
-      </div>
+    const wxBadge = `<span class="ai-score-badge${opp.mock ? ' mock' : ''} has-tip" data-tip="${esc(wxTipHtml)}">⬡ ${aiPct}${delta >= 20 ? ' ⚠️' : ''}</span>`;
+
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+      ${rulesBadge}
+      ${wxBadge}
     </div>`;
   }
 
@@ -1275,6 +1268,54 @@
       el.textContent = 'less';
     }
   }
+
+  // ── Global tooltip engine ──────────────────────────────────────────────────
+  // Uses a single fixed-position div so tooltips are never clipped by
+  // overflow:hidden on td or sticky columns.
+  (function initGlobalTooltip() {
+    const tip = document.getElementById('global-tooltip');
+
+    document.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('.has-tip');
+      if (!el) return;
+      const html = el.dataset.tip;
+      if (!html) return;
+      // Unescape the stored HTML (it was esc()'d to survive the attribute)
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      tip.innerHTML = div.innerHTML;
+      tip.style.display = 'block';
+      positionTip(e);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (tip.style.display === 'none') return;
+      if (!e.target.closest('.has-tip')) return;
+      positionTip(e);
+    });
+
+    document.addEventListener('mouseout', (e) => {
+      if (!e.target.closest('.has-tip')) return;
+      // Only hide if we're leaving the .has-tip element entirely
+      if (!e.relatedTarget || !e.relatedTarget.closest('.has-tip')) {
+        tip.style.display = 'none';
+      }
+    });
+
+    function positionTip(e) {
+      const margin = 12;
+      const tw = tip.offsetWidth  || 260;
+      const th = tip.offsetHeight || 100;
+      let x = e.clientX + margin;
+      let y = e.clientY + margin;
+      // Flip left if tooltip would overflow right edge
+      if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - margin;
+      // Flip up if tooltip would overflow bottom edge
+      if (y + th > window.innerHeight - 8) y = e.clientY - th - margin;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    }
+  })();
 
   // ── Score with watsonx button ──────────────────────────────────────────────
   document.getElementById('btn-score-wx').addEventListener('click', async () => {
