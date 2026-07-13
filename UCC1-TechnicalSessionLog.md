@@ -2039,3 +2039,30 @@ git commit -m "fix: diff engine redesign — live vs baseline model, Save Baseli
   8. Update GitHub Release
 
   ---
+
+### Step 10 — Push develop to origin (Session 10 resume)
+
+**Why:** After resuming context, Bob discovered `develop` was 16 commits ahead of `origin/develop` — Sessions 5–8 work had been committed locally but never pushed. User confirmed: push now.
+
+**Command:**
+```bash
+git push origin develop
+# → 662624e..60a7f51  develop -> develop (16 commits)
+```
+
+**Commits pushed (sessions 5–8):**
+- Session 5: seed-changes demotion fix, v2.1.0-rc1 merge to main, GitHub release
+- Session 6: Carbon design tokens, IBM Plex Sans, workflow strip, GM Ready indicator, pipeline status line, diff tile modals
+- Session 7: timestamp snapshots, Model B Step 5 confirm modal, persist score+tier to DB, Model 3 action bar CSS
+- Session 8: Model 3 action bar HTML+JS wiring complete, merge feature/ux-carbon-guided-workflow → develop
+
+**Final GitHub state after push:**
+```
+main     — v2.1.0-rc1 (tagged, stable)
+develop  — 60a7f51 (v2.2.0-rc1 candidate, now synced with origin) ← HEAD
+feature/ux-carbon-guided-workflow — merged
+```
+
+**Outcome:** ✅ origin/develop now matches local develop. All work is backed up to GitHub.
+
+---
