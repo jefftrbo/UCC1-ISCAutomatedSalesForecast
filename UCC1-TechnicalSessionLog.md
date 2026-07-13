@@ -2509,3 +2509,126 @@ v2.2.0      — CURRENT STABLE ← promoted from rc1 (all rc criteria met)
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 12 — Deployment Strategy Discussion (July 14, 2026)
+
+**Status:** ✅ Complete (discussion phase — no code changes)
+**Date:** July 14, 2026
+**Branch:** `develop` (no feature branch needed — discussion only)
+
+---
+
+### Context
+
+User raised a critical operational adoption problem: Dushyant is a Sales VP, not a developer. The current workflow requires 8 expert steps before he sees a single insight. This is a non-starter for independent use. Question posed: *"What are some deployment options that don't involve official hosting on the IBM intranet?"*
+
+Additionally, ISC operations expected to push daily dashboard updates this week — HAR/Refresh Data validation targeted for EOD Wed 7/15.
+
+---
+
+### The Core Adoption Problem (identified)
+
+Current steps required of Dushyant:
+1. Install Node.js
+2. Clone a GitHub repo
+3. Run `npm install`
+4. Configure `.env` with API keys
+5. Install Cookie Editor browser extension
+6. Navigate to Salesforce, manually export a HAR file
+7. Locate the HAR file on his filesystem
+8. Upload it to the app
+
+**8 steps before first insight.** For a VP walking into a Monday GM meeting — non-starter.
+
+---
+
+### Four Options Analyzed
+
+| Option | Approach | HAR step? | Effort | Verdict |
+|---|---|---|---|---|
+| 1 — Electron Desktop App | Package Node + UI as `.app`/`.exe` | Still required (file-picker) | Medium | Good bridge |
+| 2 — Browser Extension | `chrome.webRequest` intercept → `POST /api/ingest` | **Eliminated** | Medium-high | Architecturally correct |
+| 3 — File-Watcher + Installer Script | `chokidar` watches Downloads folder | Still required | Low-medium | Short-term only |
+| 4 — IBM Cloud Code Engine | Docker container on IBM Cloud | Blocked by HAR dependency | High | Future path only |
+
+---
+
+### User's Hybrid Proposal (verbatim)
+
+> *"I love a hybrid solution combining Option 1 and 2, where we use Electron so we can drop the app on any IBM desktop until or if we can deploy it on our intranet, AND Option 2's elimination of the HAR step entirely"*
+
+---
+
+### Bob's Assessment of the Hybrid
+
+**Verdict: Architecturally elegant — both problems solved simultaneously.**
+
+Key insight: Electron's `session.webRequest` API is the desktop equivalent of `chrome.webRequest`. It can intercept all network traffic from a BrowserWindow — including authenticated Salesforce CRM Analytics calls — without a separate extension. The Electron app *is* the extension.
+
+**Proposed architecture:**
+```
+┌─────────────────────────────────────────────────────┐
+│                  ELECTRON SHELL                      │
+│  ┌─────────────────┐    ┌──────────────────────────┐ │
+│  │  BrowserWindow  │    │   Express Server         │ │
+│  │  (app UI)       │    │   (existing Node code)   │ │
+│  │  localhost:3090 │    │   server/index.js        │ │
+│  └─────────────────┘    └──────────────────────────┘ │
+└─────────────────────────────────────────────────────┘
+         ↑                          ↑
+         │                          │
+┌─────────────────┐      POST /api/ingest
+│  SECOND         │─────────────────┘
+│  BrowserWindow  │  (intercepts Salesforce
+│  (Salesforce    │   CRM Analytics API calls
+│   session tab)  │   via session.webRequest)
+└─────────────────┘
+```
+
+**Dushyant's new workflow:**
+1. Double-click **ISC Sales Forecast.app**
+2. Click **"Open Salesforce"** in the action bar
+3. Log in as usual (SSO)
+4. App silently captures deal-list API response in background
+5. Dashboard auto-refreshes — "206 deals · Jul 14, 2026 · 9:12 AM"
+6. Click **Score with watsonx** → **Generate GM Report** → done
+
+Zero HAR files. Zero terminal. Zero configuration after day one.
+
+**Effort estimate:** ~3 sessions
+- `electron-builder` packaging + `main.js` — 1 session
+- `session.webRequest` intercept → `POST /api/ingest` relay — 1 session
+- "Open Salesforce" BrowserWindow + auto-navigate — 0.5 session
+- macOS `.app` + Windows `.exe` packaging — 0.5 session
+
+**Open questions for the group:**
+1. IBM IT policy — can Electron apps install on managed IBM MacBooks/PCs without IT approval?
+2. Salesforce SSO inside Electron — does w3id/IBM SSO flow work in a non-standard browser context?
+3. watsonx API keys — per-user keys vs. shared key (first-run setup wizard recommended)
+4. Intranet migration path — Electron shell becomes optional once cloud hosting is available; server code is unchanged
+
+---
+
+### Artifacts Created
+
+- **`UCC1-DeploymentOptionsDiscussion.md`** — full verbatim Q&A + analysis, shareable with co-collaborators; committed to repo
+- Session 12 logged here
+
+**Decision:** Group alignment call expected this week. No code changes until group confirms Electron hybrid direction.
+
+---
+
+### Updated Backlog
+
+| Item | Target | Status |
+|---|---|---|
+| HAR/Refresh Data validation | EOD Wed 7/15 | ⏳ Pending ISC dashboard updates |
+| Live watsonx credential test | This week | ⏳ Pending credentials in `.env` |
+| Group decision on Electron hybrid | This week | ⏳ Pending call |
+| `feature/electron-shell` branch | Post-group decision | 🔒 Blocked |
+| IBM Challenge submission | July 22 10 AM ET | ⏳ Pending |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
