@@ -34,7 +34,7 @@ const SF_INTERCEPT_PATTERNS = [
 ];
 
 // Salesforce login entry point — w3id SSO will redirect from here
-const SF_LOGIN_URL = 'https://ibm.my.salesforce.com';
+const SF_LOGIN_URL = 'https://ibmsc.lightning.force.com/lightning/page/analytics?wave__assetType=dashboard';
 
 let appWindow = null;
 let sfWindow  = null;

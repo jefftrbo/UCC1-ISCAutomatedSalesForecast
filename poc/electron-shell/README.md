@@ -66,7 +66,7 @@ Check port 3091 is not in use: `lsof -i :3091`
 │  appWindow (renderer/index.html)                     │
 │  └── polls localhost:3091/api/last-capture           │
 │                                                      │
-│  sfWindow (ibm.my.salesforce.com)                    │
+│  sfWindow (ibmsc.lightning.force.com — ISC dashboard)│
 │  └── CDP debugger attached                           │
 │      └── Network.loadingFinished → getResponseBody   │
 │          └── POST localhost:3091/api/ingest          │
