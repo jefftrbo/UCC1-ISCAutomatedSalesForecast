@@ -2700,3 +2700,121 @@ User's setup clears the concern entirely:
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 13 — Electron PoC Build (July 14, 2026)
+
+**Status:** ✅ Complete (PoC built — ready to run)
+**Date:** July 14, 2026
+**Branch:** `develop` (PoC lives in `poc/electron-shell/` — no feature branch needed; not touching production code)
+
+---
+
+### Context
+
+User asked: *"is there an 'easy' way for you to build a lightweight Electron test app that proves all of the technical hurdles that we just discussed without the burden of updating our v2.2.0 app? Meaning, a pure PoC that gives us the confidence that this will be THE solution for Dushyant and anyone else who may adopt it inside of Public Market?"*
+
+Decision: build in `poc/electron-shell/` inside the main repo (Option A — same git history, one clone for co-collaborators, judges see full arc from problem → PoC → production).
+
+---
+
+### What the PoC Proves
+
+Three specific unknowns, nothing else:
+
+| # | Claim | Proof mechanism |
+|---|---|---|
+| 1 | Express server starts inside Electron process | Status page loads at `localhost:3091/api/status` |
+| 2 | IBM w3id SSO completes inside a BrowserWindow | Salesforce dashboard loads after login |
+| 3 | CDP (`webContents.debugger`) intercepts CRM Analytics deal-list response | Status page flips to "✅ Captured N records" |
+
+**Design decision:** `session.webRequest` alone does NOT give response bodies — only request metadata. The correct pattern is to attach the **Chrome DevTools Protocol (CDP) debugger** to the sfWindow and listen for `Network.loadingFinished` → call `Network.getResponseBody`. This is the standard Electron pattern for response-body capture and is more reliable than the raw `webRequest` API for this use case.
+
+---
+
+### Files Created
+
+```
+poc/electron-shell/
+  package.json          — electron@43.1.0 + express@4.18.2; npm start → electron .
+  main.js               — Electron main: spawns Express, opens two BrowserWindows,
+                          attaches CDP debugger to sfWindow, intercepts deal-list
+                          response, POSTs to localhost:3091/api/ingest
+  server.js             — 76-line Express: /api/status, /api/last-capture (renderer poll),
+                          /api/ingest (receives CDP payload, logs to terminal)
+  renderer/index.html   — Status dashboard: 4-item proof checklist, polls server,
+                          shows record count + field list on capture
+  README.md             — Run instructions + architecture diagram + result interpretation
+```
+
+---
+
+### Key Technical Decision — CDP vs. webRequest
+
+Initial design used `session.webRequest` (onCompleted). Revised to CDP debugger pattern during build because:
+
+- `session.webRequest` gives request URL and headers — **no response body**
+- `webContents.debugger` + `Network.enable` + `Network.getResponseBody` gives **full response body**
+- CDP is also more reliable against Service Worker cache (Session 1 discovery) — SW-cached responses still fire `Network.loadingFinished` when CDP Network domain is active
+- This is the same pattern Playwright uses internally (which is why Playwright can read responses)
+
+**This is the same root cause that blocked Sessions 1–3.** The difference is that in Electron we have full CDP access because we own the browser process. External Playwright cannot attach CDP to a browser it didn't launch.
+
+---
+
+### Build Steps
+
+```bash
+# Files written
+poc/electron-shell/package.json
+poc/electron-shell/main.js
+poc/electron-shell/server.js
+poc/electron-shell/renderer/index.html
+poc/electron-shell/README.md
+
+# npm install
+cd poc/electron-shell && npm install
+# → electron@30 installed, 1 high severity vulnerability (Electron version advisories)
+# → pinned to electron@43.1.0 → npm install → 0 vulnerabilities
+
+# Syntax check
+node --check main.js && node --check server.js → ✅ syntax OK
+```
+
+---
+
+### How to Run the PoC
+
+```bash
+cd poc/electron-shell
+npm install   # first time only
+npm start
+```
+
+1. Status dashboard opens (app window)
+2. Salesforce window opens automatically after 1.2s
+3. Log in with IBM w3id credentials
+4. Navigate to CRM Analytics deal-list dashboard
+5. Watch status panel — all 4 proof items check green on success
+
+---
+
+### Interpreting Results
+
+**All 4 green:** Architecture validated → proceed to `feature/electron-shell` in main repo
+
+**SSO works but intercept never fires:** CDP Network domain not capturing — open DevTools on sfWindow to find actual request URL, update `SF_INTERCEPT_PATTERNS` in `main.js`
+
+**Server fails to start:** `lsof -i :3091` to check port conflict
+
+---
+
+### What Remains
+
+- ⏳ **Run the PoC** — user executes `npm start`, logs in, navigates to dashboard
+- ⏳ **Report result** — pass/fail + any intercept URL adjustments needed
+- 🔒 **`feature/electron-shell`** — blocked until PoC passes
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
