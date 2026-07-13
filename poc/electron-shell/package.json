@@ -4,7 +4,8 @@
   "description": "PoC: Electron shell + session.webRequest Salesforce intercept — proves zero-HAR architecture for ISC Automated Sales Forecast",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "import-cookies": "electron import-brave-cookies.js"
   },
   "dependencies": {
     "express": "^4.18.2"
