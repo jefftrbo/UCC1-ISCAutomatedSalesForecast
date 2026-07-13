@@ -34,10 +34,13 @@ npm start
 
 **What happens:**
 1. A small status dashboard opens (this is the "app window")
-2. A Salesforce window opens automatically (navigate to the CRM Analytics deal-list dashboard)
-3. Log in with your IBM w3id credentials as normal
-4. Navigate to the pipeline/deal-list dashboard
-5. Watch the status panel — it updates automatically when deal data is captured
+2. A Salesforce window opens automatically at the ISC CRM Analytics dashboard
+3. **FIRST RUN ONLY:** The w3id "Sign in" chooser appears — click **"w3id Password"** and sign in with your IBM intranet password (or IBM Verify). Your session is saved automatically after login.
+4. **Subsequent runs:** Electron reuses your saved session — no login prompt, opens straight to the dashboard.
+5. Navigate to the deal-list tab / apply your normal filters
+6. Watch the status panel — it updates automatically when deal data is captured
+
+> **Note on passkeys:** IBM w3id passkeys are registered per-browser in the macOS Secure Enclave. Electron's Chromium does not have the passkey registered, so "w3id Password" is the correct auth path for first run. This is a one-time setup step.
 
 ---
 

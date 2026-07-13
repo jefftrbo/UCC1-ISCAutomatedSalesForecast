@@ -4,14 +4,25 @@
  * Proves three things:
  *   1. Express server starts inside an Electron process
  *   2. IBM w3id SSO login completes inside a BrowserWindow
- *   3. session.webRequest intercepts the Salesforce CRM Analytics
- *      deal-list API response and POSTs it to our local server
+ *   3. CDP intercepts the Salesforce CRM Analytics deal-list response
+ *      and POSTs it to our local server
  *
- * Architecture:
- *   - appWindow   : loads renderer/index.html (status dashboard)
- *   - sfWindow    : loads Salesforce (user logs in normally)
- *   - sfWindow's session has a webRequest listener that watches for
- *     the CRM Analytics SAQL/query endpoint and captures the response body
+ * ── PASSKEY / AUTH STRATEGY ──────────────────────────────────────────────────
+ * IBM w3id passkeys are device-bound to the macOS Secure Enclave and registered
+ * per-browser. Electron's bundled Chromium does NOT have the passkey registered,
+ * so the w3id chooser appears instead of going straight to Touch ID.
+ *
+ * Solution: persist the Salesforce session in a named userData folder
+ * (~/.ucc1-electron-poc/sf-session). On FIRST RUN, use "w3id Password" or
+ * "IBM Verify" from the chooser — one time only. On all subsequent runs,
+ * Electron reuses the persisted session cookies and skips login entirely.
+ *
+ * FIRST RUN INSTRUCTIONS:
+ *   1. The Salesforce window opens showing "Sign in with w3id"
+ *   2. Click "w3id Password" and sign in with your IBM intranet password
+ *      (or use IBM Verify if configured)
+ *   3. Once the ISC dashboard loads, the session is saved automatically
+ *   4. Every run after this opens straight to the dashboard — no login
  *
  * Port: 3091 (separate from main app on 3090)
  */
@@ -21,7 +32,7 @@
 const { app, BrowserWindow, session } = require('electron');
 const path   = require('path');
 const http   = require('http');
-const https  = require('https');
+const os     = require('os');
 
 // ── Target URL patterns for Salesforce CRM Analytics deal-list API ───────────
 // These are the same endpoints our HAR parser found in Session 1 / Attempt 8
@@ -64,8 +75,9 @@ function createAppWindow() {
 
 // ── Create the Salesforce window with webRequest intercept ───────────────────
 function createSalesforceWindow() {
-  // Use a dedicated session partition so the intercept doesn't bleed into
-  // the app window's session
+  // Persist the Salesforce session to disk so login survives restarts.
+  // On first run: user logs in once via w3id Password / IBM Verify.
+  // On subsequent runs: session cookies are reused — no login prompt.
   const sfSession = session.fromPartition('persist:salesforce-poc');
 
   sfWindow = new BrowserWindow({
