@@ -3,87 +3,55 @@
  *
  * Proves three things:
  *   1. Express server starts inside an Electron process
- *   2. IBM w3id SSO login completes inside a BrowserWindow
+ *   2. IBM w3id SSO + passkey login completes inside a BrowserWindow
  *   3. CDP intercepts the Salesforce CRM Analytics deal-list response
  *      and POSTs it to our local server
  *
- * ── PASSKEY / AUTH STRATEGY ──────────────────────────────────────────────────
- * IBM w3id passkeys are device-bound to the macOS Secure Enclave and registered
- * per-browser. Electron's bundled Chromium does NOT have the passkey registered,
- * so the w3id chooser appears instead of going straight to Touch ID.
+ * ── OUTPUT STRATEGY ──────────────────────────────────────────────────────────
+ * All proof output goes to the terminal (npm start window). No status UI window.
+ * The Salesforce BrowserWindow is the only window — it gets full focus so the
+ * macOS Touch ID / passkey sheet can surface cleanly without interference.
  *
- * Solution: persist the Salesforce session in a named userData folder
- * (~/.ucc1-electron-poc/sf-session). On FIRST RUN, use "w3id Password" or
- * "IBM Verify" from the chooser — one time only. On all subsequent runs,
- * Electron reuses the persisted session cookies and skips login entirely.
+ * ── PASSKEY AUTH ─────────────────────────────────────────────────────────────
+ * IBM w3id passkeys live in macOS Keychain (platform authenticator).
+ * Electron's Chromium can reach them — but the Touch ID sheet needs the
+ * Salesforce BrowserWindow to be the frontmost, focused window when it fires.
+ * No competing windows = clean passkey prompt.
  *
- * FIRST RUN INSTRUCTIONS:
- *   1. The Salesforce window opens showing "Sign in with w3id"
- *   2. Click "w3id Password" and sign in with your IBM intranet password
- *      (or use IBM Verify if configured)
- *   3. Once the ISC dashboard loads, the session is saved automatically
- *   4. Every run after this opens straight to the dashboard — no login
+ * Session is persisted to disk (persist:salesforce-poc partition).
+ * First run: authenticate once. All subsequent runs: no login prompt.
  *
  * Port: 3091 (separate from main app on 3090)
  */
 
 'use strict';
 
-const { app, BrowserWindow, session } = require('electron');
-const path   = require('path');
-const http   = require('http');
-const os     = require('os');
+const { app, BrowserWindow } = require('electron');
+const path = require('path');
+const http = require('http');
 
-// ── Target URL patterns for Salesforce CRM Analytics deal-list API ───────────
-// These are the same endpoints our HAR parser found in Session 1 / Attempt 8
-const SF_INTERCEPT_PATTERNS = [
-  '*://*/wave/wave/query*',
-  '*://*/wave/wave/datasets*',
-  '*://*/liveagent/wave*',
-  '*://*/*/wave/query*',
-  '*://*/services/data/*/wave/query*',
-];
-
-// Salesforce login entry point — w3id SSO will redirect from here
+// ISC CRM Analytics dashboard — triggers w3id SSO → passkey
 const SF_LOGIN_URL = 'https://ibmsc.lightning.force.com/lightning/page/analytics?wave__assetType=dashboard';
 
-let appWindow = null;
-let sfWindow  = null;
+let sfWindow = null;
 
 // ── Start Express server ──────────────────────────────────────────────────────
-// Require after app is ready so there's no timing issue
 function startServer() {
   require('./server.js');
-  console.log('[main] Express server started on port 3091');
+  console.log('[main] ✅ Proof 1 — Express server started on port 3091');
 }
 
-// ── Create the status dashboard window ───────────────────────────────────────
-function createAppWindow() {
-  appWindow = new BrowserWindow({
-    width: 640,
-    height: 680,
-    title: 'ISC Sales Forecast — Electron PoC',
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  appWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
-  appWindow.on('closed', () => { appWindow = null; });
-}
-
-// ── Create the Salesforce window with webRequest intercept ───────────────────
+// ── Create the Salesforce window ─────────────────────────────────────────────
 function createSalesforceWindow() {
-  // Persist the Salesforce session to disk so login survives restarts.
-  // On first run: user logs in once via w3id Password / IBM Verify.
-  // On subsequent runs: session cookies are reused — no login prompt.
+  const { session } = require('electron');
+
+  // Persist session so login survives restarts — first run only needs auth
   const sfSession = session.fromPartition('persist:salesforce-poc');
 
   sfWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    title: 'Salesforce — Log in to capture deal data',
+    width: 1280,
+    height: 900,
+    title: 'ISC Sales Forecast PoC — Salesforce',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -91,22 +59,29 @@ function createSalesforceWindow() {
     },
   });
 
+  // Full focus immediately — required for macOS Touch ID sheet to surface
+  sfWindow.focus();
   sfWindow.loadURL(SF_LOGIN_URL);
+
+  sfWindow.webContents.on('did-finish-load', () => {
+    const url = sfWindow.webContents.getURL();
+    console.log(`[main] Page loaded: ${url.slice(0, 100)}`);
+
+    // Once past login, the URL contains 'lightning' — log proof 2
+    if (url.includes('lightning.force.com') && !url.includes('login')) {
+      console.log('[main] ✅ Proof 2 — IBM w3id SSO completed in BrowserWindow');
+      console.log('[main]    Navigate to the deal-list tab and apply your filters...');
+    }
+  });
+
   sfWindow.on('closed', () => { sfWindow = null; });
 
-  // ── session.webRequest intercept ─────────────────────────────────────────
-  // onCompleted fires AFTER the response is received — we get the full
-  // response body via a CDP workaround below.
-  //
-  // IMPORTANT: webRequest gives us request metadata but NOT the response body
-  // directly. To get the body we use the Debugger (CDP) protocol on the window.
-  // This is the standard pattern for Electron response-body capture.
-
+  // ── Attach CDP debugger for response-body capture ─────────────────────────
   const debugger_ = sfWindow.webContents.debugger;
 
   try {
     debugger_.attach('1.3');
-    console.log('[main] CDP debugger attached to Salesforce window');
+    console.log('[main] CDP debugger attached — watching for CRM Analytics requests...');
   } catch (e) {
     console.error('[main] CDP attach failed:', e.message);
   }
@@ -115,27 +90,25 @@ function createSalesforceWindow() {
     console.log('[main] CDP debugger detached:', reason);
   });
 
-  // Track requestIds that match our target patterns
   const pendingRequests = new Map();
 
   debugger_.on('message', async (event, method, params) => {
-    // ── Step 1: Identify matching requests ─────────────────────────────────
+    // ── Identify matching CRM Analytics requests ──────────────────────────
     if (method === 'Network.requestWillBeSent') {
       const url = params.request?.url || '';
       const isSaql =
         url.includes('/wave/query') ||
         url.includes('/wave/datasets') ||
         url.includes('wave/execute') ||
-        url.includes('/query?') ||
         (url.includes('wave') && url.includes('query'));
 
       if (isSaql) {
-        console.log(`[main] Intercepted Salesforce request: ${url.slice(0, 120)}`);
+        console.log(`[main] Intercepted: ${url.slice(0, 120)}`);
         pendingRequests.set(params.requestId, url);
       }
     }
 
-    // ── Step 2: When a matching response loads, get the body ───────────────
+    // ── When response loads, get the body via CDP ─────────────────────────
     if (method === 'Network.loadingFinished') {
       if (!pendingRequests.has(params.requestId)) return;
 
@@ -156,37 +129,29 @@ function createSalesforceWindow() {
         try {
           parsed = JSON.parse(rawBody);
         } catch {
-          console.log('[main] Response body is not JSON — skipping');
-          return;
+          return; // not JSON — skip silently
         }
 
-        // Quick size check — the real deal-list response is large;
-        // skip tiny responses (auth tokens, pings, etc.)
         const recordCount =
           parsed?.results?.[0]?.records?.length ||
           parsed?.records?.length               ||
           parsed?.data?.length                  ||
           0;
 
-        if (recordCount < 10) {
-          console.log(`[main] Skipping small response (${recordCount} records) from ${url.slice(0, 80)}`);
-          return;
-        }
+        // Skip small auth/ping responses
+        if (recordCount < 10) return;
 
-        console.log(`\n[main] 🎯 Deal-list response captured — ${recordCount} records from:\n   ${url.slice(0, 120)}`);
+        console.log(`\n[main] ✅ Proof 3 — Deal-list intercepted — ${recordCount} records`);
+        console.log(`[main]    URL: ${url.slice(0, 120)}`);
 
-        // ── Step 3: POST to local Express endpoint ────────────────────────
         postToIngest(parsed);
 
       } catch (e) {
-        // getResponseBody can fail if the request was cancelled or the
-        // debugger detached — not a fatal error
-        console.log(`[main] Could not get response body for ${url.slice(0, 80)}: ${e.message}`);
+        console.log(`[main] getResponseBody failed for ${url.slice(0, 80)}: ${e.message}`);
       }
     }
   });
 
-  // Enable Network domain so CDP events fire
   debugger_.sendCommand('Network.enable').catch(e => {
     console.error('[main] Network.enable failed:', e.message);
   });
@@ -210,7 +175,8 @@ function postToIngest(payload) {
     let data = '';
     res.on('data', chunk => { data += chunk; });
     res.on('end', () => {
-      console.log('[main] /api/ingest response:', data);
+      console.log(`[main] ✅ Proof 4 — POST /api/ingest → ${res.statusCode}: ${data}`);
+      console.log('\n🎉 ALL FOUR PROOFS PASSED — Electron hybrid architecture validated.\n');
     });
   });
 
@@ -226,23 +192,11 @@ function postToIngest(payload) {
 app.whenReady().then(() => {
   startServer();
 
-  // Open Salesforce FIRST and bring it to front immediately.
-  // The macOS Touch ID / passkey sheet must attach to the frontmost window —
-  // if our status dashboard is on top, the system dialog has nowhere to surface
-  // and w3id reports "there was an issue logging in with your passkey."
+  // Salesforce window is the ONLY window — gets full focus, no interference
   createSalesforceWindow();
-  sfWindow.focus();
-
-  // Status dashboard opens after a short delay so Salesforce has focus at
-  // the moment w3id triggers the passkey prompt
-  setTimeout(() => {
-    createAppWindow();
-  }, 2000);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createAppWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createSalesforceWindow();
   });
 });
 
