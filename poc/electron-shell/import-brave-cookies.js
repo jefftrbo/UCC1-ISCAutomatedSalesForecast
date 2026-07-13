@@ -45,8 +45,8 @@ async function importCookies() {
 
   console.log('📂 Reading Brave cookies from:', BRAVE_COOKIES_PATH);
 
-  // Use better-sqlite3 to read directly (it's already in the main app's node_modules)
-  const Database = require(path.join(__dirname, '../../node_modules/better-sqlite3'));
+  // Use better-sqlite3 from this PoC's own node_modules (compiled against Electron's ABI)
+  const Database = require('better-sqlite3');
 
   let db;
   try {
