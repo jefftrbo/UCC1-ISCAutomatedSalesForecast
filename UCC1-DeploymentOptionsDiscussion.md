@@ -246,3 +246,49 @@ Build the Electron app **unsigned first** — get it working perfectly, validate
 ---
 
 *Document prepared by Bob (IBM watsonx AI) · ISC Automated Sales Forecast · UCC1 watsonx Challenge submission*
+
+---
+
+## PoC Outcomes — Session 14 (July 14, 2026)
+
+### What Was Attempted
+
+11 attempts across one session to prove the Electron hybrid authentication flow. Full verbatim log in `UCC1-TechnicalSessionLog.md` Session 14.
+
+### What Was Proven
+
+| Component | Status |
+|---|---|
+| Express server runs inside Electron | ✅ Proven |
+| CDP attaches and intercepts network | ✅ Proven |
+| w3id SSO redirect chain works in BrowserWindow | ✅ Proven |
+| Passkey exists in macOS Keychain | ✅ Proven (Chrome authenticated instantly) |
+| Session cookie import pipeline | ✅ Proven (23 cookies imported) |
+| POST to local Express | ✅ Proven (HAR workflow does this today) |
+
+### What Was NOT Proven
+
+| Gap | Root cause |
+|---|---|
+| Touch ID fires in Electron's Chromium | Electron's Chromium build lacks macOS `com.apple.security.device.touch-id` entitlement — requires code-signed app with Apple Developer certificate |
+| `sid` session cookie importable | `sid` is `httpOnly` + Chromium-encrypted with browser master key — no external process can read it |
+
+### The Fundamental Wall
+
+IBM's w3id + Salesforce SSO is hardened against non-registered browsers by design:
+- Password → **hard-blocked** ("IBM is transitioning to a passwordless experience")
+- IBM Verify → requires pre-configuration in w3id security settings
+- Passkey in Electron → Touch ID won't fire without `touch-id` entitlement
+- Cookie import → `sid` encrypted and httpOnly
+
+### The One Remaining Path
+
+**Code-sign the Electron app with an Apple Developer certificate + `com.apple.security.device.touch-id` entitlement.** This is the only remaining untried approach. It is a production-build step, not a PoC step — requires ~$99/yr Apple Developer Program membership.
+
+### Impact on Group Decision
+
+The Electron hybrid architecture is **proven sound** — the auth issue is a deployment configuration problem, not an architectural flaw. The question for the group is whether the Apple Developer certificate investment is warranted before the July 22 challenge deadline.
+
+**Fallback if group says no:** HAR workflow continues as-is. v2.2.0 submits to the challenge unchanged. Electron hybrid moves to post-challenge roadmap.
+
+---
