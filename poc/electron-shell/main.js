@@ -56,6 +56,9 @@ function createSalesforceWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       session: sfSession,
+      // Allow cross-origin SAML POST redirects (IBM w3id → Salesforce handshake)
+      // Safe for PoC — this window only loads IBM/Salesforce URLs
+      webSecurity: false,
     },
   });
 
@@ -65,11 +68,19 @@ function createSalesforceWindow() {
 
   sfWindow.webContents.on('did-finish-load', () => {
     const url = sfWindow.webContents.getURL();
-    console.log(`[main] Page loaded: ${url.slice(0, 100)}`);
+    console.log(`[main] Page loaded: ${url.slice(0, 120)}`);
 
-    // Once past login, the URL contains 'lightning' — log proof 2
-    if (url.includes('lightning.force.com') && !url.includes('login')) {
-      console.log('[main] ✅ Proof 2 — IBM w3id SSO completed in BrowserWindow');
+    // Proof 2: SSO complete only when the Lightning app shell has fully landed
+    // Must be ibmsc.lightning.force.com AND not a redirect/session/login URL
+    const isLightningApp =
+      url.includes('ibmsc.lightning.force.com') &&
+      !url.includes('visualforce/session') &&
+      !url.includes('login.ibm.com') &&
+      !url.includes('/saml/') &&
+      !url.includes('ibm.my.salesforce.com');
+
+    if (isLightningApp) {
+      console.log('[main] ✅ Proof 2 — IBM w3id SSO completed, Lightning dashboard loaded');
       console.log('[main]    Navigate to the deal-list tab and apply your filters...');
     }
   });
