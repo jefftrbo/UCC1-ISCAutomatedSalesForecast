@@ -2409,3 +2409,103 @@ v2.2.0-rc1  — Carbon UX + guided workflow + named presets ← CURRENT
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 11 — v2.2.0 Final Release to main (July 14, 2026)
+
+**Status:** ✅ Complete  
+**Date:** July 14, 2026  
+**User motivation:** *"there's a universe of functionality between 1.0 and 2.2 where now 2.2 should be our new stable"* — promote `v2.2.0-rc1` to `v2.2.0` final; `main` was 5 sessions behind reality.
+
+---
+
+### Decision rationale
+
+The `rc1` qualifier was placed after Session 10 for one reason only: live watsonx credential validation. Assessment on resumption:
+
+| Concern | Status |
+|---|---|
+| All features built and committed | ✅ Done |
+| All features tested (rules-based path) | ✅ Done |
+| UI end-to-end tested via seed-changes.js | ✅ Done |
+| Carbon Design, named presets, diff modals, action bar | ✅ Done |
+| `WATSONX_ENABLED=false` graceful fallback path | ✅ Done |
+| `WATSONX_ENABLED=true` live API call | ⚠️ Untested — credentials not yet in `.env` |
+
+**Conclusion:** The untested item is a deployment configuration test, not a regression risk. The watsonx code is unchanged since v2.1.0-rc1. Graceful fallback means the app is fully usable without credentials. The `rc` window has passed; holding `main` at `v2.1.0-rc1` understates the real stable state by 5 sessions and ~1,900 lines. July 22 challenge deadline requires `main` to reflect the best build.
+
+**Governing rule:** watsonx live credential test is a **post-release validation step** — failure would not roll back this tag, only block tagging `v2.3.0`.
+
+---
+
+### Pre-release state check
+
+```
+git diff HEAD public/index.html  →  (empty — matches HEAD)
+git diff HEAD server/index.js    →  (empty — matches HEAD)
+git diff HEAD server/diffEngine.js → (empty — matches HEAD)
+git diff HEAD server/db.js       →  (empty — matches HEAD)
+git status                       →  untracked files only (all appropriately excluded)
+```
+
+External change warnings from environment were false positives (same pattern as Session 10). All four files confirmed matching HEAD.
+
+```
+main    — a96a024  v2.2.0-rc1 (tagged)   ← was production
+develop — 247b091  ← HEAD (2 commits ahead of main — post-rc1 session log entries)
+```
+
+---
+
+### Release commands executed
+
+```bash
+git checkout main
+# → Switched to branch 'main', up to date with origin/main
+
+git merge --no-ff develop -m "merge: develop → main — v2.2.0 final (Carbon UX, named presets, diff engine, GM narrative)"
+# → Merge made by the 'ort' strategy.
+#   UCC1-TechnicalSessionLog.md | 98 +++++++++++++++++++++++++++++++++++++++++++++
+#   1 file changed, 98 insertions(+)
+
+git tag v2.2.0
+git push origin main --tags
+# → To https://github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast
+#      a96a024..8e6a059  main -> main
+#    * [new tag]         v2.2.0 -> v2.2.0
+
+git checkout develop
+# → Switched to branch 'develop', up to date with origin/develop
+```
+
+---
+
+### Final repository state
+
+```
+main     — 8e6a059  v2.2.0 (tagged, pushed) ← NEW production stable
+develop  — 247b091  ← HEAD, synced with origin
+```
+
+**Version history:**
+```
+v1.0.0      — rule-based app (HAR → SQLite → PPT)
+v2.1.0-rc1  — watsonx.ai + diff engine + GM narrative
+v2.2.0-rc1  — Carbon UX + guided workflow + named presets (superseded)
+v2.2.0      — CURRENT STABLE ← promoted from rc1 (all rc criteria met)
+```
+
+---
+
+### What remains
+
+1. **Live watsonx credential test** — `WATSONX_ENABLED=true` + API key + project ID → test all 3 AI endpoints. On pass: gate is cleared for `v2.3.0` work.
+2. **Second HAR scrape** (w/c 7/14) — second import populates first live diff for `⇄ What Changed`
+3. **IBM Challenge submission** — deadline July 22, 2026 at 10 AM ET:
+   - Complete `PLAN-3067F00C01E4` on Your Learning at IBM (eligibility gate)
+   - Register at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
+   - Submit deliverables before deadline
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
