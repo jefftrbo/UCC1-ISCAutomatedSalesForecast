@@ -2066,3 +2066,248 @@ feature/ux-carbon-guided-workflow — merged
 **Outcome:** ✅ origin/develop now matches local develop. All work is backed up to GitHub.
 
 ---
+
+## Session 10 — Named View Presets (July 13, 2026)
+
+**Status:** ✅ Complete  
+**Branch:** `feature/named-view-presets` → merged to `develop`  
+**Commit:** `a34eba8` | 1 file changed, 180 insertions(+)
+
+---
+
+### Context / Motivation
+
+User asked for a description of Named View Presets (a backlog item from Session 7 that was never built). Bob explained: three one-click filter shortcuts that instantly configure all filter dropdowns to a pre-defined meaningful state without Dushyant having to manually set 5 filters every time.
+
+User confirmed: "let's do it" — with the explicit requirement that the implementation must be sleek, seamlessly flowing into the existing Carbon Design System UI built in Sessions 6–8.
+
+---
+
+### Step 1 — Design Analysis (before writing any code)
+
+**Why this step first:** Sessions 6–8 substantially upgraded the UI to IBM Carbon Design System (tokens, IBM Plex Sans, action bar, pipeline status line, diff modals). Any new addition must respect all of that work. Bob read the entire `public/index.html` CSS + HTML before designing the feature, specifically:
+
+- `:root` block — all CSS custom properties (`--cds-*`, `--ibm-blue-70`, `--wx-purple`)
+- Action bar structure — `.action-btn`, `.action-status-chip`, `.action-sep`, `.action-utilities`
+- Filter bar structure — `.filter-bar label`, `.ms-wrap`, `.filter-sep`, `.filter-count`
+- Button styles — `.btn-ghost`, `.btn-secondary`, `.btn-primary`
+- Existing `applyFilters()` function and `clearFilters()` function
+
+**Design decision reached:**
+- **Location:** Left end of the existing filter bar, before the "Quarter" filter. Visually attached to the filters they control (obvious cause → effect). Stays inside the sticky filter bar — always accessible while scrolling. Does not compete with the action bar.
+- **Visual style:** New `.preset-btn` class — Carbon-compliant: `border-radius: 0`, IBM Plex Sans, 1px border using `--cds-border-subtle`, muted text using `--cds-text-secondary`. Hover uses `--cds-highlight` (IBM blue-tint) + `--cds-interactive` border. Active state adds `border-left-width: 3px` blue accent — same left-border pattern used in narrative and diff panels.
+- **Label:** `View` in the same 11px uppercase `--cds-text-secondary` style as all other filter labels (`QUARTER`, `STAGE`, etc.)
+- **No new bar, no new panel.** Three buttons + one label + ~180 lines of JS. Invisible addition to the existing structure.
+
+---
+
+### Step 2 — Branch Created
+
+```bash
+git checkout develop
+git checkout -b feature/named-view-presets
+git push -u origin feature/named-view-presets
+```
+
+Output: new branch created and pushed to `origin/feature/named-view-presets`.
+
+---
+
+### Step 3 — CSS Added
+
+New `.preset-btn` class inserted after `.btn-ghost` in the `<style>` block:
+
+```css
+.preset-btn {
+  background: none;
+  border: 1px solid var(--cds-border-subtle);
+  color: var(--cds-text-secondary);
+  font-size: 11px;
+  font-family: 'IBM Plex Sans', inherit;
+  font-weight: 400;
+  padding: 2px 10px;
+  height: 24px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-radius: 0;                       /* Carbon — no rounding */
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.preset-btn:hover {
+  background: var(--cds-highlight);
+  border-color: var(--cds-interactive);
+  color: var(--cds-interactive);
+}
+.preset-btn.active {
+  background: var(--cds-highlight);
+  border-color: var(--cds-interactive);
+  border-left-width: 3px;                 /* Carbon left-border accent — matches panel conventions */
+  color: var(--cds-interactive);
+  font-weight: 600;
+}
+```
+
+**Why `border-radius: 0`:** Carbon Design System uses square corners throughout. All buttons, inputs, and action chips in Sessions 6–8 use `border-radius: 0`. Adding rounded corners here would break the visual consistency.
+
+**Why `height: 24px`:** Matches the `.action-status-chip` and utility button heights in the action bar — consistent vertical rhythm.
+
+---
+
+### Step 4 — HTML Added
+
+Inserted at the top of `.filter-bar`, before the "Quarter" label, with a `.filter-sep` divider separating it from the filter controls:
+
+```html
+<!-- Named view presets -->
+<label>View</label>
+<button class="preset-btn" id="preset-gm-prep"  data-preset="gm-prep">📊 GM Prep</button>
+<button class="preset-btn" id="preset-at-risk"  data-preset="at-risk">⚠ At Risk</button>
+<button class="preset-btn" id="preset-full"     data-preset="full">🗂 Full Pipeline</button>
+
+<div class="filter-sep"></div>
+<label>Quarter</label>
+...
+```
+
+`data-preset` attributes carry the preset key — used by the JS click handler to call `applyPreset(key)` generically without per-button handlers.
+
+---
+
+### Step 5 — JavaScript: PRESETS object, applyPreset(), active state management
+
+**Three state variables added:**
+- `activePreset` — tracks which preset is currently active (null = none)
+- `_applyingPreset` — boolean flag, `true` only during `applyPreset()` call, prevents `applyFilters` from clearing the active preset when called from within the preset itself
+
+**`PRESETS` object** — keyed by preset ID, each has an `apply()` method:
+
+`'gm-prep'`:
+- Quarter → current quarter only
+- Stage → All
+- Forecast → Best Case only
+- Confidence → High + Medium only
+- Owner / Amount / Search → cleared
+
+`'at-risk'`:
+- Quarter → current quarter only
+- Stage → All
+- Forecast → All (slipping deals may have moved to Pipeline/Omitted — needs full visibility)
+- Confidence → **Low only**
+- Owner / Amount / Search → cleared
+
+`'full'`:
+- Quarter → All
+- Stage → All
+- Forecast → All
+- Confidence → All (including Low — the only preset that includes Low by default)
+- Owner / Amount / Search → cleared
+
+**`setActivePreset(key)`** — sets `activePreset`, toggles `.active` class on all `.preset-btn` elements.
+
+**`clearActivePreset()`** — clears `activePreset`, removes `.active` from all buttons. Called from: (1) `applyFilters()` when `_applyingPreset === false` (user manually changed a filter), (2) `clearFilters()` (user clicked "Clear filters").
+
+**`applyPreset(key)`:**
+```js
+let _applyingPreset = false;
+
+function applyPreset(key) {
+  const preset = PRESETS[key];
+  if (!preset) return;
+  preset.apply();           // set all filter checkboxes + update triggers
+  setActivePreset(key);     // highlight the active button
+  _applyingPreset = true;   // guard: applyFilters must NOT clear the preset we just set
+  applyFilters();           // re-render table with the new filter state
+  _applyingPreset = false;  // release guard
+}
+```
+
+**Guard pattern rationale:** `applyFilters()` is called from many places — filter dropdowns, search input, amount input, owner select. We need it to clear the active preset when the user *manually* changes a filter (preset no longer accurately describes what's showing). But when `applyPreset` itself calls `applyFilters`, we must NOT clear the preset we just activated. The `_applyingPreset` boolean flag solves this with zero coupling between the functions.
+
+**Button wiring:**
+```js
+document.querySelectorAll('.preset-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+});
+```
+
+Single listener block using `data-preset` — adding a fourth preset in the future requires only HTML, no new JS handlers.
+
+**`clearFilters()` patched:** Added `clearActivePreset()` call before `applyFilters()` so clicking the "Clear filters" ghost link also deactivates the preset badge.
+
+**`applyFilters()` patched:** Added at top of function body:
+```js
+if (!_applyingPreset) clearActivePreset();
+```
+
+---
+
+### Step 6 — Validation
+
+**Smoke test (node):** Verified all elements present in the rendered file:
+```
+✅ button#preset-gm-prep
+✅ button#preset-at-risk
+✅ button#preset-full
+✅ .preset-btn CSS
+✅ .preset-btn.active CSS
+✅ JS: applyPreset
+✅ JS: setActivePreset
+✅ JS: clearActivePreset
+✅ JS: _applyingPreset
+✅ JS: PRESETS
+✅ data-preset attributes on buttons
+✅ preset buttons wired
+✅ applyFilters has _applyingPreset guard   (line 1795)
+✅ clearFilters calls clearActivePreset     (line 1944)
+```
+
+Note: First smoke test reported `clearFilters` missing `clearActivePreset` — false negative because the test used `html.slice(cfIdx, cfIdx+600)` (600 chars wasn't enough to reach the end of `clearFilters`). Re-ran with 900-char window — still false negative due to template literal content in between. Direct `read_file` at lines 1907–1946 confirmed `clearActivePreset()` is at line 1944, inside `clearFilters()`. All correct.
+
+---
+
+### Step 7 — Commit
+
+```bash
+git add public/index.html
+git commit -m "feat: named view presets — GM Prep, At Risk, Full Pipeline (filter bar pill buttons)"
+# → a34eba8 | 1 file changed, 180 insertions(+)
+```
+
+---
+
+### Step 8 — Merge + Push
+
+```bash
+git checkout develop
+git merge --no-ff feature/named-view-presets -m "Merge feature/named-view-presets into develop"
+git push origin develop
+git push origin feature/named-view-presets
+```
+
+Output:
+```
+develop → ad614ee  (pushed)
+feature/named-view-presets → a34eba8 (pushed)
+```
+
+**Final GitHub state:**
+```
+main     — v2.1.0-rc1 (tagged, stable)
+develop  — ad614ee ← HEAD, synced with origin
+feature/named-view-presets — merged + pushed ✅
+```
+
+---
+
+### What Remains Before v2.2.0-rc1 → main
+
+1. **Merge develop → main as v2.2.0-rc1** + update GitHub release
+2. **Live watsonx credential test** (user action — API key + project ID)
+3. **IBM Challenge submission** — July 22 deadline
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
