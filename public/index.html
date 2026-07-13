@@ -354,6 +354,37 @@
     }
     .btn-ghost:hover { color: var(--cds-interactive-hover); }
 
+    /* ── Named view preset pills ── */
+    .preset-btn {
+      background: none;
+      border: 1px solid var(--cds-border-subtle);
+      color: var(--cds-text-secondary);
+      font-size: 11px;
+      font-family: 'IBM Plex Sans', inherit;
+      font-weight: 400;
+      padding: 2px 10px;
+      height: 24px;
+      cursor: pointer;
+      white-space: nowrap;
+      border-radius: 0;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-btn:hover {
+      background: var(--cds-highlight);
+      border-color: var(--cds-interactive);
+      color: var(--cds-interactive);
+    }
+    .preset-btn.active {
+      background: var(--cds-highlight);
+      border-color: var(--cds-interactive);
+      border-left-width: 3px;
+      color: var(--cds-interactive);
+      font-weight: 600;
+    }
+
     /* ── Pipeline status line (replaces raw scrape log) ── */
     #pipeline-status {
       padding: 8px 24px;
@@ -1038,6 +1069,13 @@
 <!-- Filter bar -->
 <div class="filter-bar">
 
+  <!-- Named view presets -->
+  <label>View</label>
+  <button class="preset-btn" id="preset-gm-prep"     data-preset="gm-prep">📊 GM Prep</button>
+  <button class="preset-btn" id="preset-at-risk"     data-preset="at-risk">⚠ At Risk</button>
+  <button class="preset-btn" id="preset-full"        data-preset="full">🗂 Full Pipeline</button>
+
+  <div class="filter-sep"></div>
   <label>Quarter</label>
   <div class="ms-wrap" id="ms-quarter">
     <div class="ms-trigger" id="ms-quarter-trigger">All <span class="ms-caret">▼</span></div>
@@ -1606,6 +1644,142 @@
   }
 
   // ── Apply filters ──────────────────────────────────────────────────────────
+  // ── Named view presets ─────────────────────────────────────────────────────
+  // Track which preset is active so manual filter changes can clear it.
+  let activePreset = null;
+
+  const PRESETS = {
+    'gm-prep': {
+      label:    '📊 GM Prep',
+      // Current quarter · Best Case · High + Medium confidence · all else open
+      apply() {
+        const cq = currentQuarterLabel();
+        document.querySelectorAll(`.${msConfig.quarter.optClass}`).forEach(cb => {
+          cb.checked = cb.value === cq;
+        });
+        document.getElementById(msConfig.quarter.allId).checked = false;
+        msUpdateTrigger('quarter');
+
+        // Stage — All
+        document.getElementById(msConfig.stage.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.stage.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('stage');
+
+        // Forecast — Best Case only
+        document.querySelectorAll(`.${msConfig.forecast.optClass}`).forEach(cb => {
+          cb.checked = cb.value === 'Best Case';
+        });
+        document.getElementById(msConfig.forecast.allId).checked = false;
+        msUpdateTrigger('forecast');
+
+        // Confidence — High + Medium
+        document.querySelectorAll(`.${msConfig.tier.optClass}`).forEach(cb => {
+          cb.checked = cb.value === 'High' || cb.value === 'Medium';
+        });
+        document.getElementById(msConfig.tier.allId).checked = false;
+        msUpdateTrigger('tier');
+
+        document.getElementById('f-owner').value  = '';
+        document.getElementById('f-amount').value = '';
+        document.getElementById('f-search').value = '';
+      },
+    },
+
+    'at-risk': {
+      label: '⚠ At Risk',
+      // Current quarter · Low confidence only · All forecasts (slipping deals may be Omitted)
+      apply() {
+        const cq = currentQuarterLabel();
+        document.querySelectorAll(`.${msConfig.quarter.optClass}`).forEach(cb => {
+          cb.checked = cb.value === cq;
+        });
+        document.getElementById(msConfig.quarter.allId).checked = false;
+        msUpdateTrigger('quarter');
+
+        // Stage — All
+        document.getElementById(msConfig.stage.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.stage.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('stage');
+
+        // Forecast — All
+        document.getElementById(msConfig.forecast.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.forecast.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('forecast');
+
+        // Confidence — Low only
+        document.querySelectorAll(`.${msConfig.tier.optClass}`).forEach(cb => {
+          cb.checked = cb.value === 'Low';
+        });
+        document.getElementById(msConfig.tier.allId).checked = false;
+        msUpdateTrigger('tier');
+
+        document.getElementById('f-owner').value  = '';
+        document.getElementById('f-amount').value = '';
+        document.getElementById('f-search').value = '';
+      },
+    },
+
+    'full': {
+      label: '🗂 Full Pipeline',
+      // All quarters · All stages · All forecasts · All confidence (incl. Low)
+      apply() {
+        // Quarter — All
+        document.getElementById(msConfig.quarter.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.quarter.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('quarter');
+
+        // Stage — All
+        document.getElementById(msConfig.stage.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.stage.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('stage');
+
+        // Forecast — All
+        document.getElementById(msConfig.forecast.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.forecast.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('forecast');
+
+        // Confidence — All (including Low)
+        document.getElementById(msConfig.tier.allId).checked = true;
+        document.querySelectorAll(`.${msConfig.tier.optClass}`).forEach(cb => { cb.checked = true; });
+        msUpdateTrigger('tier');
+
+        document.getElementById('f-owner').value  = '';
+        document.getElementById('f-amount').value = '';
+        document.getElementById('f-search').value = '';
+      },
+    },
+  };
+
+  function setActivePreset(key) {
+    activePreset = key;
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.preset === key);
+    });
+  }
+
+  function clearActivePreset() {
+    if (!activePreset) return;
+    activePreset = null;
+    document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+  }
+
+  let _applyingPreset = false;
+
+  function applyPreset(key) {
+    const preset = PRESETS[key];
+    if (!preset) return;
+    preset.apply();
+    setActivePreset(key);
+    _applyingPreset = true;
+    applyFilters();
+    _applyingPreset = false;
+  }
+
+  // Wire preset buttons
+  document.querySelectorAll('.preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyPreset(btn.dataset.preset));
+  });
+
   function applyFilters() {
     const quarters  = msGetSelected('quarter');
     const stages    = msGetSelected('stage');
@@ -1614,6 +1788,11 @@
     const owner     = document.getElementById('f-owner').value;
     const amount    = parseFloat(document.getElementById('f-amount').value.replace(/,/g, '')) || 0;
     const search    = document.getElementById('f-search').value.toLowerCase().trim();
+
+    // If user manually triggered applyFilters from a filter control (not from applyPreset),
+    // clear the active preset so the label doesn't lie about what's showing.
+    // We detect this by checking whether we're inside applyPreset's own call stack.
+    if (!_applyingPreset) clearActivePreset();
 
     filtered = allOpportunities.filter(o => {
       if (quarters.size  && !quarters.has(o.closeQuarter))       return false;
@@ -1762,6 +1941,7 @@
     document.getElementById('f-owner').value  = '';
     document.getElementById('f-amount').value = '';
     document.getElementById('f-search').value = '';
+    clearActivePreset();
     applyFilters();
   }
   document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
