@@ -30,6 +30,10 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path');
 const http = require('http');
 
+// Enable WebAuthn platform authenticator (Touch ID / passkey support)
+app.commandLine.appendSwitch('enable-features', 'WebAuthenticationTouchId');
+app.commandLine.appendSwitch('enable-blink-features', 'WebAuthenticationGetAssertionWithoutUI');
+
 // ISC CRM Analytics dashboard — triggers w3id SSO → passkey
 const SF_LOGIN_URL = 'https://ibmsc.lightning.force.com/lightning/page/analytics?wave__assetType=dashboard';
 
@@ -64,7 +68,17 @@ function createSalesforceWindow() {
 
   // Full focus immediately — required for macOS Touch ID sheet to surface
   sfWindow.focus();
-  sfWindow.loadURL(SF_LOGIN_URL);
+
+  // Dump all session cookies to terminal so we can see what was imported
+  sfSession.cookies.get({}).then(cookies => {
+    console.log(`[main] Session has ${cookies.length} cookies total`);
+    cookies.forEach(c => {
+      console.log(`[main]   ${c.domain} | ${c.name} | expires: ${c.expirationDate ? new Date(c.expirationDate * 1000).toISOString() : 'session'}`);
+    });
+    sfWindow.loadURL(SF_LOGIN_URL);
+  }).catch(() => {
+    sfWindow.loadURL(SF_LOGIN_URL);
+  });
 
   sfWindow.webContents.on('did-finish-load', () => {
     const url = sfWindow.webContents.getURL();
