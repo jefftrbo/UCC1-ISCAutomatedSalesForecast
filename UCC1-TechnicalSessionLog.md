@@ -2311,3 +2311,101 @@ feature/named-view-presets — merged + pushed ✅
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 10 (continued) — v2.2.0-rc1 Release to main
+
+**Status:** ✅ Complete  
+**Date:** July 13, 2026  
+**User motivation:** *"we're at a very important inflection point in this app's development and we need to protect our solution"* — release to main locks this build as a stable, tagged, recoverable checkpoint before any further development.
+
+---
+
+### Pre-release checks
+
+**Why:** Before merging to main, confirmed:
+1. `public/index.html` had an external modification flagged by the environment — `git diff public/index.html` returned no output (empty diff) and `git status` showed working tree clean. The external change was already committed or the file matched HEAD. Safe to proceed.
+2. `git log --oneline -5` confirmed `develop` is at `33595ee` (Session 10 log commit — the most recent work).
+3. `git log --oneline origin/main -3` confirmed `main` is at `9f7f149` (`v2.1.0-rc1`) — exactly 5 commits behind develop.
+
+No conflicts, no dirty state. Proceed confirmed.
+
+---
+
+### Release commands
+
+```bash
+git checkout main
+git merge --no-ff develop -m "merge: develop → main — v2.2.0-rc1 (Carbon UX, named presets, diff modals, action bar, GM Ready)"
+git tag v2.2.0-rc1
+git push origin main --tags
+git checkout develop
+```
+
+**Merge stats:**
+```
+5 files changed, 1,910 insertions(+), 125 deletions(-)
+  UCC1-TechnicalSessionLog.md   685 lines added
+  public/index.html           1,258 lines added (net: 1,133 net insertions)
+  server/db.js                   18 lines added
+  server/diffEngine.js           59 lines changed
+  server/index.js                15 lines changed
+```
+
+**Tag pushed:** `v2.2.0-rc1` → `origin`
+
+---
+
+### What v2.2.0-rc1 contains (since v2.1.0-rc1)
+
+**Sessions 6–8 (UX overhaul — `feature/ux-carbon-guided-workflow`):**
+- IBM Carbon Design System tokens + IBM Plex Sans font throughout
+- Model 3 action bar — status-driven, fully re-entrant (no numbered sequence lock)
+- Status chips with last-run timestamps per action
+- GM Ready indicator (header — no-data / needs-action / ready states)
+- Pipeline status line replacing raw scrape terminal output
+- Per-tile clickable diff modals — each category shows affected deals with confidence badges, before/after delta blocks, financials row
+- Timestamp-based snapshots (replaces ISO week labels — supports intra-week testing)
+- Persist `score` + `tier` to opportunities table — diff modals show before→after confidence
+- Step 5 "Baseline & Generate GM Report" confirm modal + Save Baseline warning modal
+
+**Session 10 (`feature/named-view-presets`):**
+- Named view presets: 📊 GM Prep · ⚠ At Risk · 🗂 Full Pipeline
+- Preset active state (left-border accent, bold, Carbon blue highlight)
+- `_applyingPreset` guard — preset badge clears on manual filter change, not on preset's own `applyFilters()` call
+
+---
+
+### Final repository state
+
+```
+main     — a96a024  v2.2.0-rc1 (tagged, pushed) ← production
+develop  — 33595ee  ← HEAD, synced with origin
+feature/ux-carbon-guided-workflow — merged + pushed
+feature/named-view-presets        — merged + pushed
+feature/week-over-week-diff       — merged + pushed
+feature/gm-narrative              — merged + pushed
+feature/watsonx-scoring           — merged + pushed
+```
+
+**Version history:**
+```
+v1.0.0      — rule-based app (HAR → SQLite → PPT)
+v2.1.0-rc1  — watsonx.ai + diff engine + GM narrative
+v2.2.0-rc1  — Carbon UX + guided workflow + named presets ← CURRENT
+```
+
+---
+
+### What remains before v2.2.0 final
+
+1. **Live watsonx credential test** — `WATSONX_ENABLED=true` + API key + project ID → test all 3 AI endpoints. When pass: `git tag v2.2.0 && git push origin v2.2.0`
+2. **Second scrape** (next Monday, w/c 7/14) — second HAR import populates first live diff comparison
+3. **IBM Challenge submission** — deadline July 22, 2026 at 10 AM ET:
+   - Complete `PLAN-3067F00C01E4` on Your Learning at IBM (required education — eligibility gate)
+   - Register entry at `w3.ibm.com/w3publisher/challenge` + select Growth Enablers judging committee
+   - Submit deliverables (app link, demo video/screenshots, README matching submission form prompts)
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
