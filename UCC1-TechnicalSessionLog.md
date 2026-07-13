@@ -2632,3 +2632,71 @@ Zero HAR files. Zero terminal. Zero configuration after day one.
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 12 (continued) — MaaS360 / Electron Code Signing Clarification (July 14, 2026)
+
+**Status:** ✅ Complete  
+**Date:** July 14, 2026
+
+---
+
+### User Question (verbatim)
+
+> *"my BYOD MBP and iPhone are both managed by MaaS360 rules, and I add apps to both from the Apple App Store as well as downloading/installing various apps on to my MBP. That being said, what's so special about what Electron does that you're questioning?"*
+
+---
+
+### What Bob Was Questioning
+
+The concern was **unsigned/unnotarized macOS apps** — macOS Gatekeeper warning:
+
+> *"ISC Sales Forecast.app can't be opened because it is from an unidentified developer."*
+
+On a standard Mac, right-click → Open bypasses this. On some MaaS360-managed devices, MDM profiles can set `assessmentPolicy` to block *any* non-App Store / non-notarized app — removing even the bypass. That was the flag.
+
+---
+
+### Resolution
+
+User's setup clears the concern entirely:
+
+| Factor | What it means |
+|---|---|
+| Already installs non-App Store apps on MBP | MaaS360 is not blocking sideloading |
+| BYOD device (personal MBP) | IBM MDM on BYOD enforces email/VPN/data policies — not application install restrictions (IBM-issued hardware is a different story) |
+| Installs from downloads, not just App Store | Gatekeeper is in "App Store and identified developers" mode — bypass available |
+
+**Bottom line:** Electron produces a standard macOS `.app` bundle — same format as Chrome, VS Code, Slack, Figma (all Electron apps). If a `.dmg` download runs today, our app runs. No special Electron consideration applies.
+
+---
+
+### Code Signing / Notarization — Remaining Note
+
+| Device type | Behavior | Resolution |
+|---|---|---|
+| BYOD MBP (user's) | One Gatekeeper warning on first open — click Open, never asked again | No action needed |
+| IBM-issued MBP under stricter MDM | May silently block unsigned apps | Apple Developer certificate (~$99/yr) or `electron-builder` auto-update distribution |
+
+**Build strategy:** Build unsigned first — validate full `session.webRequest` Salesforce intercept + zero-HAR workflow on BYOD MBP. Code signing is a follow-on step only if Dushyant's device requires it.
+
+**The Electron install blocker is officially removed.**
+
+---
+
+### Updated Open Questions for Group Call
+
+1. ~~IT policy on managed IBM desktops~~ ✅ Resolved — BYOD MBP confirmed to allow sideloading
+2. **Salesforce SSO inside Electron** — w3id/IBM SSO flow inside BrowserWindow (low risk — Electron uses Chromium; smoke test needed)
+3. **watsonx API keys** — per-user vs. shared key; first-run setup wizard resolves for non-developers
+4. **Intranet migration path** — server code unchanged; Electron shell becomes optional once hosting available
+
+---
+
+### Artifacts Updated
+
+- **`UCC1-DeploymentOptionsDiscussion.md`** — MaaS360 exchange + updated open questions appended (full verbatim record for team sharing)
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---

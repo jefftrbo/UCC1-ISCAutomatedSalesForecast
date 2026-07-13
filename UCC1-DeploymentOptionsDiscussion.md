@@ -181,13 +181,67 @@ This also significantly strengthens the IBM watsonx Challenge submission — jud
 
 ---
 
+## Follow-Up Exchange — MaaS360 & Electron Code Signing (verbatim)
+
+### User Question
+
+> *"my BYOD MBP and iPhone are both managed by MaaS360 rules, and I add apps to both from the Apple App Store as well as downloading/installing various apps on to my MBP. That being said, what's so special about what Electron does that you're questioning?"*
+
+### Bob's Response
+
+**What Bob was questioning (and why it doesn't apply):**
+
+The concern was about **unsigned/unnotarized macOS apps** — specifically the macOS Gatekeeper warning:
+
+> *"ISC Sales Forecast.app can't be opened because it is from an unidentified developer."*
+
+On a standard consumer Mac, you can bypass this with right-click → Open. On a **MaaS360-managed device**, some MDM profiles set `assessmentPolicy` to block *any* app that isn't from the App Store or a notarized developer — removing even the right-click bypass. That's what Bob was flagging.
+
+**Why the user's setup clears it entirely:**
+
+| Factor | What it means |
+|---|---|
+| **Already installs non-App Store apps on MBP** | MaaS360 is not blocking sideloading — MDM profile allows it |
+| **BYOD device (personal MBP)** | IBM MDM on BYOD typically enforces email/VPN/data policies, not application install restrictions — that level of control is reserved for IBM-issued hardware |
+| **Installs from downloads, not just App Store** | Gatekeeper is in "App Store and identified developers" mode (not lockdown mode), or bypass is available |
+
+**Bottom line:** If you can download and run a `.dmg` from the internet today, you can run an Electron `.app`. There is no special Electron magic — it produces a standard macOS `.app` bundle, identical in format to Chrome, VS Code, Slack, and Figma. All of those are Electron apps.
+
+---
+
+### The Only Remaining Question: Code Signing / Notarization
+
+Not a blocker for the BYOD MBP — but relevant for Dushyant depending on his device type:
+
+| Device type | Behavior | Resolution |
+|---|---|---|
+| **BYOD MBP (like the user's)** | Gatekeeper shows one warning dialog on first open — click Open, never asked again | No action needed |
+| **IBM-issued MBP under stricter MDM** | May silently block unsigned apps | Sign with Apple Developer certificate (~$99/year) or use `electron-builder` auto-update distribution |
+
+**Practical implication for the build:**
+
+Build the Electron app **unsigned first** — get it working perfectly, validate the `session.webRequest` Salesforce intercept, confirm the full zero-HAR workflow. The unsigned version runs on the BYOD MBP today, which means the full app can be validated before touching a signing certificate. If Dushyant's machine needs notarization, that's a follow-on step — not a prerequisite.
+
+**The Electron install concern is officially off the blocker list.**
+
+---
+
+## Updated Open Questions for the Group
+
+1. ~~**IBM IT policy — Electron install on managed IBM desktops?**~~ ✅ **Resolved** — BYOD MBP confirmed to allow sideloading; unsigned app runs without restriction. IBM-issued hardware may need code signing — assess per device.
+2. **Salesforce SSO inside Electron** — does w3id/IBM SSO flow work inside a non-standard BrowserWindow context? (Low risk — Electron uses Chromium; SSO redirects should work natively. Needs a quick smoke test.)
+3. **watsonx API keys** — per-user keys vs. shared key. First-run setup wizard in Electron shell handles this gracefully for non-developer users.
+4. **Intranet migration path** — server code is unchanged; Electron shell becomes optional once IBM intranet hosting is available. Clean exit.
+
+---
+
 ## Next Steps (Pending Group Decision)
 
 - [ ] Group alignment call (this week) — confirm Electron hybrid direction
-- [ ] IT policy check — can Electron apps install on managed IBM desktops?
-- [ ] Salesforce SSO validation — test w3id login flow inside Electron BrowserWindow
+- [x] ~~IT policy check~~ — resolved via MaaS360 BYOD clarification
+- [ ] Salesforce SSO smoke test — w3id login inside Electron BrowserWindow
 - [ ] HAR/Refresh Data validation — target EOD Wed 7/15 (daily ISC dashboard updates expected)
-- [ ] Begin `feature/electron-shell` branch if group confirms direction
+- [ ] Begin `feature/electron-shell` branch once group confirms direction
 
 ---
 
