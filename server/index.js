@@ -98,12 +98,18 @@ app.post('/api/score-opportunities', async (req, res) => {
     res.write(`Scoring ${rows.length} opportunities...\n`);
 
     const updateStmt = db.prepare(
-      'UPDATE opportunities SET ai_score = ?, ai_rationale = ?, ai_scored_at = ? WHERE id = ?'
+      'UPDATE opportunities SET ai_score = ?, ai_rationale = ?, ai_scored_at = ?, score = ?, tier = ? WHERE id = ?'
     );
+
+    // Pre-compute rules scores so batchScore can use them as anchors AND we persist them
+    const rulesScores = new Map(rows.map(opp => {
+      const { score, tier } = scoreOpportunity(opp);
+      return [opp.id, { score, tier }];
+    }));
 
     const results = await batchScore(
       rows,
-      (opp) => scoreOpportunity(opp).score,  // rule-based score as anchor
+      (opp) => rulesScores.get(opp.id)?.score ?? 0,  // rule-based score as anchor
       (done, total) => {
         if (done % 10 === 0 || done === total) {
           res.write(`  Scored ${done} of ${total}...\n`);
@@ -111,11 +117,12 @@ app.post('/api/score-opportunities', async (req, res) => {
       }
     );
 
-    // Persist results in a single transaction
+    // Persist AI + rules scores in a single transaction
     const now = new Date().toISOString();
     db.transaction(() => {
       results.forEach(r => {
-        updateStmt.run(r.score, r.rationale, now, r.id);
+        const rules = rulesScores.get(r.id) || { score: null, tier: null };
+        updateStmt.run(r.score, r.rationale, now, rules.score, rules.tier, r.id);
       });
     })();
 
