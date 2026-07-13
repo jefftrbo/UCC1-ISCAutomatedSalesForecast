@@ -225,10 +225,19 @@ function postToIngest(payload) {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   startServer();
-  createAppWindow();
 
-  // Small delay so the app window is visible before Salesforce window opens
-  setTimeout(createSalesforceWindow, 1200);
+  // Open Salesforce FIRST and bring it to front immediately.
+  // The macOS Touch ID / passkey sheet must attach to the frontmost window —
+  // if our status dashboard is on top, the system dialog has nowhere to surface
+  // and w3id reports "there was an issue logging in with your passkey."
+  createSalesforceWindow();
+  sfWindow.focus();
+
+  // Status dashboard opens after a short delay so Salesforce has focus at
+  // the moment w3id triggers the passkey prompt
+  setTimeout(() => {
+    createAppWindow();
+  }, 2000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
