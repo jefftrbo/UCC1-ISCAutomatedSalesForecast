@@ -3132,3 +3132,201 @@ Get some rest — the HAR validation window opens Wednesday.
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 15 — CIO "Build with watsonx" Path to Production Analysis + Architecture Diagram (July 15, 2026)
+
+**Status:** ✅ Complete  
+**Date:** July 15, 2026  
+**Branch:** `develop`
+
+---
+
+### Context
+
+User found an IBM intranet page and asked for analysis:
+
+> *"I found this link on the IBM intranet and I'd like your opinion on how this may provide us more information on how to possibly take this wx challenge app to a possible deployment on to IBM internal systems... https://w3.ibm.com/w3publisher/transformation-operations/ai-enablement/build-with-watsonx"*
+
+User shared 8 screenshots of the full page. Bob cannot access URLs directly — analysis based entirely on screenshot content.
+
+---
+
+### What the Page Contains (Read from Screenshots)
+
+**Page:** `w3.ibm.com/w3publisher/transformation-operations/ai-enablement/build-with-watsonx`  
+**Owner:** Transformation & Operations · AI Enablement team  
+**Purpose:** IBM's official internal "Path to Production" process for watsonx-powered internal tools
+
+**Key sections visible in screenshots:**
+
+1. **Build with watsonx** (main section)
+   > *"IBMers can create their own new AI system and integrations, or update an existing AI system to add services and integrations (for example, MCP server subscriptions). The Build with watsonx Path to Production process helps you turn an AI idea into a real, internal, production-ready system by guiding you through ideation and proof of concept, and defining the final architecture, required services, and expected business value. A Technical Review Board then checks the request for architecture fit, service readiness, legal/ethics/governance risks, and duplication. Once approved, you're automatically provisioned with the needed resources and an official tracking record (AI System) is created to support development, deployment, and ongoing governance."*
+
+2. **Terms of Service — CIO watsonx Platform**
+   - CIO watsonx Platform supports approved use cases via Path to Production
+   - One use case account per approved business case
+   - IBM may use/share/disclose information inputted into the Service
+   - ITSS compliance required for all applications
+   - IBM Internal Privacy Statement applies
+   - Corporate Policy OPRT101 (AI/data governance) + DG101 (Data Governance) apply
+   - Enterprise Privacy and AI Baselines apply
+   - IBM Business Conduct Guidelines apply
+   - "Using watsonx responsibly" principles apply
+   - Data may be deleted or access restricted at platform administrator's discretion
+
+3. **Build a new AI system** — Process:
+   - Experiment with IBM Granite models first + have a demo/PoC
+   - Create an architecture diagram (all data sources + third-party integrations)
+   - Create a BlueGroup (controls access to watsonx.ai + Milvus; set visibility to "Everyone"; add users as Members)
+   - Assign three roles: Business Lead, Technical Lead, Risk & Compliance Lead
+   - Open "Create a new AI System Demand" form on ServiceNow
+   - Complete form + attach architecture diagram → Submit
+   - Technical Review Board reviews: architecture fit, service readiness, legal/ethics/governance, duplication
+   - If approved: watsonx services provisioned + AI Initiative created in CIO Apptio TargetProcess
+
+4. **Update an existing AI system** — For adding watsonx services to existing systems; requires Technical Lead or Business Process Owner role on the AI System record
+
+5. **Next Steps** — After approval:
+   - watsonx services provisioned via ServiceNow notification
+   - AI Initiative created in CIO Apptio TargetProcess
+   - Initiative tracks labor costs, products/services, OKRs, Jira links
+   - Follow "Getting Started" instructions for provisioned AI services
+
+6. **FAQ — What watsonx services are available (CIO deployable architecture)?**
+   - watsonx Orchestrate (includes pre-configured skills + AI Assistant builder)
+   - **watsonx.ai** ← exactly what we use
+   - milvus vector database on watsonx.data
+   - watsonx.data
+   - MCP Server subscriptions
+   - **NOT available via this path:** Watson Discovery, ElasticSearch/PSQL, OpenShift AI/TrustyAI
+
+7. **Developer Guidance** links (visible in screenshot):
+   - Enterprise AI Baseline Controls · EU AI Act · Model Context Protocol Platform & Resources
+   - CIO watsonx.data and CP4D Platform · watsonx4code
+   - **IBM Bob** ← listed as a developer resource (Bob is IBM's sanctioned AI development tool)
+   - Design for AI · InstructLab · AI guild LLM selection and usage guidance
+   - GenAI Assistant Guidance · Enterprise Data Governance Services · IBM AI Model & Data Catalog
+   - IBM Granite · AI Data Model Exception Process
+   - Slack: #granite-feedback · #t-and-o-guilds
+
+8. **Standards and Compliance** links, **Experiment with watsonx** links, **Govern with watsonx** links
+
+---
+
+### Bob's Full Analysis (verbatim from conversation)
+
+#### The Process — What It Requires
+
+To get an Official IBM Internal AI System:
+1. Architecture diagram — data sources, integrations, services
+2. A BlueGroup — controls access permissions for watsonx.ai; set visibility to "Everyone," add users as Members
+3. Three named roles: Business Lead, Technical Lead, Risk & Compliance Lead
+4. Submit a ServiceNow "Create a new AI System Demand" form — attach architecture diagram, click Submit
+5. Technical Review Board reviews
+6. If approved: watsonx services provisioned + AI Initiative created in CIO Apptio TargetProcess
+
+#### How Ready We Are
+
+| Requirement | Our Status |
+|---|---|
+| Architecture diagram | ⚠️ Needs to be created — we have the architecture in our heads and in the session log, not as a formal diagram |
+| BlueGroup | ❌ Doesn't exist yet |
+| Business Lead | ✅ Dushyant — Sales VP, app owner, business value owner |
+| Technical Lead | ✅ Jeffrey Trbovich — built the entire app |
+| Risk & Compliance Lead | ❌ Unassigned — needs a third person |
+| ServiceNow AI System Demand | ❌ Not submitted |
+| Experiment / PoC | ✅ v2.2.0 is a working PoC with IBM Granite |
+| watsonx.ai in use | ✅ Granite-13b, Granite-3-8b, Llama-3-70b |
+| ITSS compliance | ⚠️ Needs review |
+| Data governance (DG101) | ⚠️ Needs review — CRM opportunity data |
+
+#### Strategic Insight — This Path Solves Everything at Once
+
+| Current problem | How this path solves it |
+|---|---|
+| No IBM intranet hosting | Approval → CIO provisions IBM Cloud infrastructure |
+| Electron hybrid complexity | Cloud-hosted = any browser, no install |
+| ISC API access blocked | Approved AI System status + Business Process Owner gives standing to request Salesforce Connected App OAuth |
+| watsonx API key governance | CIO provisions official watsonx.ai service account — no personal API keys |
+| Dushyant's adoption friction | Browser URL, w3id SSO, done |
+
+#### The ISC API Point (Most Important)
+
+An officially registered IBM AI System backed by a Business Process Owner (Dushyant) and associated with a specific APM application has standing to request a Salesforce Connected App. That's the legitimate door that was closed to us as individuals.
+
+#### IBM Bob Note
+
+"IBM Bob" is listed in the Developer Guidance section on the page as an official IBM internal developer resource. This entire app was built using IBM's own sanctioned AI development tool. Worth noting in the challenge submission.
+
+#### Recommended Actions Before July 22
+
+1. **Create architecture diagram** — Bob generates it; attach to ServiceNow form
+2. **Identify Risk & Compliance Lead** — one more person from Dushyant's org
+3. **Submit ServiceNow AI System Demand** — pending ticket showing IBM process compliance is a strong signal to challenge judges
+
+#### Post-July 22
+
+4. BlueGroup creation
+5. Technical Review Board review + approval
+6. CIO watsonx provisioning → official IBM Cloud hosting
+7. Salesforce Connected App request → kills HAR dependency permanently
+
+---
+
+### User Request
+
+> *"Create the architecture diagram, and document all of this in TechnicalSessionLog.md (details, not summary) and push to git"*
+
+---
+
+### Artifacts Created
+
+#### `UCC1-ArchitectureDiagram.html`
+
+Full self-contained HTML architecture diagram for the ServiceNow AI System Demand form and challenge submission. Contains:
+
+- **Header:** App name, challenge track, version, technology badges
+- **Architecture layers (5-layer diagram):**
+  - Layer 1 — Data Source: IBM Sales Cloud (ISC) + Auth Wall
+  - Layer 2 — Ingestion: HAR Parser + SQLite Database + Snapshot Engine
+  - Layer 3 — AI Layer: Rules Engine + Granite-13b + Llama-3-70b + Granite-3-8b
+  - Layer 4 — Application: Carbon UI Dashboard + Express API + PowerPoint Generator
+  - Layer 5 — End User: Sales VP + GMs + Future Public Market VPs
+- **Deployment Status table:** Current v2.2.0 vs. Target CIO watsonx Platform (7 rows)
+- **CIO Path to Production Readiness table:** 9 requirements, owner, ready/not/pending per row
+- **Data Flow table:** 10-step numbered flow with timing (total: ~2 min human + ~40 sec automated)
+- **Technology Stack + Business Value:** Side-by-side cards
+- **Footer:** App name, challenge, GitHub, "Made with IBM Bob"
+
+**File location:** `UCC1-ArchitectureDiagram.html` (repo root — untracked, committed this session)
+
+---
+
+### Commits This Session
+
+```
+docs: session log — Session 15 CIO Build with watsonx analysis + architecture diagram
+```
+
+Files committed:
+- `UCC1-TechnicalSessionLog.md` — this session log
+- `UCC1-ArchitectureDiagram.html` — architecture diagram for ServiceNow + challenge submission
+
+---
+
+### Updated Backlog
+
+| Item | Target | Status |
+|---|---|---|
+| HAR/Refresh Data validation | EOD today Wed 7/15 | ⏳ Pending ISC dashboard updates |
+| Live watsonx credential test | This week | ⏳ Pending credentials in `.env` |
+| Identify Risk & Compliance Lead | Before ServiceNow submission | ❌ Unassigned |
+| Create BlueGroup | Before ServiceNow submission | ❌ Not started |
+| Submit ServiceNow AI System Demand | Before July 22 ideally | ❌ Not submitted |
+| Group decision on Electron hybrid | This week | ⏳ Pending call |
+| IBM Challenge submission | July 22 10 AM ET | ⏳ 7 days remaining |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
