@@ -3326,6 +3326,35 @@ Files committed:
 | Group decision on Electron hybrid | This week | ⏳ Pending call |
 | IBM Challenge submission | July 22 10 AM ET | ⏳ 7 days remaining |
 
+### What Was Just Delivered (Bob's closing summary — verbatim)
+
+**`UCC1-ArchitectureDiagram.html`** — open it in any browser, it's fully self-contained. Ready to attach to the ServiceNow AI System Demand form and/or include in the challenge submission package.
+
+**`UCC1-TechnicalSessionLog.md`** — full Session 15 logged with every screenshot detail verbatim, complete analysis, and the strategic insight table.
+
+---
+
+### The Three Things That Would Make the Most Impact Before July 22
+
+| Priority | Action | Time required |
+|---|---|---|
+| 1 | **Identify Risk & Compliance Lead** — one person from Dushyant's org | 1 Slack message |
+| 2 | **Submit ServiceNow AI System Demand** — attach `UCC1-ArchitectureDiagram.html` | 20 minutes |
+| 3 | **IBM Challenge submission** — needs prep; Bob can help draft it | TBD |
+
+The ServiceNow submission in particular is worth doing *before* July 22 even if the TRB review won't complete by then — a pending ticket demonstrates you're following IBM's official governance process, which is exactly what challenge judges want to see from a "Growth Enablers" entry.
+
+---
+
+### Session Log Rule Reaffirmed (July 15, 2026)
+
+> *"I think I confused you when I told you that I want every interaction captured just as I write it and you respond. When I told you that I don't want you to summarize, I think that you took me literally and that's why our end of session doesn't contain your 'summary' of in this case, 'What was just delivered' and 'The three things that would make the most impact before July 22'... that 'summary' of what's next is hugely important."*
+> — User, verbatim
+
+**Rule clarified:** "No summarization" means don't collapse technical detail into vague one-liners. It does NOT mean omit the closing "what was delivered / what's next" block. That closing block is the most actionable part of every session — it's what a teammate reads in 30 seconds to get up to speed. It must always be included verbatim at the end of every session entry going forward.
+
+---
+
 ### How to Resume
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
