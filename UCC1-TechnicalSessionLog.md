@@ -3793,3 +3793,132 @@ That's the adoption argument. The app isn't wrong — it's more complete than IS
 
 Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHERE clause, quick build.
 ---
+
+  ## Session 19 — "Match ISC View" Toggle + v2.2.1 Release (July 16, 2026) {
+
+    ### Resume
+    Resumed from Session 18 closing note. User said "continue." No ambiguity — build the toggle and ship it.
+
+    ### Branch Created
+    ```
+    git checkout -b feature/match-isc-view
+    # from develop @ bb68106
+    ```
+
+    ### Design Decisions (reaffirmed from Session 18 analysis)
+    - **Server unchanged.** `GET /api/opportunities` continues to return all 211 rows. The toggle is purely client-side.
+    - **Filter condition:** `total_opportunity_amount <= 0` excludes 5 records (4×$0, 1×$-1). This gets us to 206, close enough to 200; the remaining 6-record gap is caused by `ClassificationMapped`, `IsIGFFinancing`, `MidasIndc`, `ReportingProductFamily` fields not in the HAR payload — cannot be filtered without schema changes.
+    - **Position:** Between Search field and Clear Filters button (end of filter bar).
+    - **Styling:** `.isc-toggle-wrap` span, Carbon-consistent (`accent-color: var(--cds-interactive)`, 12px label, no text-transform).
+    - **`clearFilters()` must reset it** — unchecks `f-match-isc` alongside owner/amount/search resets.
+    - **`_applyingPreset` not touched** — toggle wires directly to `applyFilters()` same as all other filter controls.
+    - **Version:** `v2.2.1` (patch — data fidelity / display fix, not a new feature).
+
+    ### Pre-Edit Reconnaissance
+    Read these exact line ranges before touching code (zero speculation):
+    - `public/index.html` 1070–1137: filter bar HTML — confirmed Search at 1132, Clear Filters at 1135
+    - `public/index.html` 1780–1824: `applyFilters()` — filter chain ends at line 1805
+    - `public/index.html` 1900–1980: `clearFilters()` at 1907, event listeners at 1947–1962
+    - `public/index.html` 2795–2810: `APP_VERSION = '2.2.0'` at line 2801 (post-CSS-addition: 2813)
+
+    ### Changes Made — `public/index.html` (one apply_diff, 6 hunks)
+
+    #### Hunk 1 — CSS (after `.filter-count`, ~line 235)
+    Added `.isc-toggle-wrap` block: flex row, 5px gap, 14×14px checkbox with `accent-color: var(--cds-interactive)`, 12px label with `font-weight: 500`, no text-transform/letter-spacing override.
+
+    #### Hunk 2 — Filter bar HTML (between Search input and Clear Filters button, ~line 1131)
+    ```html
+    <div class="filter-sep"></div>
+    <span class="isc-toggle-wrap">
+      <input type="checkbox" id="f-match-isc" />
+      <label for="f-match-isc">Match ISC View</label>
+    </span>
+    ```
+
+    #### Hunk 3 — `applyFilters()` filter chain (~line 1805)
+    Added as the last condition before `return true`:
+    ```js
+    if (document.getElementById('f-match-isc').checked &&
+        (o.total_opportunity_amount || 0) <= 0) return false;
+    ```
+    Placement rationale: last check — only runs when all prior checks passed.
+
+    #### Hunk 4 — `clearFilters()` reset block (~line 1943)
+    ```js
+    document.getElementById('f-match-isc').checked = false;
+    ```
+    Added alongside the existing `f-owner`, `f-amount`, `f-search` resets.
+
+    #### Hunk 5 — Event listener (~line 1962)
+    ```js
+    document.getElementById('f-match-isc').addEventListener('change', applyFilters);
+    ```
+    Placed immediately after `f-search`'s `input` listener.
+
+    #### Hunk 6 — `APP_VERSION` bump
+    ```js
+    const APP_VERSION = '2.2.1';   // was '2.2.0'
+    ```
+
+    ### Validation
+    ```bash
+    grep -n "f-match-isc\|APP_VERSION\|Match ISC" public/index.html
+    ```
+    Output confirmed all 6 touch-points present:
+    - Line 235:  CSS comment `/* Match ISC View toggle */`
+    - Line 1159–1160: checkbox + label HTML
+    - Line 1834: filter condition in `applyFilters()`
+    - Line 1974: `checked = false` in `clearFilters()`
+    - Line 1994: `addEventListener('change', applyFilters)`
+    - Line 2833: `APP_VERSION = '2.2.1'`
+
+    ### Git Commands Executed
+    ```bash
+    git add public/index.html
+    git commit -m "feat: add Match ISC View toggle (v2.2.1) — excludes Amount <= 0 records to align with ISC dashboard 200-record baseline"
+    # [feature/match-isc-view 1d8964c]
+
+    git checkout develop
+    git merge --no-ff feature/match-isc-view -m "merge: feature/match-isc-view → develop (Match ISC View toggle, v2.2.1)"
+    # Merge made by the 'ort' strategy. 1 file changed, 36 insertions(+), 4 deletions(-)
+
+    git checkout main
+    git merge --no-ff develop -m "release: v2.2.1 — Match ISC View toggle, excludes Amount <= 0 records"
+    # Merge made by the 'ort' strategy. 13 files changed, 5245 insertions(+), 86 deletions(-)
+
+    git tag -a v2.2.1 -m "v2.2.1 — Match ISC View toggle: excludes Amount <= 0 records to align with ISC dashboard 200-record baseline"
+
+    git push origin main
+    git push origin develop
+    git push origin feature/match-isc-view
+    git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — f24038c  release: v2.2.1 (tagged v2.2.1) ← current production stable
+    develop — fab57d2  merge: feature/match-isc-view → develop
+    feature/match-isc-view — 1d8964c (pushed to origin)
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1
+    ```
+
+    ### What Was Delivered
+    - **"Match ISC View" checkbox** in the filter bar (between Search and Clear Filters). When checked, hides all opportunities where `total_opportunity_amount <= 0`. Unchecked by default. Resets with Clear Filters. Wired to `applyFilters()` same as all other controls.
+    - **v2.2.1 shipped to main** — tagged, pushed, live on GitHub.
+    - **Talking point for Dushyant / VPs / judges:** "Check 'Match ISC View' and the count drops from 211 to ~206, accounting for the $0 and negative-amount records ISC suppresses. The remaining ~6-record gap is driven by ISC-side field classifications (IGF financing, MidasIndc, product family) that aren't present in the exported dataset — not a bug, just reporting scope."
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete (eligibility gate) |
+    | 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 3 | Review `UCC1-ChallengeSubmissionDraft.html` — edit and confirm accuracy | ⏳ Pending |
+    | 🟡 4 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+    | 🟡 5 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟡 6 | Submit ServiceNow AI System Demand — attach `UCC1-ArchitectureDiagram.html` | ⚠ Not submitted |
+    | 🟢 7 | Live watsonx credential test — `WATSONX_ENABLED=true` + API key + project ID | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
