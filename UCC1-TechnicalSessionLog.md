@@ -3359,3 +3359,115 @@ The ServiceNow submission in particular is worth doing *before* July 22 even if 
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 16 — IBM watsonx Challenge Submission First Draft (July 15, 2026)
+
+**Status:** ✅ Complete  
+**Date:** July 15, 2026  
+**Branch:** `develop`
+
+---
+
+### Context
+
+User request (verbatim):
+
+> *"create the first draft of the IBM challenge submission"*
+
+Prior to writing a single word, Bob read:
+- `UCC1-TechnicalSessionLog.md` lines 1041–1092 — Session 4 compliance audit findings and all four judging criteria alignment scores
+- `isc-automated-sales-forecast-project-narrative.html` — existing project narrative (dated July 14, pre-dates Sessions 11–15, status table out of date)
+- `output/2026 IBMer Challenge_Official Rules.pdf` — referenced from Session 4 findings (not re-read; Session 4 audit findings used)
+
+---
+
+### What Was Built
+
+**`UCC1-ChallengeSubmissionDraft.html`** — full self-contained HTML document structured as a copy/paste-ready submission form. Contains:
+
+#### Header Block
+- App name, tagline ("from 90 minutes of manual work to under 5 minutes, every week")
+- Submitter, Business Owner, Track, Version, Deadline
+
+#### Draft Warning Banner
+- Flags [REVIEW] items that need confirmation before portal entry
+- Notes character counts are estimates — verify against portal field limits
+
+#### Judging Criteria Alignment Grid (4 criteria, scored)
+- **Practicality & Coherence:** Very Strong — real tool, 206 live deals, end-to-end working
+- **Effectiveness & Efficiency:** Very Strong — 94% time reduction, quantified
+- **Design & Usability:** Strong — Carbon Design System, action bar, named presets
+- **Creativity & Innovation:** Strong — HAR auth workaround, filter-scoped AI, live-vs-baseline diff, built with IBM Bob
+
+#### Submission Form Fields (copy/paste ready)
+1. **Project Title** — ISC Automated Sales Forecast
+2. **One-Line Description** — ~190 chars elevator pitch
+3. **Problem Statement** — ~1,100 chars. Covers: manual 90-min weekly process, no change detection, IBM's own auth wall blocking 7 programmatic approaches
+4. **Solution Description** — ~2,200 chars. Covers: HAR ingestion, Granite-13b scoring, Llama-3-70b narrative, Granite-3-8b delta summary, PPT generation, Carbon UI, IBM Bob co-development
+5. **Business Value** — ~1,200 chars. Covers: 94% time reduction, 75 hrs/yr per VP, quality improvement, scale path, financial forecasting intelligence
+6. **IBM watsonx Usage** — ~1,100 chars. Each of 3 models described with specific function, prompt strategy, and graceful fallback
+7. **Innovation** — ~1,400 chars. Five innovation points: auth wall workaround, filter-scoped narratives, live-vs-baseline diff, re-entrant workflow, built with IBM Bob
+8. **Deployment & Path Forward** — ~1,100 chars. Current state → CIO ServiceNow Path to Production → Salesforce Connected App OAuth → scale
+9. **Team** — Jeffrey Trbovich (Technical Lead), Dushyant Patel (Business Lead), IBM Bob (co-developer). [REVIEW] Risk & Compliance Lead TBD
+10. **GitHub/Demo** — repo URL, v2.2.0 tag, session log reference. [REVIEW] demo video not yet recorded
+
+#### Key Numbers Stats Row
+- 90→5 minutes · 206 opportunities · 3 watsonx models · 15 sessions with IBM Bob
+
+#### Pre-Submission Checklist (7 items, status per item)
+| # | Action | Status |
+|---|---|---|
+| 1 | Complete PLAN-3067F00C01E4 on Your Learning (§8-a eligibility gate) | ❌ Must complete |
+| 2 | Register at challenge portal + select Growth Enablers + mark for judging | ❌ Must complete |
+| 3 | Identify Risk & Compliance Lead | ❌ Unassigned |
+| 4 | Submit ServiceNow AI System Demand + attach architecture diagram | ⚠ Not submitted |
+| 5 | Live watsonx credential test | ⚠ Pending |
+| 6 | Record demo video (3–4 min screen recording) | ⚠ Not recorded |
+| 7 | Confirm no IBM Confidential data in repo | ✅ Confirmed |
+
+#### Technology Stack Pills
+watsonx.ai · granite-13b-instruct-v2 · granite-3-8b-instruct · llama-3-70b-instruct · IBM Bob · Carbon Design System · IBM Plex Sans · Node.js · Express · SQLite · pptxgenjs · Salesforce CRM Analytics · GitHub
+
+---
+
+### Key Writing Decisions
+
+1. **Problem statement leads with the auth wall story** — the 7 failed programmatic attempts are not a failure, they're evidence of how hard the problem is and why the ingenuity of the HAR solution matters. Judges need to understand the constraint before they can appreciate the workaround.
+
+2. **IBM Bob named explicitly as a team member** — the official IBM internal "Build with watsonx" page lists IBM Bob as a developer resource. Naming Bob as co-developer is both accurate and signals that this submission used IBM's own sanctioned tooling throughout.
+
+3. **CIO Path to Production referenced in deployment section** — demonstrates awareness of IBM's official AI governance process and active intent to follow it. A challenge about "Growth Enablers" should show a credible path to scaled internal adoption.
+
+4. **Filter-scoped narratives called out specifically** — this is the most differentiated AI capability in the app. Most AI integrations generate one report for all data. Scoping the narrative to the VP's current filter view is non-obvious and worth highlighting explicitly.
+
+5. **Graceful fallback documented** — the app is fully functional whether or not watsonx credentials are live. This is important because the live credential test is still pending — the submission should not be blocked by that.
+
+6. **Demo video flagged as [REVIEW]** — not yet recorded but strongly recommended for the Design & Usability criterion. A 3–4 minute screen recording showing the full workflow (HAR upload → scoring → narrative → diff modal → PPT download) would significantly strengthen the submission.
+
+---
+
+### What Was Just Delivered
+
+**`UCC1-ChallengeSubmissionDraft.html`** — open in any browser. All submission form fields are copy/paste ready. The document is self-contained and shareable with co-collaborators for review before portal entry.
+
+**`UCC1-TechnicalSessionLog.md`** — Session 16 logged in full.
+
+---
+
+### What's Next — Prioritized Before July 22
+
+| Priority | Action | Owner | Status |
+|---|---|---|---|
+| 🔴 1 | **Complete PLAN-3067F00C01E4** on Your Learning at IBM — hard eligibility gate | Jeffrey Trbovich | ❌ Must complete |
+| 🔴 2 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | Jeffrey Trbovich | ❌ Must complete |
+| 🟡 3 | **Review submission draft** — `UCC1-ChallengeSubmissionDraft.html` — edit any field content, confirm accuracy | Jeffrey + Dushyant | ⏳ Pending review |
+| 🟡 4 | **Record demo video** — 3–4 min screen recording, full workflow | Jeffrey Trbovich | ⚠ Not recorded |
+| 🟡 5 | **Identify Risk & Compliance Lead** | Dushyant Patel | ❌ Unassigned |
+| 🟡 6 | **Submit ServiceNow AI System Demand** — attach architecture diagram | Jeffrey + Dushyant | ⚠ Not submitted |
+| 🟢 7 | **Live watsonx credential test** — WATSONX_ENABLED=true + API key + project ID | Jeffrey Trbovich | ⏳ Pending |
+| 🟢 8 | **HAR/Refresh Data validation** — ISC ops daily updates expected | Jeffrey Trbovich | ⏳ Pending |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
