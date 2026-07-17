@@ -1093,9 +1093,12 @@
 
   <!-- Named view presets -->
   <label>View</label>
-  <button class="preset-btn" id="preset-gm-prep"     data-preset="gm-prep">📊 GM Prep</button>
-  <button class="preset-btn" id="preset-at-risk"     data-preset="at-risk">⚠ At Risk</button>
-  <button class="preset-btn" id="preset-full"        data-preset="full">🗂 Full Pipeline</button>
+  <button class="preset-btn has-tip" id="preset-gm-prep" data-preset="gm-prep"
+    data-tip="Current quarter · Best Case forecast · High &amp; Medium confidence. The default view for your weekly GM pipeline review.">📊 GM Prep</button>
+  <button class="preset-btn has-tip" id="preset-at-risk" data-preset="at-risk"
+    data-tip="Current quarter · All forecasts · Low confidence only. Deals most likely to slip — review these first.">⚠ At Risk</button>
+  <button class="preset-btn has-tip" id="preset-full" data-preset="full"
+    data-tip="All quarters · All stages · All forecasts · All confidence levels. The complete unfiltered dataset.">🗂 Full Pipeline</button>
 
   <div class="filter-sep"></div>
   <label>Quarter</label>
@@ -1160,7 +1163,6 @@
     <label for="f-match-isc">Match ISC View</label>
   </span>
 
-  <button class="btn-ghost" id="btn-clear-filters">Clear filters</button>
   <span class="filter-count" id="filter-count"></span>
 </div>
 
@@ -1879,7 +1881,7 @@
           <h2>${allOpportunities.length === 0 ? 'No data yet' : 'No results match your filters'}</h2>
           <p>${allOpportunities.length === 0
             ? 'Click <strong>Refresh Data</strong> to load the latest opportunities.'
-            : 'Try adjusting or <button class="btn-ghost" onclick="clearFilters()">clearing the filters</button>.'}</p>
+            : 'Try adjusting your filters or click <strong>🗂 Full Pipeline</strong> to see all records.'}</p>
         </div></td></tr>`;
       return;
     }
@@ -1933,49 +1935,6 @@
     }
   }
 
-  // ── Clear filters ───────────────────────────────────────────────────────────
-  function clearFilters() {
-    // Quarter resets to current quarter only (not "All")
-    const cq = currentQuarterLabel();
-    document.querySelectorAll(`.${msConfig.quarter.optClass}`).forEach(cb => {
-      cb.checked = cb.value === cq;
-    });
-    const qAllCb = document.getElementById(msConfig.quarter.allId);
-    if (qAllCb) qAllCb.checked = false;
-    msUpdateTrigger('quarter');
-
-    // Stage resets to All
-    ['stage'].forEach(key => {
-      const cfg = msConfig[key];
-      const allCb = document.getElementById(cfg.allId);
-      if (allCb) allCb.checked = true;
-      document.querySelectorAll(`.${cfg.optClass}`).forEach(cb => { cb.checked = true; });
-      msUpdateTrigger(key);
-    });
-
-    // Forecast resets to Best Case only
-    document.querySelectorAll(`.${msConfig.forecast.optClass}`).forEach(cb => {
-      cb.checked = cb.value === 'Best Case';
-    });
-    const fcAllCb = document.getElementById(msConfig.forecast.allId);
-    if (fcAllCb) fcAllCb.checked = false;
-    msUpdateTrigger('forecast');
-
-    // Confidence resets to High + Medium only
-    document.querySelectorAll(`.${msConfig.tier.optClass}`).forEach(cb => {
-      cb.checked = cb.value === 'High' || cb.value === 'Medium';
-    });
-    const tierAllCb = document.getElementById(msConfig.tier.allId);
-    if (tierAllCb) tierAllCb.checked = false;
-    msUpdateTrigger('tier');
-    document.getElementById('f-owner').value     = '';
-    document.getElementById('f-amount').value    = '';
-    document.getElementById('f-search').value    = '';
-    document.getElementById('f-match-isc').checked = false;
-    clearActivePreset();
-    applyFilters();
-  }
-  document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
 
   // Owner + search listeners
   document.getElementById('f-owner').addEventListener('change', applyFilters);
@@ -2830,7 +2789,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.2.1';
+  const APP_VERSION = '2.2.2';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
