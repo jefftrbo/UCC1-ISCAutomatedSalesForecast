@@ -4033,3 +4033,121 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
   }
+
+  ## Session 21 — Header Select-All Checkbox + v2.2.3 Release (July 17, 2026) {
+
+    ### Context / User Request
+    User proposed a "select all" toggle at the top of the checkbox column so that after applying filters, the user can select all visible rows in one click. Analysis delivered before building:
+    - Option A: header <th> checkbox (tri-state: checked / indeterminate / unchecked), remove Select All + Clear All from action bar, keep 🟢 High with tooltip — recommended
+    - Option B: header checkbox alongside existing buttons — redundant, not recommended
+    User chose Option A and also requested tooltips on the Clear All and 🟢 High buttons. Since Clear All is being removed, tooltip goes on 🟢 High only.
+
+    ### Branch Created
+    ```
+    git checkout -b feature/th-select-all
+    # from develop @ d269a9f
+    ```
+
+    ### Design — Tri-State Header Checkbox
+    Three states driven by filtered selection count vs. filtered total:
+    - All filtered selected   → checked = true,  indeterminate = false
+    - Some filtered selected  → checked = false, indeterminate = true  (dash)
+    - None selected           → checked = false, indeterminate = false
+    Clicking checked → deselects all filtered. Clicking unchecked → selects all filtered.
+    State updates every time renderTable() calls updateSelectionSummary() (which now calls updateThCheckbox()).
+
+    ### Changes Made — `public/index.html` (one apply_diff, 7 hunks)
+
+    #### Hunk 1 — CSS (~line 884)
+    Added `#th-select-all` rule: 15×15px, pointer cursor, accent-color #0043ce, display:block, margin:0 auto (centres it in the 36px sticky column).
+
+    #### Hunk 2 — `<th>` header cell (~line 1224)
+    Was: `<th style="width:36px"></th>`
+    Now: `<th style="width:36px;text-align:center"><input type="checkbox" id="th-select-all" title="Select / deselect all visible rows" /></th>`
+
+    #### Hunk 3 — Action bar: remove Select All + Clear All, add tooltip to High (~line 1073)
+    Deleted `btn-select-all` and `btn-clear-all` buttons.
+    Added `class="has-tip"` and `data-tip="Selects all High confidence opportunities in the current filtered view."` to `btn-select-high`.
+
+    #### Hunk 4 — `updateSelectionSummary()`: call updateThCheckbox() (~line 1487)
+    Added `updateThCheckbox();` immediately after the selection-summary text is set.
+
+    #### Hunk 5 — New `updateThCheckbox()` function (~line 1503)
+    ```js
+    function updateThCheckbox() {
+      const cb = document.getElementById('th-select-all');
+      if (!cb) return;
+      const total    = filtered.length;
+      const selected = filtered.filter(o => o.selected).length;
+      if (total === 0 || selected === 0) {
+        cb.checked = false; cb.indeterminate = false;
+      } else if (selected === total) {
+        cb.checked = true;  cb.indeterminate = false;
+      } else {
+        cb.checked = false; cb.indeterminate = true;
+      }
+    }
+    ```
+
+    #### Hunk 6 — Event listeners: replace btn-select-all/btn-clear-all with th-select-all (~line 2046)
+    Deleted:
+      `document.getElementById('btn-select-all').addEventListener('click', () => setSelected(filtered, true));`
+      `document.getElementById('btn-clear-all').addEventListener('click', () => setSelected(allOpportunities, false));`
+    Added:
+      `document.getElementById('th-select-all').addEventListener('change', function () { setSelected(filtered, this.checked); });`
+
+    #### Hunk 7 — APP_VERSION bump
+    `const APP_VERSION = '2.2.3';`  // was '2.2.2'
+
+    ### Validation
+    ```bash
+    grep -n "btn-select-all\|btn-clear-all\|th-select-all\|updateThCheckbox\|btn-select-high\|APP_VERSION" public/index.html
+    ```
+    Output: zero btn-select-all / btn-clear-all references. th-select-all at CSS (889), HTML (1232), updateThCheckbox call (1496), function (1503), listener (2072). btn-select-high has-tip at 1081. APP_VERSION = '2.2.3' at 2817.
+
+    ### Git Commands Executed
+    ```bash
+    git add public/index.html
+    git commit -m "feat: header checkbox select-all (tri-state), remove Select All/Clear All buttons, add tooltip to High button (v2.2.3)"
+    # [feature/th-select-all 3939db0] 1 file changed, 34 insertions(+), 9 deletions(-)
+
+    git checkout develop
+    git merge --no-ff feature/th-select-all -m "merge: feature/th-select-all → develop (v2.2.3)"
+
+    git checkout main
+    git merge --no-ff develop -m "release: v2.2.3 — header select-all checkbox, remove Select All/Clear All, High tooltip"
+
+    git tag -a v2.2.3 -m "v2.2.3 — tri-state header checkbox replaces Select All/Clear All buttons; tooltip on High button"
+
+    git push origin main && git push origin develop && git push origin feature/th-select-all && git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — 379c241  release: v2.2.3 (tagged v2.2.3) ← current production stable
+    develop — 0515c0e  merge: feature/th-select-all → develop
+    feature/th-select-all — 3939db0 (pushed to origin)
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1 · v2.2.2 · v2.2.3
+    ```
+
+    ### What Was Delivered
+    - **Tri-state header checkbox** in the sticky checkbox `<th>`. Unchecked = none selected. Indeterminate (—) = some selected. Checked = all filtered rows selected. Clicking checked→deselects all filtered; clicking unchecked→selects all filtered. State is recalculated on every renderTable() call via updateThCheckbox().
+    - **"Select All" and "Clear All" action-bar buttons removed** — replaced entirely by the header checkbox. Action bar is now cleaner.
+    - **🟢 High button tooltip added** — "Selects all High confidence opportunities in the current filtered view." Uses existing has-tip infrastructure.
+    - **v2.2.3 shipped to main** — tagged, pushed, live on GitHub.
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete (eligibility gate) |
+    | 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 3 | Review `UCC1-ChallengeSubmissionDraft.html` — edit and confirm accuracy | ⏳ Pending |
+    | 🟡 4 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+    | 🟡 5 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟡 6 | Submit ServiceNow AI System Demand — attach `UCC1-ArchitectureDiagram.html` | ⚠ Not submitted |
+    | 🟢 7 | Live watsonx credential test — `WATSONX_ENABLED=true` + API key + project ID | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
