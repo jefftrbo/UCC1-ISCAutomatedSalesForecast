@@ -885,6 +885,14 @@
       cursor: pointer;
       accent-color: #0043ce;
     }
+    /* Header select-all checkbox */
+    #th-select-all {
+      width: 15px; height: 15px;
+      cursor: pointer;
+      accent-color: #0043ce;
+      display: block;
+      margin: 0 auto;
+    }
 
     /* ── Confidence score ── */
     .score-cell { text-align: center; width: 120px; min-width: 120px; max-width: 120px; }
@@ -1070,9 +1078,9 @@
       data-tip="Advanced: manually save a pipeline baseline outside the normal workflow. Opens a warning explaining the impact on your week-over-week diff.">
       &#x1F4CC; Save Baseline
     </button>
-    <button class="btn-secondary" id="btn-select-all"  style="height:28px;padding:0 12px;font-size:12px;">Select All</button>
-    <button class="btn-secondary" id="btn-clear-all"   style="height:28px;padding:0 12px;font-size:12px;">Clear All</button>
-    <button class="btn-secondary" id="btn-select-high" style="height:28px;padding:0 12px;font-size:12px;">&#x1F7E2; High</button>
+    <button class="btn-secondary has-tip" id="btn-select-high"
+      style="height:28px;padding:0 12px;font-size:12px;"
+      data-tip="Selects all High confidence opportunities in the current filtered view.">&#x1F7E2; High</button>
     <span class="wx-status" id="wx-status"><span class="wx-dot mock" id="wx-dot"></span><span id="wx-status-text">watsonx: checking…</span></span>
     <span style="font-size:12px;color:var(--cds-text-secondary)" id="selection-summary">0 selected</span>
   </div>
@@ -1221,7 +1229,7 @@
     <table id="opp-table">
       <thead>
         <tr>
-          <th style="width:36px"></th>
+          <th style="width:36px;text-align:center"><input type="checkbox" id="th-select-all" title="Select / deselect all visible rows" /></th>
           <th data-col="score" class="score-cell">Confidence</th>
           <th data-col="opportunity_name" style="width:220px;min-width:220px;max-width:220px;">Opportunity</th>
           <th data-col="account_name">Account Detail</th>
@@ -1485,10 +1493,28 @@
     }
 
     document.getElementById('selection-summary').textContent = summary;
+    updateThCheckbox();
     document.getElementById('btn-generate').disabled  = totalSelected === 0;
     // Narrative uses the filtered view, not the checkbox selection —
     // enable whenever there are visible rows (even if none are checked)
     document.getElementById('btn-narrative').disabled = filtered.length === 0;
+  }
+
+  function updateThCheckbox() {
+    const cb = document.getElementById('th-select-all');
+    if (!cb) return;
+    const total    = filtered.length;
+    const selected = filtered.filter(o => o.selected).length;
+    if (total === 0 || selected === 0) {
+      cb.checked       = false;
+      cb.indeterminate = false;
+    } else if (selected === total) {
+      cb.checked       = true;
+      cb.indeterminate = false;
+    } else {
+      cb.checked       = false;
+      cb.indeterminate = true;
+    }
   }
 
   // ── Multi-select dropdown engine ───────────────────────────────────────────
@@ -2043,10 +2069,9 @@
     ));
   }
 
-  document.getElementById('btn-select-all').addEventListener('click', () =>
-    setSelected(filtered, true));
-  document.getElementById('btn-clear-all').addEventListener('click', () =>
-    setSelected(allOpportunities, false));
+  document.getElementById('th-select-all').addEventListener('change', function () {
+    setSelected(filtered, this.checked);
+  });
   document.getElementById('btn-select-high').addEventListener('click', () =>
     setSelected(filtered.filter(o => o.tier === 'High'), true));
 
@@ -2789,7 +2814,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.2.2';
+  const APP_VERSION = '2.2.3';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
