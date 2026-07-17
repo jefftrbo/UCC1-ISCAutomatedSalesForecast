@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ISC Sales Forecast — Electron PoC</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .card {
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 0;
+      max-width: 560px;
+      width: 100%;
+      padding: 2rem;
+    }
+
+    .brand {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #6f6f6f;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #161616;
+      margin-bottom: 1.5rem;
+    }
+
+    /* Status indicator */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem;
+      border: 1px solid #e0e0e0;
+      background: #f4f4f4;
+      margin-bottom: 1.5rem;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #8d8d8d;
+    }
+    .dot.waiting  { background: #8d8d8d; }
+    .dot.watching { background: #f1c21b; animation: pulse 1.2s infinite; }
+    .dot.success  { background: #24a148; }
+    .dot.error    { background: #da1e28; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.3; }
+    }
+
+    #status-text {
+      font-size: 14px;
+      color: #161616;
+    }
+
+    /* Result panel — hidden until capture fires */
+    #result-panel {
+      display: none;
+      border-top: 3px solid #24a148;
+      padding-top: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    #result-panel h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #24a148;
+      margin-bottom: 0.75rem;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 0.25rem 0;
+      border-bottom: 1px solid #f4f4f4;
+    }
+    .result-row .label { color: #6f6f6f; }
+    .result-row .value { font-weight: 600; color: #161616; }
+
+    #field-list {
+      margin-top: 0.75rem;
+      font-size: 12px;
+      color: #6f6f6f;
+      font-family: "SF Mono", "Fira Code", monospace;
+      word-break: break-all;
+      line-height: 1.6;
+    }
+
+    /* Error panel */
+    #error-panel {
+      display: none;
+      border-top: 3px solid #da1e28;
+      padding-top: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    #error-panel h2 { font-size: 14px; font-weight: 600; color: #da1e28; margin-bottom: 0.5rem; }
+    #error-msg { font-size: 13px; color: #161616; }
+
+    /* Instructions */
+    .instructions {
+      font-size: 13px;
+      color: #525252;
+      line-height: 1.7;
+    }
+    .instructions ol { padding-left: 1.25rem; }
+    .instructions li { margin-bottom: 0.25rem; }
+    .instructions strong { color: #161616; }
+
+    .proof-label {
+      margin-top: 1.5rem;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #6f6f6f;
+    }
+    .proof-items { margin-top: 0.5rem; }
+    .proof-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 13px;
+      color: #525252;
+      padding: 0.2rem 0;
+    }
+    .proof-item .check { color: #8d8d8d; font-size: 15px; }
+    .proof-item.proved .check { color: #24a148; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <div class="brand">UCC1 · Electron PoC · v0.1.0</div>
+  <h1>ISC Sales Forecast — Zero-HAR PoC</h1>
+
+  <div class="status-row">
+    <div class="dot waiting" id="dot"></div>
+    <span id="status-text">Waiting for server…</span>
+  </div>
+
+  <!-- Success result -->
+  <div id="result-panel">
+    <h2>✅ Salesforce data captured</h2>
+    <div class="result-row">
+      <span class="label">Records captured</span>
+      <span class="value" id="res-count">—</span>
+    </div>
+    <div class="result-row">
+      <span class="label">Timestamp</span>
+      <span class="value" id="res-ts">—</span>
+    </div>
+    <div id="field-list"></div>
+  </div>
+
+  <!-- Error result -->
+  <div id="error-panel">
+    <h2>❌ Capture failed</h2>
+    <div id="error-msg"></div>
+  </div>
+
+  <div class="instructions">
+    <ol>
+      <li>A <strong>Salesforce window</strong> will open automatically.</li>
+      <li>Log in with your <strong>IBM w3id credentials</strong> as normal.</li>
+      <li>Navigate to the <strong>CRM Analytics deal-list dashboard.</strong></li>
+      <li>This panel updates automatically when the deal data is captured.</li>
+    </ol>
+  </div>
+
+  <div class="proof-label">PoC proving</div>
+  <div class="proof-items">
+    <div class="proof-item" id="proof-server">
+      <span class="check">○</span> Express server starts inside Electron
+    </div>
+    <div class="proof-item" id="proof-sso">
+      <span class="check">○</span> IBM w3id SSO completes in BrowserWindow
+    </div>
+    <div class="proof-item" id="proof-intercept">
+      <span class="check">○</span> session.webRequest intercepts CRM Analytics response
+    </div>
+    <div class="proof-item" id="proof-ingest">
+      <span class="check">○</span> Payload POSTed to local Express endpoint
+    </div>
+  </div>
+</div>
+
+<script>
+  const SERVER = 'http://localhost:3091';
+
+  function setProved(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.classList.add('proved');
+      el.querySelector('.check').textContent = '✓';
+    }
+  }
+
+  // Poll until server is up, then mark proof-1
+  async function waitForServer() {
+    const dot  = document.getElementById('dot');
+    const text = document.getElementById('status-text');
+    dot.className  = 'dot watching';
+    text.textContent = 'Starting local server…';
+
+    for (let i = 0; i < 30; i++) {
+      try {
+        const r = await fetch(`${SERVER}/api/status`);
+        if (r.ok) {
+          setProved('proof-server');
+          dot.className  = 'dot watching';
+          text.textContent = 'Server ready — waiting for Salesforce data…';
+          startPolling();
+          return;
+        }
+      } catch (_) { /* not up yet */ }
+      await new Promise(r => setTimeout(r, 500));
+    }
+    // Server never came up
+    dot.className  = 'dot error';
+    text.textContent = 'Server failed to start — check terminal.';
+  }
+
+  // Poll /api/last-capture so the renderer knows when data arrives
+  // (main.js will POST to /api/ingest which sets a flag the renderer polls)
+  let captured = false;
+  function startPolling() {
+    const interval = setInterval(async () => {
+      if (captured) { clearInterval(interval); return; }
+      try {
+        const r = await fetch(`${SERVER}/api/last-capture`);
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!data.captured) return;
+
+        captured = true;
+        clearInterval(interval);
+        showResult(data);
+      } catch (_) { /* server briefly unavailable */ }
+    }, 800);
+  }
+
+  function showResult(data) {
+    const dot  = document.getElementById('dot');
+    const text = document.getElementById('status-text');
+
+    if (data.error) {
+      dot.className  = 'dot error';
+      text.textContent = 'Capture failed.';
+      document.getElementById('error-panel').style.display = 'block';
+      document.getElementById('error-msg').textContent = data.error;
+      return;
+    }
+
+    dot.className  = 'dot success';
+    text.textContent = `Captured ${data.count} records · ${data.timestamp}`;
+
+    document.getElementById('res-count').textContent = data.count;
+    document.getElementById('res-ts').textContent    = data.timestamp;
+    if (data.fields) {
+      document.getElementById('field-list').textContent = 'Fields: ' + data.fields;
+    }
+    document.getElementById('result-panel').style.display = 'block';
+
+    // Mark remaining proof items
+    setProved('proof-sso');      // SSO must have worked for data to arrive
+    setProved('proof-intercept');
+    setProved('proof-ingest');
+  }
+
+  waitForServer();
+</script>
+
+</body>
+</html>

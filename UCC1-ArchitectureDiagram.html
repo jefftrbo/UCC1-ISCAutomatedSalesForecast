@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISC Automated Sales Forecast — System Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    background: #ffffff;
+    color: #1f2328;
+    padding: 2rem;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .page { max-width: 900px; margin: 0 auto; }
+
+  .header { margin-bottom: 1.75rem; padding-bottom: 1rem; border-bottom: 2px solid #1f2328; }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .app-title { font-size: 22px; font-weight: 700; color: #1f2328; }
+  .app-subtitle { font-size: 13px; color: #57606a; margin-top: 0.2rem; }
+  .badge-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+  .badge {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+    text-transform: uppercase; padding: 3px 8px;
+    border: 1px solid #e5e7eb; color: #57606a; background: #f7f8fa;
+  }
+  .badge.blue { border-color: #3b82d4; color: #3b82d4; background: #eff6ff; }
+  .badge.green { border-color: #24a148; color: #24a148; background: #f0faf4; }
+
+  .section-label {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #57606a;
+    margin-bottom: 0.5rem;
+  }
+
+  .diagram { display: flex; flex-direction: column; gap: 1px; }
+
+  .layer {
+    display: flex; align-items: stretch; gap: 1px;
+    min-height: 70px;
+  }
+
+  .layer-label {
+    width: 88px; flex-shrink: 0;
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; text-orientation: mixed;
+    transform: rotate(180deg);
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #57606a;
+    padding: 0.5rem;
+  }
+
+  .layer-content {
+    flex: 1; display: flex; gap: 1px; align-items: stretch;
+  }
+
+  .box {
+    flex: 1; border: 1px solid #e5e7eb; background: #f7f8fa;
+    padding: 0.6rem 0.75rem;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .box.accent  { border-color: #3b82d4; background: #eff6ff; }
+  .box.green   { border-color: #24a148; background: #f0faf4; }
+  .box.orange  { border-color: #d97706; background: #fffbeb; }
+  .box.purple  { border-color: #7c5cd8; background: #f5f3ff; }
+  .box.dark    { border-color: #1f2328; background: #f7f8fa; }
+  .box.warning { border-color: #da1e28; background: #fff1f1; }
+
+  .box-title { font-size: 12px; font-weight: 700; color: #1f2328; margin-bottom: 0.2rem; }
+  .box-sub   { font-size: 11px; color: #57606a; line-height: 1.4; }
+  .box-tag   { font-size: 10px; font-weight: 600; color: #57606a; margin-top: 0.3rem;
+               text-transform: uppercase; letter-spacing: 0.05em; }
+  .box-tag.blue   { color: #3b82d4; }
+  .box-tag.green  { color: #24a148; }
+  .box-tag.orange { color: #d97706; }
+  .box-tag.purple { color: #7c5cd8; }
+  .box-tag.red    { color: #da1e28; }
+
+  .arrow-row {
+    display: flex; align-items: center; justify-content: center;
+    gap: 1rem; padding: 0.3rem 0; margin-left: 89px;
+  }
+  .arrow {
+    display: flex; align-items: center; gap: 0.4rem;
+    font-size: 11px; color: #57606a;
+  }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 1.25rem; }
+  th {
+    background: #f7f8fa; border: 1px solid #e5e7eb;
+    padding: 0.4rem 0.6rem; font-size: 11px; font-weight: 700;
+    text-align: left; color: #57606a; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  td {
+    border: 1px solid #e5e7eb; padding: 0.4rem 0.6rem;
+    font-size: 12px; color: #1f2328; vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #f7f8fa; }
+  .check { color: #24a148; font-weight: 700; }
+  .warn  { color: #d97706; font-weight: 700; }
+  .cross { color: #da1e28; font-weight: 700; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem; }
+  .card { border: 1px solid #e5e7eb; padding: 0.75rem; }
+  .card-title { font-size: 12px; font-weight: 700; margin-bottom: 0.5rem; color: #1f2328; }
+  .card ul { padding-left: 1rem; }
+  .card li { font-size: 12px; color: #1f2328; margin-bottom: 0.2rem; }
+
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 1.5rem 0; }
+
+  footer {
+    margin-top: 2.5rem; padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+    text-align: center; font-size: 11px; color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="app-title">ISC Automated Sales Forecast</div>
+        <div class="app-subtitle">IBM watsonx Challenge 2026 · Growth Enablers Track · UCC1</div>
+      </div>
+      <div style="text-align:right; font-size:11px; color:#57606a;">
+        <div style="font-weight:700;">v2.2.0</div>
+        <div>July 2026</div>
+        <div>System Architecture</div>
+      </div>
+    </div>
+    <div class="badge-row">
+      <span class="badge blue">watsonx.ai</span>
+      <span class="badge blue">IBM Granite</span>
+      <span class="badge blue">Llama 3</span>
+      <span class="badge green">Carbon Design</span>
+      <span class="badge">Node.js / Express</span>
+      <span class="badge">SQLite</span>
+      <span class="badge">Salesforce CRM Analytics</span>
+    </div>
+  </div>
+
+  <div class="section-label">System Architecture — Data Flow</div>
+
+  <div class="diagram">
+
+    <div class="layer">
+      <div class="layer-label">Data Source</div>
+      <div class="layer-content">
+        <div class="box dark" style="flex:2;">
+          <div class="box-title">IBM Sales Cloud (ISC)</div>
+          <div class="box-sub">Salesforce CRM Analytics · Einstein Analytics dashboard<br>
+          ibmsc.lightning.force.com · All_Opportunities dataset · 206 active deals</div>
+          <div class="box-tag red">⚠ No API access — auth via IBM w3id SSO + passkey</div>
+        </div>
+        <div class="box warning" style="flex:1;">
+          <div class="box-title">Auth Wall</div>
+          <div class="box-sub">IBM w3id SSO · Passkey (Secure Enclave) · SAML 2.0<br>
+          Blocks programmatic access — all 7 automated attempts failed (Sessions 1–3)</div>
+          <div class="box-tag red">Workaround: HAR export (~2 min/week)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow">↓ Manual HAR export · Chrome DevTools Network → Save as HAR · upload via UI</div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-label">Ingestion</div>
+      <div class="layer-content">
+        <div class="box accent">
+          <div class="box-title">HAR Parser</div>
+          <div class="box-sub">server/index.js · POST /api/upload-har<br>
+          Parses CRM Analytics JSON · extracts 206 opportunity records</div>
+          <div class="box-tag blue">Node.js / multer</div>
+        </div>
+        <div class="box accent">
+          <div class="box-title">SQLite Database</div>
+          <div class="box-sub">server/db.js · salesforce.db<br>
+          opportunities + snapshots tables<br>
+          v2.0 + v2.2.0 migrations (score/tier cols)</div>
+          <div class="box-tag blue">better-sqlite3</div>
+        </div>
+        <div class="box accent">
+          <div class="box-title">Snapshot Engine</div>
+          <div class="box-sub">server/diffEngine.js<br>
+          saveSnapshot() · INSERT OR REPLACE<br>
+          Timestamp labels · live-vs-baseline model</div>
+          <div class="box-tag blue">Week-over-week diff</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow">↓ Rule-based scoring → persisted · Diff computed against saved baseline</div>
+    </div>
+
+    <div class="layer" style="min-height:90px;">
+      <div class="layer-label">AI Layer</div>
+      <div class="layer-content">
+        <div class="box purple">
+          <div class="box-title">Rules Engine</div>
+          <div class="box-sub">server/scoreOpportunity.js<br>
+          Confidence scoring (stage, close date, next steps)<br>
+          Tier: Hot / Warm / Cold · persisted to DB</div>
+          <div class="box-tag purple">Fallback (no credentials)</div>
+        </div>
+        <div class="box purple">
+          <div class="box-title">Granite-13b-instruct-v2</div>
+          <div class="box-sub">server/watsonxScore.js · scoreWithWatsonx()<br>
+          AI-enhanced confidence scoring<br>
+          Per opportunity · watsonx.ai REST API</div>
+          <div class="box-tag purple">IBM watsonx.ai</div>
+        </div>
+        <div class="box purple">
+          <div class="box-title">Llama-3-70b-instruct</div>
+          <div class="box-sub">generateNarrative()<br>
+          GM-ready executive narrative<br>
+          Filter-scoped · watsonx.ai REST API</div>
+          <div class="box-tag purple">IBM watsonx.ai</div>
+        </div>
+        <div class="box purple">
+          <div class="box-title">Granite-3-8b-instruct</div>
+          <div class="box-sub">generateDeltaSummary()<br>
+          Week-over-week delta narrative<br>
+          For GM report "What Changed" slide</div>
+          <div class="box-tag purple">IBM watsonx.ai</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow">↓ Scored opportunities + AI narrative → UI rendering + PowerPoint generation</div>
+    </div>
+
+    <div class="layer" style="min-height:90px;">
+      <div class="layer-label">Application</div>
+      <div class="layer-content">
+        <div class="box green" style="flex:2;">
+          <div class="box-title">Carbon Design UI Dashboard</div>
+          <div class="box-sub">public/index.html · IBM Plex Sans · CDS tokens<br>
+          Model 3 action bar (status-driven, re-entrant) · Named view presets (GM Prep / At Risk / Full Pipeline)<br>
+          Per-tile diff modals · before→after confidence · GM Ready indicator · Pipeline status line</div>
+          <div class="box-tag green">IBM Carbon Design System</div>
+        </div>
+        <div class="box green">
+          <div class="box-title">Express API Server</div>
+          <div class="box-sub">server/index.js · port 3090<br>
+          POST /api/upload-har · POST /api/score<br>
+          POST /api/generate-narrative · GET /api/diff<br>
+          POST /api/snapshot · GET /api/opportunities</div>
+          <div class="box-tag green">Node.js / Express 4</div>
+        </div>
+        <div class="box green">
+          <div class="box-title">PowerPoint Generator</div>
+          <div class="box-sub">server/generatePpt.js · pptxgenjs<br>
+          Cover slide (GM narrative) · data slides<br>
+          "What Changed" slide (delta summary)<br>
+          One-click auto-generated download</div>
+          <div class="box-tag green">pptxgenjs</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-row">
+      <div class="arrow">↓ Current: localhost:3090 on Sales VP MacBook · Future: IBM Cloud Code Engine (CIO watsonx Platform)</div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-label">End User</div>
+      <div class="layer-content">
+        <div class="box orange">
+          <div class="box-title">Sales VP (Dushyant)</div>
+          <div class="box-sub">Weekly GM meeting prep<br>
+          90 min manual → &lt;5 min automated</div>
+          <div class="box-tag orange">Primary user</div>
+        </div>
+        <div class="box orange">
+          <div class="box-title">US Public Sector GMs</div>
+          <div class="box-sub">Consume PowerPoint output<br>
+          Weekly pipeline review meeting</div>
+          <div class="box-tag orange">Output consumers</div>
+        </div>
+        <div class="box orange">
+          <div class="box-title">Future: Public Market VPs</div>
+          <div class="box-sub">Viral adoption potential<br>
+          IBM Cloud hosted → any browser</div>
+          <div class="box-tag orange">Growth path</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <hr>
+
+  <div class="section-label">Deployment Status — Current vs. Target</div>
+  <table>
+    <tr><th>Component</th><th>Current (v2.2.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
+    <tr><td>App hosting</td><td>localhost:3090 on Sales VP MacBook</td><td>IBM Cloud Code Engine · w3id SSO · internal URL</td><td><span class="warn">⚠</span> Pending ServiceNow AI System approval</td></tr>
+    <tr><td>watsonx.ai</td><td>Personal API key · 3 models</td><td>CIO-provisioned watsonx.ai service account</td><td><span class="warn">⚠</span> Pending CIO provisioning</td></tr>
+    <tr><td>Data ingestion</td><td>Manual HAR export (~2 min/week)</td><td>Salesforce Connected App OAuth 2.0 · automated</td><td><span class="cross">✗</span> Requires IBM IT Salesforce admin approval</td></tr>
+    <tr><td>UI / AI / Diff engine / PPT</td><td>Fully built · production-ready</td><td>Same — no changes needed</td><td><span class="check">✓</span> Production-ready</td></tr>
+    <tr><td>Access control</td><td>None (local only)</td><td>IBM BlueGroup · w3id SSO · ITSS compliance</td><td><span class="cross">✗</span> Pending BlueGroup + ServiceNow approval</td></tr>
+  </table>
+
+  <hr>
+
+  <div class="section-label">CIO "Build with watsonx" Path to Production — Readiness</div>
+  <table>
+    <tr><th>Requirement</th><th>Detail</th><th>Owner</th><th>Ready?</th></tr>
+    <tr><td>Architecture diagram</td><td>All data sources, integrations, services</td><td>Technical Lead</td><td><span class="check">✓</span> This document</td></tr>
+    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.2.0 live</td></tr>
+    <tr><td>Business Lead</td><td>User enablement, product functionality, documentation</td><td>Dushyant K. Patel (Sales VP)</td><td><span class="check">✓</span> Confirmed</td></tr>
+    <tr><td>Technical Lead</td><td>Design, feature dev, testing, maintenance</td><td>Jeffrey L. Trbovich</td><td><span class="check">✓</span> Confirmed</td></tr>
+    <tr><td>Risk &amp; Compliance Lead</td><td>AI ethics, responsible use, data privacy, GPA/CRB</td><td>TBD</td><td><span class="cross">✗</span> Unassigned</td></tr>
+    <tr><td>BlueGroup</td><td>Access control · visibility: Everyone · users as Members</td><td>Technical Lead</td><td><span class="cross">✗</span> Not yet created</td></tr>
+    <tr><td>ServiceNow AI System Demand</td><td>"Create a new AI System Demand" form</td><td>Business Lead + Technical Lead</td><td><span class="cross">✗</span> Not yet submitted</td></tr>
+    <tr><td>ITSS compliance</td><td>IBM IT Security Standards review</td><td>Risk &amp; Compliance Lead</td><td><span class="warn">⚠</span> Needs review</td></tr>
+    <tr><td>Data governance (DG101)</td><td>CRM opportunity data classification · OPRT101</td><td>Risk &amp; Compliance Lead</td><td><span class="warn">⚠</span> Needs review</td></tr>
+  </table>
+
+  <hr>
+
+  <div class="section-label">Data Flow — Step by Step</div>
+  <table>
+    <tr><th>#</th><th>Step</th><th>Who / What</th><th>Time</th></tr>
+    <tr><td>1</td><td>Open ISC dashboard in Chrome · apply pipeline filters</td><td>Sales VP (manual)</td><td>~1 min</td></tr>
+    <tr><td>2</td><td>Export HAR file via Chrome DevTools Network tab</td><td>Sales VP (manual)</td><td>~1 min</td></tr>
+    <tr><td>3</td><td>Upload HAR via "Refresh Data" · parser extracts 206 deals → SQLite</td><td>App (automated)</td><td>&lt;5 sec</td></tr>
+    <tr><td>4</td><td>Rule-based scoring · score + tier persisted per opportunity</td><td>App (automated)</td><td>&lt;2 sec</td></tr>
+    <tr><td>5</td><td>Diff engine computes live vs. saved baseline · categorises changes</td><td>App (automated)</td><td>&lt;1 sec</td></tr>
+    <tr><td>6</td><td>watsonx.ai Granite-13b scores each opportunity (AI confidence)</td><td>watsonx.ai API</td><td>~15 sec</td></tr>
+    <tr><td>7</td><td>watsonx.ai Llama-3-70b generates GM executive narrative</td><td>watsonx.ai API</td><td>~10 sec</td></tr>
+    <tr><td>8</td><td>watsonx.ai Granite-3-8b generates week-over-week delta summary</td><td>watsonx.ai API</td><td>~8 sec</td></tr>
+    <tr><td>9</td><td>Save baseline snapshot · generate PowerPoint</td><td>App (automated)</td><td>&lt;3 sec</td></tr>
+    <tr><td>10</td><td>Sales VP downloads PPTX · walks into GM meeting prepared</td><td>Sales VP</td><td>0 min</td></tr>
+  </table>
+
+  <hr>
+
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Technology Stack</div>
+      <ul>
+        <li><strong>Runtime:</strong> Node.js 18+ · Express 4</li>
+        <li><strong>Database:</strong> SQLite (better-sqlite3)</li>
+        <li><strong>AI — Scoring:</strong> ibm/granite-13b-instruct-v2</li>
+        <li><strong>AI — Narrative:</strong> meta-llama/llama-3-70b-instruct</li>
+        <li><strong>AI — Delta:</strong> ibm/granite-3-8b-instruct</li>
+        <li><strong>AI Platform:</strong> IBM watsonx.ai REST API</li>
+        <li><strong>UI:</strong> IBM Carbon Design System · IBM Plex Sans</li>
+        <li><strong>Presentation:</strong> pptxgenjs</li>
+        <li><strong>Data source:</strong> Salesforce CRM Analytics (HAR)</li>
+        <li><strong>Built with:</strong> IBM Bob (watsonx)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Business Value</div>
+      <ul>
+        <li><strong>Time saved:</strong> 90 min → &lt;5 min per GM prep</li>
+        <li><strong>Frequency:</strong> Weekly · US Public Sector IBM</li>
+        <li><strong>Deals tracked:</strong> 206 active opportunities</li>
+        <li><strong>AI outputs:</strong> Confidence score + tier · GM narrative · delta summary</li>
+        <li><strong>PowerPoint:</strong> Auto-generated GM-ready deck</li>
+        <li><strong>Diff engine:</strong> Surfaces week-over-week deal changes</li>
+        <li><strong>Scale:</strong> Any IBM Public Market VP · any instance</li>
+        <li><strong>Challenge:</strong> Growth Enablers · deadline July 22, 2026</li>
+      </ul>
+    </div>
+  </div>
+
+  <footer>
+    ISC Automated Sales Forecast · UCC1 · IBM watsonx Challenge 2026 · Growth Enablers Track · v2.2.0 · July 2026<br>
+    Built by Jeffrey L. Trbovich with IBM Bob (watsonx AI) · github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast
+    <br><br>Made with IBM Bob
+  </footer>
+
+</div>
+</body>
+</html>
