@@ -3922,3 +3922,114 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
   }
+
+  ## Session 20 — UX Filter Cleanup + v2.2.2 Release (July 17, 2026) {
+
+    ### Context / User Issues Raised
+    User reported two UX problems after reviewing the filter bar in the app:
+    1. "Clear All" button in the action bar did nothing to filters (confirmed — it was the row-selection clear, not a filter reset)
+    2. "Match ISC View" checkbox appeared to do nothing (confirmed working — 211→210, $1 amount change from the $-1 record; invisible at $121M scale)
+
+    User then raised 5 items for analysis:
+    1. "Clear Filters" and "Full Pipeline" should have the same effect
+    2. Remove "Clear Filters" — GM Prep accomplishes the same reset
+    3. Add tooltips to GM Prep, At Risk, Full Pipeline preset buttons
+    4. Full Pipeline showing 211 — acceptable, no action
+    5. Match ISC View subtracting $1 from amounts, count staying at 211 — working correctly (1 record excluded, that record has Amount = -1, so removing it adds $1 to the sum; count DID drop to 210)
+
+    ### Bob's Analysis Delivered (verbatim positions)
+    - Item 1: clearFilters() reset to current quarter + Best Case + High/Medium — NOT the same as Full Pipeline (all 211). The question was which mental model is correct. User resolved it by choosing item 2.
+    - Item 2: Agreed — remove "Clear Filters." The three presets cover every reset scenario. "Clear Filters" was resetting to an opinionated default (GM Prep logic) while labeled neutrally, which caused confusion.
+    - Item 3: Agreed — infrastructure (has-tip / data-tip / global tooltip engine) already in place for all action-bar buttons; preset buttons just needed the class+attribute added.
+    - Item 4: No action needed.
+    - Item 5: No bug. Working correctly. One record with Amount = -1 is excluded; removing a negative raises the sum.
+    - Versioning: v2.2.2 (two patch-level UX fixes, no feature, no schema change) — user agreed.
+
+    ### Branch Created
+    ```
+    git checkout -b feature/ux-filter-cleanup
+    # from develop @ c059ff8
+    ```
+
+    ### Changes Made — `public/index.html` (one apply_diff, 5 hunks)
+
+    #### Hunk 1 — Preset buttons: add has-tip + data-tip (~line 1096)
+    Added `class="preset-btn has-tip"` and `data-tip` to all three preset buttons.
+    Tooltip text:
+    - GM Prep:       "Current quarter · Best Case forecast · High & Medium confidence. The default view for your weekly GM pipeline review."
+    - At Risk:       "Current quarter · All forecasts · Low confidence only. Deals most likely to slip — review these first."
+    - Full Pipeline: "All quarters · All stages · All forecasts · All confidence levels. The complete unfiltered dataset."
+
+    #### Hunk 2 — Remove btn-clear-filters from HTML (~line 1163)
+    Deleted: `<button class="btn-ghost" id="btn-clear-filters">Clear filters</button>`
+
+    #### Hunk 3 — Empty-state message updated (~line 1882)
+    Was: `'Try adjusting or <button class="btn-ghost" onclick="clearFilters()">clearing the filters</button>.'`
+    Now: `'Try adjusting your filters or click <strong>🗂 Full Pipeline</strong> to see all records.'`
+    (inline onclick removed — clearFilters() no longer exists)
+
+    #### Hunk 4 — Remove clearFilters() function and its event listener (~line 1936)
+    Deleted entire 42-line clearFilters() function and the:
+    `document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);`
+    listener. Net: -49 lines, +8 lines for tooltip additions.
+
+    #### Hunk 5 — APP_VERSION bump
+    `const APP_VERSION = '2.2.2';`  // was '2.2.1'
+
+    ### Validation
+    ```bash
+    grep -n "clearFilters\|btn-clear-filters\|Clear filters\|APP_VERSION\|has-tip.*preset\|preset.*has-tip" public/index.html
+    ```
+    Output: zero references to clearFilters/btn-clear-filters. All three preset-btn lines show has-tip. APP_VERSION = '2.2.2' confirmed.
+
+    ### Git Commands Executed
+    ```bash
+    git add public/index.html
+    git commit -m "feat: remove Clear Filters button; add tooltips to GM Prep, At Risk, Full Pipeline presets (v2.2.2)"
+    # [feature/ux-filter-cleanup 71bfb10] 1 file changed, 8 insertions(+), 49 deletions(-)
+
+    git checkout develop
+    git merge --no-ff feature/ux-filter-cleanup -m "merge: feature/ux-filter-cleanup → develop (v2.2.2 UX cleanup)"
+    # Merge made by the 'ort' strategy. 1 file changed, 8 insertions(+), 49 deletions(-)
+
+    git checkout main
+    git merge --no-ff develop -m "release: v2.2.2 — remove Clear Filters, add preset tooltips"
+    # Merge made by the 'ort' strategy.
+
+    git tag -a v2.2.2 -m "v2.2.2 — remove confusing Clear Filters button; add has-tip tooltips to GM Prep, At Risk, Full Pipeline presets"
+
+    git push origin main
+    git push origin develop
+    git push origin feature/ux-filter-cleanup
+    git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — 625116a  release: v2.2.2 (tagged v2.2.2) ← current production stable
+    develop — 2c18ff5  merge: feature/ux-filter-cleanup → develop
+    feature/ux-filter-cleanup — 71bfb10 (pushed to origin)
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1 · v2.2.2
+    ```
+
+    ### What Was Delivered
+    - **"Clear filters" button removed** — eliminated the source of confusion. The three presets (GM Prep, At Risk, Full Pipeline) are now the only way to reset the view. No functionality lost; GM Prep was already doing what Clear Filters did.
+    - **Tooltips on all three preset buttons** — hover to see exactly what each preset sets: quarter scope, forecast category, confidence tier. Uses the existing `has-tip` / `data-tip` / global tooltip engine already present in the app. No new infrastructure needed.
+    - **Empty-state message updated** — replaces the now-removed "clearing the filters" inline button with plain text pointing to 🗂 Full Pipeline.
+    - **v2.2.2 shipped to main** — tagged, pushed, live on GitHub.
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete (eligibility gate) |
+    | 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 3 | Review `UCC1-ChallengeSubmissionDraft.html` — edit and confirm accuracy | ⏳ Pending |
+    | 🟡 4 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+    | 🟡 5 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟡 6 | Submit ServiceNow AI System Demand — attach `UCC1-ArchitectureDiagram.html` | ⚠ Not submitted |
+    | 🟢 7 | Live watsonx credential test — `WATSONX_ENABLED=true` + API key + project ID | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
