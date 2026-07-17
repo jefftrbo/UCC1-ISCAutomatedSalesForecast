@@ -23,13 +23,16 @@ const WHITE    = 'FFFFFF';
 const SLIDE_H        = 7.5;
 const TABLE_TOP      = 0.75;  // y where table starts (below header bar)
 const BOTTOM_BAR_Y   = 6.85;  // y where bottom bar starts
-const USABLE_H       = BOTTOM_BAR_Y - TABLE_TOP; // 6.1"
+const BOTTOM_MARGIN  = 0.20;  // safety gap so table never touches the bottom bar
+const USABLE_H       = BOTTOM_BAR_Y - TABLE_TOP - BOTTOM_MARGIN; // 5.9"
 
 const HEADER_ROW_H   = 0.30;  // header row height (inches)
-const DATA_ROW_H     = 0.32;  // data row height — tight but readable at 9pt
+const DATA_ROW_H     = 0.38;  // data row height — 0.32 was too tight; pptxgenjs adds
+                               // internal cell padding that causes rows to grow and
+                               // overflow the bottom bar at high row counts
 
 // How many data rows fit per slide
-const ROWS_PER_SLIDE = Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H); // ~18
+const ROWS_PER_SLIDE = Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H); // ~14
 
 /**
  * Format a number as USD currency string.
