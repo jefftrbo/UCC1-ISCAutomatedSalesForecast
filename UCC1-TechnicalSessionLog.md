@@ -3471,3 +3471,118 @@ watsonx.ai · granite-13b-instruct-v2 · granite-3-8b-instruct · llama-3-70b-in
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+
+## Session 17 — README.md Full Rewrite for v2.2.0 (July 15, 2026)
+
+**Status:** ✅ Complete  
+**Date:** July 15, 2026  
+**Branch:** `develop`
+
+---
+
+### Context
+
+User request (verbatim):
+
+> *"where's the step by step instructions to run the app including using the cookie editor plugin?"*
+
+**Finding:** `README.md` was v1.0.0 vintage — written before HAR workflow was adopted. It referenced `scraper/login.js`, `config.json`, `browser-profile/`, Playwright Chromium install, and a scraper architecture that no longer exists. Cookie Editor was not mentioned anywhere. No watsonx setup instructions. No diff engine workflow. Completely stale relative to v2.2.0.
+
+---
+
+### What Was Rewritten
+
+Complete rewrite of `README.md` from 154 lines (v1.0 Playwright era) to 240 lines (v2.2.0 HAR/watsonx era).
+
+#### Sections Added / Rewritten
+
+**Header:**
+- New title and tagline
+- Before/after comparison table (5 steps: export, score, narrative, diff, PPT)
+- "Total time: under 5 minutes, every week."
+
+**Prerequisites (completely rewritten):**
+- Node.js v18+ (kept)
+- Chrome browser for HAR export (new)
+- **Cookie Editor browser extension** — Chrome Web Store link, Brave/Edge note (new — this was missing entirely)
+- IBM watsonx.ai credentials — optional, with clear note that app runs without them (new)
+
+**First-Time Setup (rewritten):**
+- Step 1: `git clone` + `npm install`
+- Step 2: `cp .env.example .env` + annotated `.env` content showing all three vars with comments
+- Step 3: `npm start` + open `localhost:3090` + GM Ready indicator state description
+
+**Weekly Data Refresh — Part A (HAR export, completely new, 5 sub-steps):**
+- A1: Open ISC in Chrome at the correct URL
+- A2: Apply pipeline filters (Opportunity Owner → Dushyant, Deal List tab, Forecast Grouping)
+- A3: Open Chrome DevTools → Network tab → start recording → reload page
+- A4: Re-apply filters after reload
+- A5: Export HAR via download icon → size tip (5–15 MB expected, < 1 MB means data didn't load)
+
+**Weekly Data Refresh — Part B (HAR upload to app, new):**
+- Click Refresh Data → file picker → 206 opportunities loaded
+
+**Weekly Data Refresh — Part C (GM prep workflow, new):**
+- Score with watsonx: live vs. rule-based, confidence score + tier explained
+- Generate Narrative: filter-scoped, named view presets explained
+- What Changed: diff categories, drill-down modals
+- Baseline & Generate GM Report: confirm modal, snapshot saved, PPT downloaded
+
+**Named View Presets section (new):**
+- Table: GM Prep · At Risk · Full Pipeline — what each shows, when active state clears
+
+**Generated PowerPoint section (new):**
+- Cover slide, deal slides, What Changed slide described
+
+**App Structure (rewritten):**
+- Old: `scraper/`, `config.json`, `browser-profile/` — all removed
+- New: `server/`, `public/`, `scripts/`, `poc/`, `.env.example` — accurate to v2.2.0
+
+**Testing section (new):**
+- `node scripts/test-diff.js` — unit test all 8 diff scenarios
+- `node scripts/seed-changes.js` + `--restore` + `--status` flags
+
+**Troubleshooting table (new — 6 common issues):**
+- HAR 0 opportunities, HAR < 1 MB, watsonx fails, port conflict, no data after upload, diff shows everything as new
+
+**Version History table (new):**
+- v1.0.0, v2.1.0-rc1, v2.2.0 with what changed per version
+
+**IBM watsonx Challenge 2026 section (new):**
+- Business value, models used, built with IBM Bob, deployment path
+
+---
+
+### Note on Cookie Editor
+
+Cookie Editor is listed in Prerequisites. However — based on the full project history — Cookie Editor was used in **early Session 1 attempts** (Attempts 1–3) to export/import cookies for Playwright automation. **It is NOT required for the current v2.2.0 HAR workflow.** The HAR export via Chrome DevTools is entirely cookie-independent — you just need to be logged into ISC in Chrome, navigate to the dashboard, apply filters, and export the HAR.
+
+Cookie Editor remains in Prerequisites as a reference for users who may need to troubleshoot ISC session issues, but the step-by-step workflow (Parts A–C) does not reference it because it is not part of the current workflow.
+
+---
+
+### What Was Just Delivered
+
+**`README.md`** — complete rewrite for v2.2.0. Step-by-step instructions for first-time setup and weekly data refresh, including HAR export, watsonx configuration, and full GM prep workflow. Ready for GitHub, challenge submission, and co-collaborator onboarding.
+
+**`UCC1-TechnicalSessionLog.md`** — Session 17 logged in full.
+
+---
+
+### What's Next
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete |
+| 🔴 2 | Register at challenge portal + select Growth Enablers | ❌ Must complete |
+| 🟡 3 | Review `UCC1-ChallengeSubmissionDraft.html` — edit fields, confirm accuracy | ⏳ Pending review |
+| 🟡 4 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+| 🟡 5 | Identify Risk & Compliance Lead | ❌ Unassigned |
+| 🟡 6 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟢 7 | Live watsonx credential test | ⏳ Pending |
+| 🟢 8 | HAR/Refresh Data validation (ISC daily updates) | ⏳ Pending |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
