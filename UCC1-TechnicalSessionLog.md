@@ -3786,3 +3786,10 @@ This gets the app to **206 records**, which is within 3% of ISC's 200 and explai
 Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
 ---
+The Answer You Hand to Dushyant
+"ISC's dashboard applies business rules that filter out deals with zero-dollar amounts, deployment classifications, IGF financing flags, and non-Software/Hardware product families. The app shows the complete underlying dataset — all real deals in your pipeline — and lets you filter using the filter bar. The 11 extra records are real opportunities; ISC simply hides them based on reporting scope rules. The app actually shows you MORE than ISC does, not less. Use the 📊 GM Prep preset to match the ISC view."
+
+That's the adoption argument. The app isn't wrong — it's more complete than ISC. And now we have 200 lines of technical evidence to back it up if anyone pushes back.
+
+Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHERE clause, quick build.
+---
