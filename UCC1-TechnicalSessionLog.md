@@ -4151,3 +4151,100 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
   }
+
+  ## Session 22 — PPT Table Overflow Fix + v2.2.4 Release (July 17, 2026) {
+
+    ### Bug Report
+    User ran "Baseline & GM Report" with 17 opportunities selected (Q3 2026, Stage 3-Design, 2 confidence tiers). The status bar said "GM Report generated with 17 opportunities — downloading…" — correct count. But the generated PPT had the data table overflowing past the bottom IBM Blue bar on slide 2, producing a visually broken layout.
+
+    ### Root Cause Analysis
+    Three constants in `server/generatePpt.js` combined to cause the overflow:
+
+    ```
+    TABLE_TOP    = 0.75"
+    BOTTOM_BAR_Y = 6.85"
+    USABLE_H     = 6.10"   (6.85 - 0.75)
+
+    HEADER_ROW_H = 0.30"
+    DATA_ROW_H   = 0.32"   ← too tight
+
+    ROWS_PER_SLIDE = floor((6.10 - 0.30) / 0.32) = floor(18.125) = 18
+    ```
+
+    Problem 1: `DATA_ROW_H = 0.32"` is the nominal requested height, but pptxgenjs adds internal cell padding on top of the requested rowH. When cells contain multi-line text (Next Steps column regularly wraps at 120 chars), the library forces the row to grow beyond 0.32", pushing the table bottom past `BOTTOM_BAR_Y`.
+
+    Problem 2: No safety margin between the calculated table bottom and the bottom bar. Even 1px of rounding causes overlap.
+
+    Problem 3: `ROWS_PER_SLIDE = 18` was already borderline — at 17 rows the actual rendered height was already overflowing.
+
+    ### Fix — `server/generatePpt.js` (3 constant changes)
+
+    ```js
+    // Before
+    const USABLE_H       = BOTTOM_BAR_Y - TABLE_TOP;              // 6.10"
+    const DATA_ROW_H     = 0.32;
+    const ROWS_PER_SLIDE = Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H); // ~18
+
+    // After
+    const BOTTOM_MARGIN  = 0.20;  // new — safety gap so table never touches bottom bar
+    const USABLE_H       = BOTTOM_BAR_Y - TABLE_TOP - BOTTOM_MARGIN;  // 5.90"
+    const DATA_ROW_H     = 0.38;  // was 0.32 — gives rows room for cell padding + wrapping
+    const ROWS_PER_SLIDE = Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H); // ~14
+    ```
+
+    New geometry check:
+    ```
+    Table bottom (max) = TABLE_TOP + HEADER_ROW_H + (14 × DATA_ROW_H)
+                       = 0.75 + 0.30 + (14 × 0.38)
+                       = 0.75 + 0.30 + 5.32
+                       = 6.37"
+
+    BOTTOM_BAR_Y = 6.85"
+    Gap          = 6.85 - 6.37 = 0.48" ← clear separation, even if rows grow slightly
+    ```
+
+    Impact on slide count with 17 opportunities: 2 data slides (14 + 3). Typical GM Prep view (10–16 rows) fits on 1 data slide.
+
+    ### APP_VERSION bump
+    `const APP_VERSION = '2.2.4';`  // was '2.2.3' in public/index.html
+
+    ### Git Commands Executed
+    ```bash
+    git add server/generatePpt.js public/index.html
+    git commit -m "fix: PPT table overflow — increase DATA_ROW_H to 0.38\", add 0.20\" bottom margin, ROWS_PER_SLIDE ~14 (v2.2.4)"
+    # [feature/ppt-layout-fix 1481119] 2 files changed, 7 insertions(+), 4 deletions(-)
+
+    git checkout develop && git merge --no-ff feature/ppt-layout-fix -m "merge: feature/ppt-layout-fix → develop (v2.2.4)"
+    git checkout main    && git merge --no-ff develop -m "release: v2.2.4 — fix PPT table overflow past bottom bar"
+    git tag -a v2.2.4 -m "v2.2.4 — fix PPT table overflow: DATA_ROW_H 0.32→0.38, BOTTOM_MARGIN 0.20, ROWS_PER_SLIDE ~14"
+    git push origin main && git push origin develop && git push origin feature/ppt-layout-fix && git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — 29c1ed7  release: v2.2.4 (tagged v2.2.4) ← current production stable
+    develop — 68801b4  merge: feature/ppt-layout-fix → develop
+    feature/ppt-layout-fix — 1481119 (pushed to origin)
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1 · v2.2.2 · v2.2.3 · v2.2.4
+    ```
+
+    ### What Was Delivered
+    - **PPT table no longer overflows the bottom bar.** `DATA_ROW_H` increased from 0.32" to 0.38" to accommodate pptxgenjs internal cell padding. `BOTTOM_MARGIN = 0.20"` added as an explicit safety gap. `ROWS_PER_SLIDE` drops from ~18 to ~14 — the correct conservative value.
+    - **17-opportunity run now produces 2 clean data slides** (14 rows + 3 rows), each table safely above the bottom bar.
+    - **v2.2.4 shipped to main** — tagged, pushed, live on GitHub.
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete (eligibility gate) |
+    | 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 3 | Review `UCC1-ChallengeSubmissionDraft.html` — edit and confirm accuracy | ⏳ Pending |
+    | 🟡 4 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+    | 🟡 5 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟡 6 | Submit ServiceNow AI System Demand — attach `UCC1-ArchitectureDiagram.html` | ⚠ Not submitted |
+    | 🟢 7 | Live watsonx credential test — `WATSONX_ENABLED=true` + API key + project ID | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
