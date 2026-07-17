@@ -4248,3 +4248,66 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
   }
+
+  ## Session 23 — PPT Table Overflow Root Cause Fix + v2.2.5 Release (July 17, 2026) {
+
+    ### Bug Report (continued from Session 22)
+    v2.2.4 did not fix the overflow. The "Week of July 17, 2026" label was appearing as a horizontal band bisecting the table mid-slide, not below it. User correctly called out the math was still wrong.
+
+    ### Deeper Root Cause (Session 23 diagnosis)
+    The v2.2.4 fix addressed the wrong variable. The real problem:
+
+    pptxgenjs 3.12.0 **ignores `rowH` when a cell's content forces the row taller**. The `rowH` array is a *minimum* hint, not a hard constraint. The Next Steps column contains strings up to 120 chars in a 2.1" column at 8pt — that wraps to 3–4 lines, forcing each affected row to ~0.48"+ regardless of the `rowH: [DATA_ROW_H]` value. With 17 rows all potentially wrapping, the actual table height can reach 8–9 inches — far past the 7.5" slide height.
+
+    The `BOTTOM_BAR_Y = 6.85` shape is drawn at a fixed Y coordinate. When the table's rendered height exceeds 6.85", the table visually overlaps the bottom bar shape. pptxgenjs renders table on top of shapes (Z-order), so the table rows appear over the bottom bar, and the "Week of July 17, 2026" text at y=6.90 ends up rendered between table rows.
+
+    ### Why v2.2.4 Failed
+    Changing `DATA_ROW_H` from 0.32 to 0.38 had no effect — the library was already ignoring it. Changing `ROWS_PER_SLIDE` from 18 to 14 reduced the problem but didn't eliminate it (14 wrapping rows × ~0.48" actual = ~6.72" + 0.75 + 0.32 = 7.79" > 7.5" slide height).
+
+    ### Correct Fix — `server/generatePpt.js`
+    The only reliable way to keep rows at the requested `rowH` is to prevent any cell from wrapping. Next Steps is the only column wide enough to wrap. The fix:
+
+    1. `NEXT_STEPS_CHARS = 55` — truncate Next Steps to 55 characters (was 120). At 8pt in a 2.1" column, 55 chars fits in ~1 line, so pptxgenjs honours `rowH`.
+    2. `DATA_ROW_H = 0.40` — slightly larger than minimum single-line height for 8–9pt text.
+    3. `ROWS_PER_SLIDE = 12` — hard-coded ceiling (not calculated). Geometry verified:
+       ```
+       TABLE_TOP + HEADER_ROW_H + (12 × DATA_ROW_H) = 0.75 + 0.32 + 4.80 = 5.87"
+       BOTTOM_BAR_Y = 6.85"
+       Gap = 0.98" ← ~1 inch clearance, physically impossible to overflow
+       ```
+    4. Removed `USABLE_H`, `BOTTOM_MARGIN` — no longer needed. `ROWS_PER_SLIDE` is a direct constant.
+
+    With 17 opportunities: 2 data slides (12 + 5). Each slide table bottom = 5.87" max. Bottom bar at 6.85". Gap = 0.98".
+
+    ### APP_VERSION bump
+    `const APP_VERSION = '2.2.5';`  // was '2.2.4' in public/index.html
+
+    ### Git Commands Executed
+    ```bash
+    git checkout -b feature/ppt-layout-fix-v2  # from develop @ 5ac2e29
+
+    git add server/generatePpt.js public/index.html
+    git commit -m "fix: PPT row overflow — hard-cap ROWS_PER_SLIDE=12, truncate Next Steps to 55 chars, DATA_ROW_H=0.40 (v2.2.5)"
+    # [feature/ppt-layout-fix-v2 6c53a18] 2 files changed, 14 insertions(+), 12 deletions(-)
+
+    git checkout develop && git merge --no-ff feature/ppt-layout-fix-v2 -m "merge: feature/ppt-layout-fix-v2 → develop (v2.2.5)"
+    git checkout main    && git merge --no-ff develop -m "release: v2.2.5 — PPT table overflow final fix"
+    git tag -a v2.2.5 -m "v2.2.5 — PPT overflow final fix: ROWS_PER_SLIDE=12, Next Steps 55 chars, 0.98\" gap to bottom bar"
+    git push origin main && git push origin develop && git push origin feature/ppt-layout-fix-v2 && git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — 405175f  release: v2.2.5 (tagged v2.2.5) ← current production stable
+    develop — ba96ff6  merge: feature/ppt-layout-fix-v2 → develop
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1 · v2.2.2 · v2.2.3 · v2.2.4 · v2.2.5
+    ```
+
+    ### What Was Delivered
+    - **PPT table overflow eliminated** — root cause was pptxgenjs silently ignoring `rowH` when cell content wraps. Fix: truncate Next Steps to 55 chars (single-line), hard-cap `ROWS_PER_SLIDE = 12`, `DATA_ROW_H = 0.40`. Geometry verified: 0.98" gap between table bottom and bottom bar.
+    - **v2.2.5 shipped to main** — tagged, pushed, live on GitHub.
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
