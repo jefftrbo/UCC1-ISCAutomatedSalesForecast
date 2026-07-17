@@ -23,16 +23,17 @@ const WHITE    = 'FFFFFF';
 const SLIDE_H        = 7.5;
 const TABLE_TOP      = 0.75;  // y where table starts (below header bar)
 const BOTTOM_BAR_Y   = 6.85;  // y where bottom bar starts
-const BOTTOM_MARGIN  = 0.20;  // safety gap so table never touches the bottom bar
-const USABLE_H       = BOTTOM_BAR_Y - TABLE_TOP - BOTTOM_MARGIN; // 5.9"
 
-const HEADER_ROW_H   = 0.30;  // header row height (inches)
-const DATA_ROW_H     = 0.38;  // data row height — 0.32 was too tight; pptxgenjs adds
-                               // internal cell padding that causes rows to grow and
-                               // overflow the bottom bar at high row counts
-
-// How many data rows fit per slide
-const ROWS_PER_SLIDE = Math.floor((USABLE_H - HEADER_ROW_H) / DATA_ROW_H); // ~14
+// pptxgenjs ignores rowH when cell content forces the row taller.
+// The only reliable way to keep rows at a fixed height is to ensure
+// no cell ever wraps — so we truncate Next Steps to NEXT_STEPS_CHARS,
+// which fits in one line at 8pt in a 2.1" column (empirically ~55 chars).
+// We then use a conservative ROWS_PER_SLIDE derived from the actual
+// usable height with an explicit safety margin baked in.
+const NEXT_STEPS_CHARS = 55;   // max chars in Next Steps cell — keeps row single-line
+const HEADER_ROW_H   = 0.32;   // header row height (inches)
+const DATA_ROW_H     = 0.40;   // data row height with padding — must match single-line row
+const ROWS_PER_SLIDE = 12;     // hard ceiling: 0.75 + 0.32 + (12×0.40) = 5.87" < 6.85"
 
 /**
  * Format a number as USD currency string.
@@ -234,9 +235,10 @@ async function generatePpt(opportunities, outputPath, narrative = null, diff = n
         const c = (align = 'left') => ({
           fill: { color: rowBg }, color: IBM_DARK, fontSize: 9, align, valign: 'middle',
         });
-        // Truncate Next Steps to 120 chars for PPT — full text is in the web app
+        // Truncate Next Steps to NEXT_STEPS_CHARS — keeps the cell single-line so
+        // pptxgenjs honours our rowH and rows don't overflow the bottom bar
         const nextSteps = opp.next_steps
-          ? opp.next_steps.slice(0, 120).trimEnd() + (opp.next_steps.length > 120 ? '…' : '')
+          ? opp.next_steps.slice(0, NEXT_STEPS_CHARS).trimEnd() + (opp.next_steps.length > NEXT_STEPS_CHARS ? '…' : '')
           : '—';
         return [
           { text: opp.opportunity_name || '—',                     options: c() },
