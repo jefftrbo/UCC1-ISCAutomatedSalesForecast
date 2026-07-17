@@ -232,6 +232,28 @@
       color: var(--cds-text-secondary);
       white-space: nowrap;
     }
+    /* Match ISC View toggle */
+    .isc-toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .isc-toggle-wrap input[type="checkbox"] {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--cds-interactive);
+      cursor: pointer;
+      margin: 0;
+    }
+    .isc-toggle-wrap label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--cds-text-primary);
+      text-transform: none;
+      letter-spacing: normal;
+      cursor: pointer;
+    }
 
     /* ── Totals bar ── */
     #totals-bar {
@@ -1132,6 +1154,12 @@
   <label>Search</label>
   <input type="text" id="f-search" placeholder="Opp name or account…" />
 
+  <div class="filter-sep"></div>
+  <span class="isc-toggle-wrap">
+    <input type="checkbox" id="f-match-isc" />
+    <label for="f-match-isc">Match ISC View</label>
+  </span>
+
   <button class="btn-ghost" id="btn-clear-filters">Clear filters</button>
   <span class="filter-count" id="filter-count"></span>
 </div>
@@ -1803,6 +1831,8 @@
       if (amount         && (o.total_opportunity_amount || 0) < amount) return false;
       if (search && !((o.opportunity_name || '').toLowerCase().includes(search) ||
                       (o.account_name     || '').toLowerCase().includes(search))) return false;
+      if (document.getElementById('f-match-isc').checked &&
+          (o.total_opportunity_amount || 0) <= 0) return false;
       return true;
     });
 
@@ -1938,9 +1968,10 @@
     const tierAllCb = document.getElementById(msConfig.tier.allId);
     if (tierAllCb) tierAllCb.checked = false;
     msUpdateTrigger('tier');
-    document.getElementById('f-owner').value  = '';
-    document.getElementById('f-amount').value = '';
-    document.getElementById('f-search').value = '';
+    document.getElementById('f-owner').value     = '';
+    document.getElementById('f-amount').value    = '';
+    document.getElementById('f-search').value    = '';
+    document.getElementById('f-match-isc').checked = false;
     clearActivePreset();
     applyFilters();
   }
@@ -1960,6 +1991,7 @@
     applyFilters();
   });
   document.getElementById('f-search').addEventListener('input', applyFilters);
+  document.getElementById('f-match-isc').addEventListener('change', applyFilters);
 
   // ── Init multi-select dropdowns ────────────────────────────────────────────
   ['quarter','stage','forecast','tier'].forEach(key => msInit(key));
@@ -2798,7 +2830,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.2.0';
+  const APP_VERSION = '2.2.1';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
