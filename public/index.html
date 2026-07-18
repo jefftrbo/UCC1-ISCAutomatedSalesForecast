@@ -3313,7 +3313,16 @@
     const btn = document.getElementById('btn-generate');
     btn.disabled = true;
     try {
-      const res  = await fetch(endpoint, { method: 'POST' });
+      // Send the IDs of checked rows in the current FILTERED view.
+      // The server uses these IDs to build the PPT, ignoring the raw
+      // selected=1 DB flag which can include stale selections from
+      // prior filter views (the root cause of the 906-vs-172 bug).
+      const selectedInView = filtered.filter(o => o.selected).map(o => o.id);
+      const res  = await fetch(endpoint, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ ids: selectedInView }),
+      });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate GM Report.', 'error'); return; }
       const baselineNote = isConfirm && data.snapshot
@@ -3474,7 +3483,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.4';
+  const APP_VERSION = '2.5.5';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
