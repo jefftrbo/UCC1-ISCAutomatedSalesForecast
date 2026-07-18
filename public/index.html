@@ -2207,6 +2207,7 @@
 
     renderTable();
     updateSelectionSummary(); // keeps btn-narrative enabled/disabled in sync with filtered.length
+    refreshNarrativeIfOpen(); // re-scope narrative whenever filter/search changes
   }
 
   // ── Render table ────────────────────────────────────────────────────────────
@@ -3473,7 +3474,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.3';
+  const APP_VERSION = '2.5.4';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
