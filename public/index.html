@@ -2580,17 +2580,24 @@
     panel.style.display = 'none';
     setStatus('Generating GM narrative…', 'loading');
     try {
-      // Send the IDs of the currently-filtered visible opportunities so the
-      // narrative reflects exactly what Dushyant sees on screen, not the full DB.
-      // Sorted by amount desc to match what the server passes to generateNarrative.
-      const filteredIds = [...filtered]
+      // Build the ID list for the narrative:
+      //   1. If the user has checked a subset — use only the checked rows
+      //      (the VP deliberately selected those 10 out of 13 for the report).
+      //   2. If nothing is checked — fall back to the full filtered view
+      //      (original behaviour: "describe what I'm looking at").
+      // In both cases sort by amount desc so the server sees deals in
+      // value order, matching what generateNarrative expects.
+      const selectedInView = filtered.filter(o => o.selected);
+      const sourceRows     = selectedInView.length > 0 ? selectedInView : filtered;
+      const narrativeIds   = [...sourceRows]
         .sort((a, b) => (b.total_opportunity_amount || 0) - (a.total_opportunity_amount || 0))
         .map(o => o.id);
+      const usingSelection = selectedInView.length > 0;
 
       const res  = await fetch('/api/generate-narrative', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ids: filteredIds }),
+        body:    JSON.stringify({ ids: narrativeIds }),
       });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Narrative generation failed.', 'error'); return; }
@@ -2611,8 +2618,9 @@
       panel.style.display = 'block';
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
-      const isSubset = filteredIds.length < allOpportunities.length;
-      const viewLabel = isSubset ? `${data.count}-opp filtered view` : `all ${data.count} opportunities`;
+      const viewLabel = usingSelection
+        ? `${data.count} selected opportunit${data.count === 1 ? 'y' : 'ies'}`
+        : `${data.count}-opp filtered view`;
       setPipelineStatus('✅', `Narrative generated from ${viewLabel}.`, false);
       updateActionBar('narrative', 'fresh');
     } catch (err) {
@@ -3403,7 +3411,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.1';
+  const APP_VERSION = '2.5.2';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
