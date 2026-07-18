@@ -2378,6 +2378,7 @@
     const opp = allOpportunities.find(o => o.id === id);
     if (opp) opp.selected = selected ? 1 : 0;
     renderTable();
+    refreshNarrativeIfOpen();   // live-update narrative if panel is visible
     try {
       await fetch(`/api/opportunities/${encodeURIComponent(id)}/select`, {
         method: 'POST',
@@ -2395,6 +2396,7 @@
   async function setSelected(opps, value) {
     opps.forEach(opp => { opp.selected = value ? 1 : 0; });
     renderTable();
+    refreshNarrativeIfOpen();   // live-update narrative if panel is visible
     await Promise.all(opps.map(opp =>
       fetch(`/api/opportunities/${encodeURIComponent(opp.id)}/select`, {
         method: 'POST',
@@ -2630,6 +2632,66 @@
       btn.textContent = '✍ Generate Narrative';
     }
   });
+
+  // ── Live narrative refresh — called whenever selection changes while panel is open ──
+  // Silently re-fetches the narrative using the current selection (or filtered view
+  // if nothing is checked) and updates the panel in place — no button press needed.
+  let _narrativeRefreshTimer = null; // debounce: avoid a fetch per rapid checkbox click
+
+  async function refreshNarrativeIfOpen() {
+    const panel = document.getElementById('narrative-panel');
+    if (panel.style.display === 'none' || !panel.style.display) return; // panel not open
+
+    // Debounce 300ms — user may be rapidly checking/unchecking multiple rows
+    clearTimeout(_narrativeRefreshTimer);
+    _narrativeRefreshTimer = setTimeout(async () => {
+      const para = document.getElementById('narrative-paragraph');
+      const ul   = document.getElementById('narrative-bullets');
+
+      // Dim content to signal refresh in progress (no spinner — just opacity)
+      para.style.opacity = '0.4';
+      ul.style.opacity   = '0.4';
+
+      try {
+        const selectedInView = filtered.filter(o => o.selected);
+        const sourceRows     = selectedInView.length > 0 ? selectedInView : filtered;
+        const narrativeIds   = [...sourceRows]
+          .sort((a, b) => (b.total_opportunity_amount || 0) - (a.total_opportunity_amount || 0))
+          .map(o => o.id);
+
+        const res  = await fetch('/api/generate-narrative', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ ids: narrativeIds }),
+        });
+        if (!res.ok) { para.style.opacity = '1'; ul.style.opacity = '1'; return; }
+        const data = await res.json();
+
+        para.textContent = data.paragraph;
+        ul.innerHTML = '';
+        (data.bullets || []).forEach(b => {
+          const li = document.createElement('li');
+          li.textContent = b;
+          ul.appendChild(li);
+        });
+
+        const tag = document.getElementById('narrative-mode-tag');
+        tag.textContent = data.mock ? 'mock' : 'live · llama-3-70b';
+        panel.classList.toggle('mock-mode', !!data.mock);
+
+        const viewLabel = selectedInView.length > 0
+          ? `${data.count} selected opportunit${data.count === 1 ? 'y' : 'ies'}`
+          : `${data.count}-opp filtered view`;
+        setPipelineStatus('✅', `Narrative updated — ${viewLabel}.`, false);
+        updateActionBar('narrative', 'fresh');
+      } catch (_) {
+        // Silent fail — stale narrative stays on screen, user can re-click Narrative
+      } finally {
+        para.style.opacity = '1';
+        ul.style.opacity   = '1';
+      }
+    }, 300);
+  }
 
   // ── Copy narrative to clipboard ────────────────────────────────────────────
   document.getElementById('btn-copy-narrative').addEventListener('click', () => {
@@ -3411,7 +3473,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.2';
+  const APP_VERSION = '2.5.3';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
