@@ -398,6 +398,14 @@ app.post('/api/scrape', (req, res) => {
 
   res.write(statusMsg);
 
+  // TEST MODE guard — confirm which user's rows will be tagged BEFORE any data is written.
+  // This is the first line the VP sees in the Refresh Data output panel, making it
+  // impossible to accidentally load the wrong user's HAR without noticing.
+  if (process.env.SIMULATE_SSO !== 'false') {
+    res.write(`🔒 TEST MODE — tagging all rows as: ${userId}\n`);
+    res.write(`   Confirm your ISC filter matches this user before proceeding.\n\n`);
+  }
+
   // Pass the authenticated user's ID to the scraper so it tags rows correctly
   const child = spawn(process.execPath, args, {
     cwd: path.join(__dirname, '..'),
