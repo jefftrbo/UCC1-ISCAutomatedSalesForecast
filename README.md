@@ -2,7 +2,7 @@
 
 **Automates the weekly US Public Sector IBM Sales VP → GM meeting preparation workflow.**
 
-Replaces 60–90 minutes of manual pipeline export, scoring, narrative writing, and PowerPoint building with a single five-minute workflow powered by IBM watsonx.ai.
+Replaces 60–90 minutes of manual pipeline export, scoring, narrative writing, and PowerPoint building with a single five-minute workflow powered by IBM watsonx.ai. Multi-user, IBM-SSO-authenticated, with full per-user data isolation.
 
 > Built by Jeffrey L. Trbovich with [IBM Bob](https://w3.ibm.com) · IBM watsonx Challenge 2026 · Growth Enablers Track
 
@@ -12,8 +12,9 @@ Replaces 60–90 minutes of manual pipeline export, scoring, narrative writing, 
 
 | Step | Manual (before) | Automated (now) |
 |---|---|---|
+| Sign in | N/A | IBM w3id SSO login (simulated for demo; real OIDC-ready) |
 | Export pipeline data | Open ISC, copy/paste to spreadsheet | Upload one HAR file — done in 5 seconds |
-| Score every deal | Eyeball each row | watsonx.ai Granite-13b scores all 206 in ~15 sec |
+| Score every deal | Eyeball each row | watsonx.ai scores all deals in ~15 sec |
 | Write GM narrative | Type from memory | Llama-3-70b generates meeting-ready prose in ~10 sec |
 | See what changed | Remember last week | Diff engine compares live vs. saved baseline automatically |
 | Build PowerPoint | Format slides by hand | One-click PPTX with GM narrative + scored deals + What Changed slide |
@@ -26,9 +27,6 @@ Replaces 60–90 minutes of manual pipeline export, scoring, narrative writing, 
 
 - **Node.js v18 or later** — [nodejs.org](https://nodejs.org/)
 - **Chrome browser** — for HAR export (Brave also works)
-- **Cookie Editor browser extension** — for first-time ISC session setup (see Step 3 below)
-  - Chrome: [Cookie Editor on Chrome Web Store](https://chrome.google.com/webstore/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm)
-  - Brave/Edge: same extension, available in their respective stores
 - **IBM watsonx.ai credentials** *(optional — app runs without them using rule-based scoring)*
   - `WATSONX_API_KEY` — your IBM Cloud API key
   - `WATSONX_PROJECT_ID` — your watsonx.ai project ID
@@ -53,11 +51,16 @@ Copy the example env file and fill in your credentials:
 cp .env.example .env
 ```
 
-Open `.env` in any text editor:
+Open `.env` in any text editor. The minimum required settings for local/test use:
 
 ```env
+# Simulated IBM SSO — uses scripts/test-users.csv for login (default: true)
+SIMULATE_SSO=true
+
+# Session secret — change to any long random string
+SESSION_SECRET=change-me-to-a-long-random-string
+
 # Leave WATSONX_ENABLED=false to use rule-based scoring (no credentials needed)
-# Set to true once you have watsonx.ai API key and project ID
 WATSONX_ENABLED=false
 
 # IBM watsonx.ai credentials (required only if WATSONX_ENABLED=true)
@@ -66,27 +69,57 @@ WATSONX_PROJECT_ID=your_watsonx_project_id_here
 WATSONX_URL=https://us-south.ml.cloud.ibm.com
 ```
 
-**To run without watsonx.ai:** leave `WATSONX_ENABLED=false`. The app uses a rule-based confidence scoring engine and placeholder narratives. Fully functional.
+### Step 3 — Load test users into the database
 
-**To run with watsonx.ai:** set `WATSONX_ENABLED=true` and fill in your API key and project ID.
+This reads `scripts/test-users.csv`, hashes passwords, and creates the user registry. It also assigns all existing pipeline rows to the primary user (Duey Patel).
 
-### Step 3 — Start the app
+```bash
+node scripts/init-users.js
+```
+
+You should see all 9 test users confirmed and existing pipeline rows tagged.
+
+### Step 4 — Seed demo data for the other 8 users *(optional but recommended)*
+
+Each non-primary user gets 6 realistic deals from real health system accounts, with a Week 1 baseline and Week 3 live mutations pre-loaded so the diff engine shows changes on first login.
+
+```bash
+node scripts/seed-quarter.js --all
+```
+
+### Step 5 — Start the app
 
 ```bash
 npm start
 ```
 
-Open your browser to **[http://localhost:3090](http://localhost:3090)**
+Open your browser to **[http://localhost:3090/login](http://localhost:3090/login)**
 
-You should see the ISC Automated Sales Forecast dashboard with the action bar at the top. The GM Ready indicator will show **"No data loaded"** until you complete the weekly data refresh below.
+You will see the IBM-styled simulated SSO login page. Sign in with any user from the test list below.
+
+---
+
+## Test Users (Simulated SSO)
+
+| Display Name | IBM ID | Password | Pipeline |
+|---|---|---|---|
+| Duey Patel (GM/VP) | `dkpatel@us.ibm.com` | `dk` | 221 real deals from ISC |
+| Jeff Trbovich | `trbovich@us.ibm.com` | `jt` | 6 UPMC/Philadelphia deals |
+| Spencer Korn | `spencer.korn@ibm.com` | `sk` | 6 Mayo/Cleveland Clinic deals |
+| Kim Salatino | `kim.salatino@ibm.com` | `ks` | 6 UPMC/AHN deals |
+| Jeff Underwood | `junderwood@ibm.com` | `ju` | 6 HCA Healthcare deals |
+| Michael Marsalis | `marsal@us.ibm.com` | `mm` | 6 BCBS SC/Palmetto deals |
+| Ken Crum | `kcrum@us.ibm.com` | `kc` | 6 Cigna/Aetna/UHG deals |
+| Andy Quintana | `andy.quintana@ibm.com` | `aq` | 6 Ascension/CommonSpirit deals |
+| Brian Coyle | `bcoyle@us.ibm.com` | `bc` | 6 Horizon BCBS NJ deals |
+
+Each user's data is **completely isolated** — no user can see another's pipeline. Log out and log back in as a different user to prove it.
 
 ---
 
 ## Weekly Data Refresh (~2 minutes)
 
 Every week before the GM meeting, follow these steps to load fresh pipeline data.
-
----
 
 ### Part A — Export your ISC pipeline data as a HAR file
 
@@ -101,81 +134,70 @@ https://ibmsc.lightning.force.com/lightning/page/analytics?wave__assetType=dashb
 
 Log in with your IBM w3id credentials (passkey/Touch ID if prompted).
 
-#### Step A2 — Apply the correct pipeline filters
+#### Step A2 — Apply your pipeline filters
 
 Once the CRM Analytics dashboard loads:
 
-1. **Opportunity Owner:** Clear your name → select **Dushyant K Patel** (or the Sales VP whose pipeline you're preparing)
+1. **Accounts Assigned To:** Your name defaults — change to the Sales VP whose pipeline you're preparing (e.g. "Dushyant K Patel")
 2. Click the **"Deal List by Opportunity"** tab
 3. **Forecast Grouping:** Select **Call, Upside, Stretch**
-4. Confirm the table shows ~200 opportunities
+4. Confirm the table shows the expected opportunities (~200 for a VP)
 
-> **Important:** The filters must be applied before exporting the HAR file. The HAR captures the API response for whatever data is currently displayed.
+> **Note:** ISC defaults the `Accounts Assigned To` filter to **your own name**. Every user must clear their name and select the VP (or their own account set) before exporting. This is the same filter shown in the ISC screenshots — only `View_As_Territory` changes per user.
 
 #### Step A3 — Open Chrome DevTools and start recording
 
 1. Press **Cmd+Option+I** (Mac) or **F12** (Windows) to open DevTools
 2. Click the **Network** tab
-3. Make sure the **red record button** (●) is active — if it's grey, click it to start recording
-4. With DevTools open, **reload the page** (Cmd+R) — this ensures the deal-list API call is captured fresh
+3. Make sure the **red record button** (●) is active — if grey, click it to start recording
+4. With DevTools open, **reload the page** (Cmd+R)
 
 #### Step A4 — Re-apply your filters
 
-After the page reloads, re-apply the same filters from Step A2:
-1. Opportunity Owner → Dushyant K Patel
-2. Deal List by Opportunity tab
-3. Forecast Grouping → Call, Upside, Stretch
-
-Watch the Network panel — you should see requests firing as the data loads.
+After the page reloads, re-apply the same filters from Step A2.
 
 #### Step A5 — Export the HAR file
 
-1. In the Network panel, click the **⬇ download icon** ("Export HAR" — it looks like a downward arrow, top-right of the Network panel)
-2. Save the file anywhere convenient (e.g. `~/Downloads/isc-export.har`)
+1. In the Network panel, click the **⬇ download icon** ("Export HAR")
+2. Save the file as `scraper/isc-export.har` in the project directory
 
-> **Tip:** The HAR file will be 5–15 MB. If it's smaller than 1 MB, the deal-list data may not have loaded — re-check your filters and try again.
-
----
+> **Tip:** The HAR file will be 5–15 MB. If it's smaller than 1 MB, re-check filters and try again.
 
 ### Part B — Load the HAR file into the app
 
-With the app running at `http://localhost:3090`:
+With the app running and logged in:
 
 1. Click **"Refresh Data"** in the action bar
-2. In the file picker that appears, select your exported HAR file
-3. The app parses the HAR, extracts all opportunities, and loads them into the database
-4. The pipeline status line updates: **"206 opportunities loaded · [timestamp]"**
-
-The GM Ready indicator updates to show the next required action.
-
----
+2. The app detects `scraper/isc-export.har` automatically and parses it
+3. Pipeline rows are tagged with **your** IBM ID — no other user sees them
+4. The pipeline status line updates with the record count and timestamp
 
 ### Part C — Run the GM prep workflow
 
 Once data is loaded, the action bar guides you through each step. All steps are independently re-runnable — no sequence lock.
 
 #### Score with watsonx
-Click **"Score with watsonx"** to run AI confidence scoring on all opportunities.
-- With `WATSONX_ENABLED=true`: Granite-13b scores each deal via IBM watsonx.ai REST API (~15 sec)
-- With `WATSONX_ENABLED=false`: Rule-based engine scores each deal instantly
-- Each deal gets a **confidence score (0–100)** and **tier (Hot / Warm / Cold)**
+Click **"⬡ Score"** to run AI confidence scoring on all your opportunities.
 
 #### Generate Narrative
-Click **"Generate Narrative"** to produce the GM meeting opening text.
-- With `WATSONX_ENABLED=true`: Llama-3-70b-instruct generates a VP-ready executive narrative (~10 sec)
-- The narrative is **scoped to whatever filter you have applied** — use the named view presets or custom filters before generating
-- **Named view presets** (filter bar): 📊 GM Prep · ⚠ At Risk · 🗂 Full Pipeline — click any to apply instantly
+Click **"✍ Narrative"** to produce the GM meeting opening text, scoped to your current filter.
 
 #### What Changed
-Click **"⇄ What Changed"** to see the week-over-week diff against your last saved baseline.
-- Shows: promoted deals, demoted deals, slipped close dates, amount changes, new deals, removed deals
-- Click any category tile to open a drill-down modal with affected deals, before/after confidence scores, and financials
+Click **"⇄ What Changed"** to see week-over-week diff against your last saved baseline.
 
 #### Baseline & Generate GM Report
-Click **"📌 Save Baseline & Generate Report"** when you're satisfied with the data.
-- A confirm modal explains what will happen
-- Clicking confirm: saves today's pipeline as the new baseline (timestamped), generates the GM PowerPoint, and downloads it
-- **Next week's diff will compare against this exact snapshot**
+Click **"📊 Baseline & GM Report"** → confirm → PowerPoint generated and downloaded.
+
+---
+
+## App Header — What You'll See After Login
+
+The header displays:
+- **Initials avatar** (first + last name initial, circular)
+- **Display name** and abbreviated **role** (e.g. "Duey Patel · Vice President")
+- **Sign out** button — ends your session and returns to `/login`
+
+A yellow **🔬 Simulated SSO — Test Mode** banner appears below the header showing your active IBM ID and a **Switch User** link. This banner is present in simulated SSO mode; it is hidden when wired to real IBM w3id.
 
 ---
 
@@ -185,11 +207,9 @@ The filter bar includes three one-click view presets:
 
 | Preset | What it shows |
 |---|---|
-| 📊 **GM Prep** | High-confidence deals (score ≥ 70) closing within 90 days — the GM meeting's primary focus |
-| ⚠ **At Risk** | Deals with low confidence (score < 40) or slipped close dates — needs VP attention |
-| 🗂 **Full Pipeline** | All 206 opportunities — unfiltered |
-
-Active preset is highlighted with a blue left border. Changing any filter manually clears the active preset.
+| 📊 **GM Prep** | Current quarter · Best Case forecast · High & Medium confidence |
+| ⚠ **At Risk** | Low confidence only · deals most likely to slip |
+| 🗂 **Full Pipeline** | All opportunities — unfiltered |
 
 ---
 
@@ -197,10 +217,10 @@ Active preset is highlighted with a blue left border. Changing any filter manual
 
 The PPTX includes:
 - **Cover slide** — GM narrative paragraph + key pipeline stats
-- **Deal slides** — one per opportunity, sorted by confidence score, with stage, close date, amount, tier badge, and next-steps summary
-- **"What Changed" slide** — week-over-week delta summary (Granite-3-8b generated)
+- **Deal slides** — one per opportunity, sorted by confidence score
+- **"What Changed" slide** — week-over-week delta summary
 
-Downloaded automatically to your browser's default download folder as `GM-Report-[date].pptx`.
+Downloaded automatically as `forecast-[date].pptx` in your user-namespaced output directory.
 
 ---
 
@@ -208,51 +228,57 @@ Downloaded automatically to your browser's default download folder as `GM-Report
 
 ```
 server/
-  index.js          — Express API server (port 3090); all endpoints
-  db.js             — SQLite schema + migrations (opportunities + snapshots tables)
-  diffEngine.js     — saveSnapshot(), computeDiff(); live-vs-baseline model
-  watsonxScore.js   — scoreWithWatsonx(), generateNarrative(), generateDeltaSummary()
-  scoreOpportunity.js — rule-based scoring engine (fallback)
-  generatePpt.js    — PowerPoint generator (cover + data + What Changed slides)
+  index.js              — Express API server (port 3090); session + auth + all endpoints
+  auth.js               — Simulated IBM SSO: POST /auth/login, GET /auth/logout, GET /api/me
+  middleware/
+    requireAuth.js      — Auth guard: redirects unauthenticated requests to /login
+  db.js                 — SQLite schema + migrations (users + opportunities + baseline_ledger)
+  diffEngine.js         — saveSnapshot(), computeDiff(); per-user live-vs-baseline model
+  watsonxScore.js       — scoreWithWatsonx(), generateNarrative(), generateDeltaSummary()
+  scoreOpportunity.js   — Rule-based scoring engine (fallback when watsonx unavailable)
+  generatePpt.js        — PowerPoint generator (cover + data + What Changed slides)
 
 public/
-  index.html        — Full frontend; Carbon Design UI, action bar, filter bar,
-                      named presets, diff panel, narrative panel, tile modals
+  login.html            — IBM-styled simulated SSO login page
+  index.html            — Full frontend: Carbon Design UI, action bar, filter bar,
+                          user chip, TEST MODE banner, named presets, diff panel,
+                          narrative panel, per-tile diff modals
 
 scripts/
-  test-diff.js      — Unit test: all 8 diff scenarios (snapshots 206 rows, mutates 8, restores)
-  seed-changes.js   — UI end-to-end test helper (--restore, --status flags)
+  init-users.js         — Loads test-users.csv → users table; tags existing rows to primary user
+  seed-quarter.js       — Multi-user seed helper: --user / --all / --restore / --status flags
+  test-baseline-ledger.js — Unit test: 34/34 assertions, 13-week Q3 2026 in-memory simulation
+
+scraper/
+  load-from-har.js      — Parses HAR; tags rows with USER_ID env var (set by server on scrape)
+  fetch-from-api.js     — SAQL direct API scraper (alternative path)
 
 poc/
-  electron-shell/   — Electron PoC (proof-of-concept for future zero-HAR architecture)
+  electron-shell/       — Electron PoC (future zero-HAR architecture proof-of-concept)
 
-.env.example        — Template for WATSONX_ENABLED, WATSONX_API_KEY, WATSONX_PROJECT_ID
-package.json        — npm start → node server/index.js
+.env.example            — Template: SIMULATE_SSO, SESSION_SECRET, WATSONX_*, OIDC_*
+scripts/test-users.csv  — Test user registry (gitignored — contains real IBM IDs)
 ```
 
 ---
 
-## Testing the Diff Engine
-
-To verify the week-over-week diff engine works correctly without needing a real second HAR file:
+## Running Tests
 
 ```bash
-# Runs all 8 diff scenarios (promotes, demotes, slips, amounts, new, removed, unchanged, stale)
-# Snapshots all 206 rows as baseline, mutates 8, verifies diff output, then fully restores
-node scripts/test-diff.js
-```
+# Unit test: 34/34 assertions, 13-week Q3 2026 simulation, under 5 seconds
+node scripts/test-baseline-ledger.js
 
-To test the UI end-to-end with seeded changes:
+# Seed demo data for a specific user
+node scripts/seed-quarter.js --user trbovich@us.ibm.com
 
-```bash
-# Seeds 5 visible changes into the database for UI testing
-node scripts/seed-changes.js
+# Seed all non-primary users at once
+node scripts/seed-quarter.js --all
 
-# After testing, restore original data
-node scripts/seed-changes.js --restore
+# Check seeded state
+node scripts/seed-quarter.js --status
 
-# Check current seeded state
-node scripts/seed-changes.js --status
+# Restore (remove all seeded rows)
+node scripts/seed-quarter.js --restore --all
 ```
 
 ---
@@ -261,12 +287,35 @@ node scripts/seed-changes.js --status
 
 | Problem | Solution |
 |---|---|
-| HAR file uploads but shows 0 opportunities | Filters weren't applied before export — re-apply Opportunity Owner + Forecast Grouping filters and re-export |
-| HAR file is < 1 MB | Deal-list data didn't load — reload the ISC page with DevTools open and filters applied |
-| watsonx scoring fails | Check `WATSONX_ENABLED=true` and that `WATSONX_API_KEY` + `WATSONX_PROJECT_ID` are set in `.env`. App falls back to rule-based scoring automatically. |
+| Can't reach `localhost:3090` — redirected to `/login` | Expected — sign in first with any user from the test list |
+| Login fails with "IBM ID or password incorrect" | Run `node scripts/init-users.js` to ensure the users table is populated |
+| HAR file parses but shows 0 opportunities | Filters weren't applied before export — re-apply Owner + Forecast Grouping and re-export |
+| Opportunities visible to wrong user | Run `node scripts/init-users.js` again — it tags unowned rows to the primary user |
+| watsonx scoring fails | Check `WATSONX_ENABLED=true` and that API key + project ID are in `.env` |
 | Port 3090 already in use | `lsof -i :3090` to find the process, then `kill [PID]` |
-| "No data loaded" after uploading HAR | Check the terminal for parse errors — the HAR may not contain the CRM Analytics deal-list response. Try re-exporting with a fresh page reload inside DevTools. |
-| Diff shows everything as "new" | No baseline snapshot saved yet — run the full workflow once and click "Save Baseline" at the end |
+| Diff shows everything as "new" | No baseline saved yet — click "✅ Confirm & Generate" to write the first baseline |
+
+---
+
+## Transitioning to Real IBM w3id SSO
+
+When an IBM app registration is approved (Client ID + Client Secret from IBM's w3id identity team), replace one block in `server/auth.js`:
+
+```js
+// Current (SIMULATE_SSO=true): bcrypt check against users table
+// Production (SIMULATE_SSO=false): Passport.js OIDC strategy
+passport.use(new OIDCStrategy({
+  issuer:      process.env.OIDC_ISSUER_URL,
+  clientID:    process.env.OIDC_CLIENT_ID,
+  clientSecret: process.env.OIDC_CLIENT_SECRET,
+  callbackURL: 'https://yourapp.w3.ibm.com/auth/callback',
+}, (issuer, profile, done) => done(null, {
+  ibm_id: profile.emails[0].value,
+  display_name: profile.displayName,
+})));
+```
+
+Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the frontend are unchanged.
 
 ---
 
@@ -275,8 +324,9 @@ node scripts/seed-changes.js --status
 | Version | What changed |
 |---|---|
 | v1.0.0 | HAR → SQLite → rule-based scoring → PowerPoint pipeline |
-| v2.1.0-rc1 | watsonx.ai scoring + GM narrative + week-over-week diff engine |
-| v2.2.0 | IBM Carbon Design System UI · Model 3 action bar · named view presets · per-tile diff modals · GM Ready indicator · timestamp snapshots · score/tier persisted to DB |
+| v2.2.0 | IBM Carbon Design System · Model 3 action bar · named view presets · per-tile diff modals · GM Ready indicator · timestamp snapshots |
+| v2.3.0 | Permanent quarterly audit ledger · UUID-keyed immutable baselines · 34/34 test harness · three-button confirm modal |
+| v2.4.0 | Simulated IBM SSO · multi-tenant per-user data isolation · login page · header user chip · 9 test users · per-user seed data |
 
 ---
 
@@ -285,10 +335,11 @@ node scripts/seed-changes.js --status
 This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers track** (deadline July 22, 2026).
 
 - **Business value:** 90 min → under 5 min weekly GM prep · 94% time reduction
+- **Multi-user:** 9 IBM TSLs/ATLs/GMs with full data isolation, IBM SSO architecture
 - **watsonx.ai models:** `ibm/granite-13b-instruct-v2` (scoring) · `meta-llama/llama-3-70b-instruct` (narrative) · `ibm/granite-3-8b-instruct` (delta summary)
-- **Built with:** IBM Bob (IBM's watsonx AI development assistant)
-- **Deployment path:** CIO "Build with watsonx" Path to Production (ServiceNow AI System Demand in progress)
+- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 26 sessions
+- **Deployment path:** CIO "Build with watsonx" Path to Production
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.2.0*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.4.0*
