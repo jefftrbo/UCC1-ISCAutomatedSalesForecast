@@ -446,9 +446,21 @@ app.post('/api/scrape', (req, res) => {
 async function runGeneratePpt(req, res, confirmed) {
   const userId = req.session.user.ibm_id;
   try {
-    const selected = db
-      .prepare('SELECT * FROM opportunities WHERE user_id = ? AND selected = 1 ORDER BY close_date ASC')
-      .all(userId);
+    // Prefer the explicit ID list sent by the frontend (checked rows in the
+    // current filtered view). Fall back to selected=1 in DB for backward
+    // compatibility (e.g. direct API calls or future non-browser clients).
+    const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
+    let selected;
+    if (ids && ids.length > 0) {
+      const placeholders = ids.map(() => '?').join(',');
+      selected = db
+        .prepare(`SELECT * FROM opportunities WHERE user_id = ? AND id IN (${placeholders}) ORDER BY close_date ASC`)
+        .all(userId, ...ids);
+    } else {
+      selected = db
+        .prepare('SELECT * FROM opportunities WHERE user_id = ? AND selected = 1 ORDER BY close_date ASC')
+        .all(userId);
+    }
 
     if (selected.length === 0) {
       return res.status(400).json({ error: 'No opportunities selected. Please check at least one opportunity.' });
