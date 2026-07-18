@@ -4461,6 +4461,118 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     | 🟡 6 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
     | 🟢 7 | Live watsonx credential test | ⏳ Pending |
 
+    ### Complete Verbatim Design Conversation (for challenge documentation & user documentation)
+
+    #### The opening problem — stated verbatim by user:
+    "Before I found out the problem that v2.3.0 is going to fix, how do I test that this approach works as I have to submit it to the watsonx challenge on 7/22? We need a test harness that's totally separate from the UI in order to simulate multiple weeks of synthetic test data to prove that the schema, UI clicks, and the historical baselining logic is valid. I have some ideas, however, what do you suggest?"
+
+    #### The sequencing bug — verbatim discovery:
+    User identified: "notice that report says 'What Changed: live vs Jul 17, 2026 · 7:00 PM'... it's comparing today vs today and NOT today vs last week. Explain what's happening here because I thought that we corrected that via what's in UCC1-TechnicalSessionLog.md starting at line 1540 Step 9 - Diff Engine Redesign: Live vs. Baseline Model."
+
+    Bob's diagnosis verbatim: "The problem: steps 1 and 2 happen in sequence, and step 2 compares live against the snapshot that was JUST CREATED in step 1. `computeDiff` selects the most recent snapshot by `snapped_at DESC LIMIT 1`. That returns the snapshot saved moments ago in step 1. The live `opportunities` table is identical to a snapshot taken of itself 2 seconds ago. Result: 0 new, 0 dropped, 0 changes — 'no significant changes detected.' The fix is a 3-line reorder — move `saveSnapshot` from BEFORE the PPT to AFTER the PPT. The diff engine was correct. The sequencing was wrong."
+
+    #### The bigger architectural question — verbatim user statement:
+    "a calendar quarter is roughly 12–13 weeks simply because of the way the calendar works, more specifically, even if you assume a 52-week year, a quarter can be longer than 12 weeks because a quarter is typically 13 weeks in a 4-4-5 style calendar, and an extra 14-week quarter can occur once every five or six years. My point is that I'm thinking that we should save each 'final', meaning after the Sales VP confirms that this particular run of this app and the PPT that it generates is indeed the Final Report/Baseline for the week within the quarter."
+
+    #### The three strategic use cases — verbatim user statement:
+    "1. we can actually track the historical performance of the Sales Rep, Sales Manager, and possibly the Customer's (SR-SM-C) responses/actions/behaviors during the quarterly sales cycle.
+    2. assuming that the SR-SM are keeping Next Steps and/or Team Notes up to date on a weekly or semi-weekly basis, we can categorically demonstrate where poor opportunity communications hygiene is an indicator of a sales opp that is not as good as it sounds.
+    3. the absence of Next Steps and/or Team Notes is more than likely a symptom of a sales rep that needs coaching, or is possibly in the process of leaving IBM because they would rather leave on their own rather than being put on a performance plan or simply terminated by IBM.
+    What are your thoughts? We have to get this absolutely bullet-proof."
+
+    #### Bob's full assessment of the architectural implications (verbatim):
+    "What you're describing is a temporal audit ledger, not a diff engine. The current `snapshots` table design has a critical structural flaw: PRIMARY KEY (id, week_label). When INSERT OR REPLACE runs, it overwrites the previous entry for that (id, week_label) pair. Multiple saves in the same week destroy prior saves. You can never reconstruct Tuesday's state if Friday overwrote it. For the use cases you described — SR/SM/Customer behavior tracking, Next Steps hygiene analysis, coaching signals — you need every confirmed final baseline preserved forever, immutably. That requires a schema change.
+
+    For Use Case 1: You need to answer 'Show me the stage progression of every opportunity owned by Rep X across all 13 weeks of Q3.' That requires one row per (opportunity_id, snapshot_id) where every snapshot is permanent.
+
+    For Use Case 2: You need to answer 'For deals that slipped close date or dropped, how many consecutive weeks did they have blank or stale Next Steps before the event?' This is a time-series query across multiple preserved snapshots.
+
+    For Use Case 3: 'Show me Rep X's Next Steps update frequency across the last 8 weeks.' One baseline per week per rep, never overwritten.
+
+    The schema needs a third dimension: a baseline run ID that is globally unique and immutable."
+
+    #### The "VP confirms Final" option debate — complete verbatim exchange:
+
+    Bob proposed three options:
+    - Option A: "The existing 'Baseline & GM Report' confirm modal already asks the user to confirm. That click IS the VP confirmation. We just change what happens on confirm: generate the PPT with the old baseline's diff, THEN write a new immutable snapshot with a new UUID."
+    - Option B: "Generate PPT first (draft mode, no snapshot written). VP reviews it. Second button: '✅ Confirm as Final Baseline for Week X' — only then is the snapshot written."
+    - Recommendation: "Option A. The confirm modal already forces a deliberate action. Keep the UX simple. The immutability is enforced in the database schema, not in the UI flow."
+
+    User question (verbatim): "To be absolutely clear, when that new immutable snapshot w a new UUID is written, the VP doesn't have a 3rd choice, such as 'Cancel', 'Generate PPT', 'Generate PPT & Create this week's final Baseline' (I know that's a lot for the 3rd button, but you get my point). Does that make sense, or should we choose Option B? I need to know your thoughts."
+
+    Bob's counter-analysis (verbatim): "Neither Option A nor Option B as stated — Option C. The problem with Option A without 'Generate Only' is a trap. Every time anyone clicks the modal to test or regenerate, they're writing an immutable record. You'll have 15 snapshots from one Friday afternoon of debugging.
+
+    Option C — the three-button modal:
+    [ Cancel ]   [ Generate Only ]   [ ✅ Confirm & Generate ]
+
+    'Generate Only' sequence: (1) computeDiff → (2) generatePpt → (3) nothing written.
+    '✅ Confirm & Generate' sequence: (1) computeDiff → (2) generatePpt → (3) saveSnapshot with confirmed=true, UUID written permanently.
+
+    Rationale: During the PPT testing sessions this week, you hit 'Confirm & Generate' multiple times because the output was broken. With 'Generate Only,' you iterate on the PPT until it's right — no snapshots written. When you're satisfied, you click '✅ Confirm & Generate' exactly once. That's the one immutable record for the week.
+
+    Option B (generate first, confirm separately) is technically equivalent but splits the action across two separate UI moments, which means: the VP might generate the PPT, present it, then forget to hit 'Confirm Final'. Or they hit 'Confirm Final' the next morning after the meeting, and the timestamp is wrong."
+
+    User decision (verbatim): "okay, I agree 100% on v2.3.0 as we discussed, however there's one additional step that we need to address before you write the v2.3.0 code... Before I found out the problem that v2.3.0 is going to fix, how do I test that this approach works as I have to submit it to the watsonx challenge on 7/22? We need a test harness that's totally separate from the UI in order to simulate multiple weeks of synthetic test data to prove that the schema, UI clicks, and the historical baselining logic is valid."
+
+    User green-light (verbatim): "let's do it!"
+
+    #### What each button click means — user documentation (authoritative)
+
+    **"Cancel"**
+    Nothing happens. No data written, no file downloaded. The modal closes. The pipeline is unchanged. Use this if you opened the modal by accident or are not ready to generate.
+
+    **"Generate Only"**
+    The app does exactly two things, in this order:
+    1. Compares your live pipeline right now against the most recent confirmed Final baseline from a previous session. Builds the "What Changed" analysis.
+    2. Generates and downloads the PowerPoint GM report using that comparison.
+    Nothing is written to the database. No baseline entry is created. The "What Changed" comparison in this PPT is identical to what you would see if you clicked "✅ Confirm & Generate" — the difference is only what happens AFTER the PPT is generated. Use "Generate Only" as many times as you need to get the report right.
+
+    **"✅ Confirm & Generate"**
+    The app does three things, in this order:
+    1. Compares your live pipeline right now against the most recent confirmed Final baseline from a previous session. Builds the "What Changed" analysis. (identical to Generate Only)
+    2. Generates and downloads the PowerPoint GM report using that comparison. (identical to Generate Only)
+    3. Permanently writes today's complete pipeline to the `baseline_ledger` table with a unique UUID, timestamped to this exact moment, tagged with the quarter label (e.g. "Q3 2026") and the week sequence within the quarter (e.g. week 7 of 13). **This record cannot be edited, deleted, or overwritten by any future action.** Next week's "⇄ What Changed" will compare the live pipeline against exactly what you confirmed here.
+
+    Use "✅ Confirm & Generate" exactly once per week, after the Sales VP has reviewed the PPT and agreed it accurately reflects the pipeline for that week's GM call. That single click is the permanent historical record for that week.
+
+    #### The immutability guarantee — technical basis
+    The `baseline_ledger` table uses `PRIMARY KEY (snapshot_id, id)`. `snapshot_id` is a UUID generated at the moment of each "✅ Confirm & Generate" click using Node.js `crypto.randomUUID()`. No two UUIDs can be equal. `INSERT` (not `INSERT OR REPLACE`) is used, so the database engine will reject any attempt to insert a duplicate. There is no `DELETE` path in the application code. There is no `UPDATE` path for `baseline_ledger` rows. The only operation ever performed on this table is `INSERT`.
+
+    #### The "today vs today" bug — why it was impossible to detect without testing
+    The old sequence was: (1) saveSnapshot → (2) computeDiff → (3) generatePpt. `computeDiff` selected the most recent snapshot by `snapped_at DESC LIMIT 1`. Because step 1 had just run, the most recent snapshot was always the one created 2 seconds ago from the current live pipeline. Comparing the live pipeline against a snapshot of itself produces zero changes. The status bar showed "live vs Jul 17, 2026 · 7:00 PM" — technically accurate, but meaningless, because "Jul 17, 2026 · 7:00 PM" was taken during the same button click.
+
+    The fix is architectural: `computeDiff(db, asOf)` now accepts a timestamp parameter. `getPreviousBaseline(db, asOf)` uses a strict SQL condition `WHERE confirmed_at < ?` with `asOf = new Date().toISOString()`. Because the new baseline is written AFTER `computeDiff` runs, its `confirmed_at` timestamp is always equal to or later than `asOf` — never strictly less than it. The query physically cannot return the baseline written during the current run. This is a structural guarantee, not a convention.
+
+    #### Why the 13-week test harness is the challenge documentation
+    The test harness (`scripts/test-baseline-ledger.js`) simulates an entire Q3 2026 sales quarter in memory with 20 synthetic opportunities and pre-scripted weekly mutations covering every change type the diff engine tracks: new deals, dropped deals, stage promotions, stage demotions, amount increases, amount decreases, close date slips, close date pull-ins, blank Next Steps accumulation, and quarter-end. It runs in 34 deterministic assertions with zero randomness. Every assertion is explicit about what was expected and what was returned. The output is captured verbatim in this session log.
+
+    For the IBM watsonx Challenge submission, this test harness is the proof that the system does what it claims. The judges can run `node scripts/test-baseline-ledger.js` on any machine with Node.js and see all 34 assertions pass in under 5 seconds.
+
+    #### The Next Steps hygiene query — what it answers and why it matters
+    The SQL query used in the test harness (A8):
+    ```sql
+    SELECT id, COUNT(*) AS blank_weeks
+    FROM   baseline_ledger
+    WHERE  confirmed = 1
+      AND  (next_steps IS NULL OR next_steps = '')
+    GROUP  BY id
+    HAVING COUNT(*) >= 3
+    ```
+    This answers: "Which opportunity IDs appear with blank or null Next Steps in 3 or more confirmed weekly baselines?"
+
+    The business interpretation: any opportunity where the sales rep has not updated Next Steps for 3 or more consecutive GM reporting weeks is either stalled (the rep has no meaningful update to give) or abandoned (the rep has mentally moved on). Both are early warning signals that the deal's forecast category may not reflect reality. An opportunity sitting at "Best Case" with 4 weeks of blank Next Steps is a risk to the GM's revenue call that would otherwise be invisible in the current pipeline snapshot.
+
+    #### The data permanence model — complete statement for user documentation
+    The application maintains two parallel data models:
+
+    **Live pipeline** (`opportunities` table): The current state of every opportunity as of the most recent HAR import. Updated every time "⟳ Refresh Data" is clicked. Represents reality right now. No history is kept here — only the current state.
+
+    **Audit ledger** (`baseline_ledger` table): Every confirmed Final baseline for the current and all prior quarters, preserved permanently. One UUID-keyed entry per confirmed GM reporting session. Never modified after the moment of creation. Represents the agreed-upon "truth" for each week of each quarter as confirmed by the Sales VP.
+
+    The application's reporting accuracy depends on the VP using "Generate Only" for all test and iteration runs, and "✅ Confirm & Generate" exactly once per week after the pipeline state correctly reflects the current revenue call. Any click of "✅ Confirm & Generate" before the pipeline is correct will produce a permanent record of the incorrect state. The immutability of the ledger means this cannot be undone — it can only be acknowledged as an imprecise baseline for that week.
+
+    This is not a flaw. It is the same discipline that governs any auditable financial reporting system: the moment you sign off on a report, that report becomes the permanent record regardless of what you discover afterward.
+
     ### How to Resume
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
