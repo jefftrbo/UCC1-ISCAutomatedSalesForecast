@@ -4311,3 +4311,157 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
   }
+
+  ## Session 24 — v2.3.0 Permanent Quarterly Audit Ledger (July 17–18, 2026) {
+
+    ### Context / Problem Statement
+    Three sessions of PPT testing produced multiple unintended baselines in the `snapshots` table. When "⇄ What Changed" ran, the diff showed "live vs Jul 17, 2026 · 7:00 PM" — comparing today against today. Zero changes detected. Root cause: the old `POST /api/generate-ppt` flow called `saveSnapshot` BEFORE `computeDiff`, so the baseline written during this run was always selected as the "prior" baseline.
+
+    ### Design Discussion (two sessions before coding)
+
+    #### "VP confirms Final" options debated:
+    - Option A (original): implicit confirmation via existing modal — "Confirm & Generate" saves baseline + generates PPT. No escape hatch for test runs.
+    - Option B: two-step — generate PPT first, separate "Confirm Final" button. Risk: VP forgets step 2; timestamp gap.
+    - **Option C (chosen):** three-button modal — "Cancel" | "Generate Only" | "✅ Confirm & Generate". "Generate Only" produces the PPT with the current diff but writes NO baseline entry. "✅ Confirm & Generate" writes an immutable UUID baseline AFTER generating the PPT. This is the only path that creates a permanent historical record.
+
+    #### Architectural upgrade — why v2.3.0 not a patch:
+    User identified three strategic use cases that required a schema redesign:
+    1. Track SR/SM/Customer trajectory across all 12–13 weeks of a quarter
+    2. Identify Next Steps hygiene gaps as a leading indicator of deal risk
+    3. Rep departure/coaching signal from consistent blank Next Steps patterns
+    These require every confirmed Final baseline to be preserved forever, immutably. The old `snapshots` table used `INSERT OR REPLACE` keyed on `(id, week_label)` — re-running in the same week destroyed prior records.
+
+    #### Test harness first (agreed before writing any production code):
+    - In-memory SQLite (`:memory:`) — never touches `opportunities.db`
+    - 13 simulated weekly cycles across Q3 2026 with 20 synthetic opportunities
+    - Pre-scripted deterministic mutations (not random)
+    - 34 explicit assertions covering schema, immutability, Generate-Only exclusion, today-vs-today impossibility, historical queries, diff correctness, quarter/weekSeq labels
+
+    ### Files Changed
+
+    #### `server/db.js`
+    - Added `baseline_ledger` table (v2.3.0) with: `snapshot_id UUID`, `week_label`, `quarter_label`, `week_seq`, `confirmed_at`, `confirmed INTEGER (0=test, 1=Final)`, all opportunity fields + `team_notes`. PRIMARY KEY `(snapshot_id, id)` — append-only, never overwritten.
+    - Old `snapshots` table preserved (migration safety) but no longer written.
+
+    #### `server/diffEngine.js` (full rewrite)
+    - Added `randomUUID` from Node.js `crypto` module.
+    - `quarterLabel(date)` — "Q3 2026". Uses `getUTCMonth()` to avoid local-timezone boundary issues.
+    - `weekSeqInQuarter(date)` — week number within quarter (1-based). Uses `Date.UTC()` for consistent cross-timezone behaviour.
+    - `saveSnapshot(db, { confirmed, now })` — generates UUID, inserts to `baseline_ledger`. `confirmed=true` for Final, `confirmed=false` for Generate Only. `now` parameter enables test harness time simulation.
+    - `getPreviousBaseline(db, asOf)` — returns `{ snapshotId, weekLabel }` for the most-recent confirmed entry with `confirmed_at < asOf`. The strict `<` guard makes "today vs today" structurally impossible.
+    - `computeDiff(db, asOf)` — accepts `asOf` Date parameter. Uses `getPreviousBaseline`. Reads from `baseline_ledger` by `snapshot_id`.
+    - `getLedgerHistory(db)` — returns all confirmed baselines newest-first for UI panel.
+
+    #### `server/index.js`
+    - `runGeneratePpt(res, confirmed)` shared function: Step 1=computeDiff, Step 2=generateNarrative, Step 3=generatePpt, Step 4=saveSnapshot (confirmed=true only). This is the corrected sequence — diff computed BEFORE baseline written.
+    - `POST /api/generate-ppt` → `runGeneratePpt(res, true)` — "✅ Confirm & Generate"
+    - `POST /api/generate-ppt-only` → `runGeneratePpt(res, false)` — "Generate Only"
+    - `POST /api/snapshot` — unchanged, still calls `saveSnapshot(db, { confirmed: true })` for the utility "📌 Save Baseline" button.
+    - `GET /api/ledger-history` — new endpoint returning `getLedgerHistory(db)`.
+
+    #### `public/index.html`
+    - 3-button confirm modal: "Cancel" | "Generate Only" | "✅ Confirm & Generate".
+    - Step 1 label changed to "Generate GM Report (PowerPoint)" (correct sequence).
+    - Step 2 label: "Confirm as Final Baseline for This Week" with warning "This cannot be undone."
+    - `runPptAction(endpoint)` shared JS handler wired to both buttons.
+    - Status line distinguishes: "Baseline locked (Jul 17, 2026 · 7:00 PM)" vs "Test run — no baseline written".
+    - `APP_VERSION = '2.3.0'`
+
+    #### `scripts/test-baseline-ledger.js` (new)
+    In-memory SQLite test harness. 13-week Q3 2026 simulation. 34 assertions.
+
+    #### `scripts/seed-quarter.js` (new)
+    UI smoke test helper. Seeds 10 realistic SEED-* opportunities into real `opportunities.db`. Saves Week 1 confirmed baseline. Applies week 2 or week 3 mutations to live rows. `--restore`, `--status`, `--dry-run` flags.
+
+    ### Test Harness Results (verbatim — final run)
+    ```
+    ── Week 1: Initial pipeline baseline ──
+       Saved snapshot 660c9981… — 20 opps
+
+    ── Week 2 ──   Diff vs "Jul 1, 2026 · 6:00 AM": 2 promoted, 1 amount changes
+    ── Week 3 ──   Diff vs "Jul 8, 2026 · 6:00 AM": 1 new, 1 slipped
+    ── Week 4 ──   Diff vs "Jul 15, 2026 · 6:00 AM": 1 dropped
+    ── Week 5 ──   Generate Only (test run) — b1bcb756… NOT a baseline
+                   Diff vs "Jul 22, 2026 · 6:00 AM": 2 demoted, 1 amount changes
+    ── Week 6 ──   Diff vs "Jul 29, 2026 · 6:00 AM": no significant changes detected
+    ── Week 7 ──   Diff vs "Aug 5, 2026 · 6:00 AM": 1 promoted, 1 pulled in
+    ── Week 8 ──   Diff vs "Aug 12, 2026 · 6:00 AM": no significant changes detected
+    ── Week 9 ──   Diff vs "Aug 19, 2026 · 6:00 AM": 1 dropped
+    ── Week 10 ──  Diff vs "Aug 26, 2026 · 6:00 AM": 2 new, 1 amount changes
+    ── Week 11 ──  Diff vs "Sep 2, 2026 · 6:00 AM": 1 promoted, 1 slipped
+    ── Week 12 ──  Diff vs "Sep 9, 2026 · 6:00 AM": 1 dropped
+    ── Week 13 ──  Diff vs "Sep 16, 2026 · 6:00 AM": no significant changes detected
+
+    RESULT: 34 passed, 0 failed
+    ✅ ALL ASSERTIONS PASSED
+    ```
+
+    ### Test Harness Debug Log (failures and fixes on path to 34/34)
+    - Run 1 (20/34): `computeDiff` was using `new Date()` (real time) instead of the simulated week date; `getPreviousBaseline` returned column names `snapshot_id`/`week_label` instead of aliased `snapshotId`/`weekLabel`; `quarterLabel`/`weekSeqInQuarter` used local timezone `.getMonth()` instead of `.getUTCMonth()` — all three bugs in one pass.
+    - Run 2 (32/34): OPP-016 initial stage is `Qualify` (i=15, 15%5=0) — can't demote from lowest stage. Fixed to `OPP-017` (i=16, starts `Engage`). `weekSeqInQuarter(Sep 22)=12` not 13 — fixed to `Sep 29`.
+    - Run 3 (33/34): Week-5 demotion assertion used `computeDiff(db, weekDate(5))` against the live table which was at week-13 state post-simulation. Fixed to query `baseline_ledger` directly by snapshot_id.
+    - Run 4 (34/34): ✅
+
+    ### Git Commands Executed
+    ```bash
+    git checkout -b feature/v2.3.0-ledger  # from develop @ 18be11d
+
+    git add server/db.js server/diffEngine.js server/index.js public/index.html scripts/test-baseline-ledger.js scripts/seed-quarter.js
+    git commit -m "feat: v2.3.0 — permanent quarterly audit ledger, Generate Only / Confirm & Generate modal, 34/34 test harness passing"
+    # [feature/v2.3.0-ledger b8ddba7] 6 files changed, 946 insertions(+), 208 deletions(-)
+
+    git checkout develop && git merge --no-ff feature/v2.3.0-ledger -m "merge: feature/v2.3.0-ledger → develop (v2.3.0 quarterly audit ledger)"
+    git checkout main    && git merge --no-ff develop -m "release: v2.3.0 — permanent quarterly audit ledger"
+    git tag -a v2.3.0 -m "v2.3.0 — permanent quarterly audit ledger: immutable UUID-keyed baseline_ledger, Generate Only / Confirm & Generate, 34/34 test harness"
+    git push origin main && git push origin develop && git push origin feature/v2.3.0-ledger && git push origin --tags
+    ```
+
+    ### Final Repository State
+    ```
+    main    — bdf010c  release: v2.3.0 (tagged v2.3.0) ← current production stable
+    develop — c5ff9c4  merge: feature/v2.3.0-ledger → develop
+    Tags: v1.0.0 · v2.1.0-rc1 · v2.2.0-rc1 · v2.2.0 · v2.2.1 · v2.2.2 · v2.2.3 · v2.2.4 · v2.2.5 · v2.3.0
+    ```
+
+    ### What Was Delivered
+    - **Permanent quarterly audit ledger** (`baseline_ledger` table). Every "✅ Confirm & Generate" click writes one immutable UUID-keyed entry. Never overwritten. Query the full Q3 trajectory for any rep, deal, or manager at any time.
+    - **"Today vs today" bug eliminated** — `computeDiff` always compares against the most-recent PRIOR confirmed baseline (`confirmed_at < asOf`). Structurally impossible to compare a snapshot against itself.
+    - **Generate Only / Confirm & Generate modal** — three-button design. VP iterates with Generate Only until the report is right, then Confirm once. Only confirmed clicks create permanent records.
+    - **34/34 test harness** (`scripts/test-baseline-ledger.js`) — 13-week in-memory simulation proving schema immutability, diff correctness across all change types, Next Steps hygiene query, stage trajectory, and calendar math.
+    - **`scripts/seed-quarter.js`** — UI smoke test helper for real browser validation.
+    - **`v2.3.0` shipped to `main`** — tagged, pushed, live on GitHub.
+
+    ### Next Steps for UI Smoke Test
+    ```bash
+    # 1. Restart server (schema creates baseline_ledger table on first start)
+    npm start
+
+    # 2. Seed synthetic data
+    node scripts/seed-quarter.js
+
+    # 3. Browser: http://localhost:3090
+    #    - See SEED-* rows in the table
+    #    - Click "⇄ What Changed" — should show promotions, slip, pull-in vs. Week 1
+    #    - Select rows → "📊 Baseline & GM Report"
+    #    - Click "Generate Only" → PPT downloads, check "Test run — no baseline written" in status
+    #    - Click again → "✅ Confirm & Generate" → PPT + "Baseline locked (…)" in status
+
+    # 4. Restore
+    node scripts/seed-quarter.js --restore
+    ```
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Run UI smoke test with seed-quarter.js | ⏳ Pending |
+    | 🔴 2 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Must complete (eligibility gate) |
+    | 🔴 3 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 4 | Review `UCC1-ChallengeSubmissionDraft.html` — update with v2.3.0 capability | ⏳ Pending |
+    | 🟡 5 | Record demo video — 3–4 min screen recording of full workflow | ⚠ Not recorded |
+    | 🟡 6 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟢 7 | Live watsonx credential test | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
