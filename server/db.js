@@ -83,15 +83,35 @@ v2Columns.forEach(({ name, ddl }) => {
   }
 });
 
-// ── v2.1.0 — snapshots table (week-over-week diff) ────────────────────────────
-// Each HAR import saves a point-in-time snapshot of the full pipeline.
-// Snapshots are keyed by week_label (e.g. "2026-W29") — one row per opportunity
-// per week. The diff engine compares the two most-recent distinct week_labels.
+// ── v2.3.0 — baseline_ledger table (permanent quarterly audit trail) ──────────
+//
+// DESIGN CHANGE from v2.1.0/v2.2.x:
+//   Old design: snapshots keyed by (id, week_label) with INSERT OR REPLACE.
+//               Re-running "Baseline & GM Report" in the same week silently
+//               overwrote the prior record — no history preserved.
+//
+//   New design: every confirmed "Final" baseline run gets a globally-unique
+//               snapshot_id (UUID). Rows are NEVER overwritten. The table is an
+//               append-only audit ledger. Multiple runs per week accumulate as
+//               separate records — the diff engine uses MAX(confirmed_at) to
+//               find the most recent PRIOR confirmed baseline.
+//
+// quarter_label: derived at save time from the close of business date,
+//                e.g. "Q3 2026". Enables cross-quarter historical queries.
+// week_seq:      week number within the quarter (1–13). Enables trend charts.
+// confirmed:     0 = "Generate Only" (test run, not a final), 1 = confirmed Final.
+//                Only confirmed=1 rows are used as diff baselines.
+//
+// The old `snapshots` table is preserved for migration safety but no longer written.
 db.exec(`
-  CREATE TABLE IF NOT EXISTS snapshots (
+  CREATE TABLE IF NOT EXISTS baseline_ledger (
+    snapshot_id     TEXT NOT NULL,        -- UUID, unique per confirmed run
+    week_label      TEXT NOT NULL,        -- human timestamp: "Jul 17, 2026 · 7:00 PM"
+    quarter_label   TEXT NOT NULL,        -- e.g. "Q3 2026"
+    week_seq        INTEGER,              -- week-within-quarter: 1, 2, … 13
+    confirmed_at    TEXT NOT NULL,        -- ISO timestamp of this save
+    confirmed       INTEGER NOT NULL DEFAULT 1, -- 1=Final confirmed, 0=Generate Only (test)
     id              TEXT NOT NULL,        -- Opportunity ID (matches opportunities.id)
-    week_label      TEXT NOT NULL,        -- ISO week label, e.g. "2026-W29"
-    snapped_at      TEXT NOT NULL,        -- ISO timestamp of snapshot
     opportunity_name            TEXT,
     account_name                TEXT,
     stage                       TEXT,
@@ -102,23 +122,34 @@ db.exec(`
     opportunity_owner           TEXT,
     flm_judgement               TEXT,
     next_steps                  TEXT,
-    PRIMARY KEY (id, week_label)
+    team_notes                  TEXT,
+    score                       INTEGER,  -- rules-based confidence score at baseline time
+    tier                        TEXT,     -- High / Medium / Low at baseline time
+    PRIMARY KEY (snapshot_id, id)         -- append-only: snapshot_id never reused
   )
 `);
 
-// ── v2.2.0 migration — add score/tier columns to snapshots ───────────────────
-// Stores the rules-based confidence score at baseline time so the diff modal
-// can show "before → after" score deltas for changed deals.
-const snapshotCols = db.pragma('table_info(snapshots)').map(c => c.name);
-const v22SnapshotColumns = [
-  { name: 'score', ddl: 'ALTER TABLE snapshots ADD COLUMN score INTEGER' },
-  { name: 'tier',  ddl: 'ALTER TABLE snapshots ADD COLUMN tier TEXT'     },
-];
-v22SnapshotColumns.forEach(({ name, ddl }) => {
-  if (!snapshotCols.includes(name)) {
-    db.exec(ddl);
-    console.log(`[db] Migration: added column snapshots.${name}`);
-  }
-});
+// ── v2.1.0/v2.2.0 snapshots table — preserved for migration safety, no longer written ──
+// New code writes only to baseline_ledger. This table stays so existing data is not lost.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS snapshots (
+    id              TEXT NOT NULL,
+    week_label      TEXT NOT NULL,
+    snapped_at      TEXT NOT NULL,
+    opportunity_name            TEXT,
+    account_name                TEXT,
+    stage                       TEXT,
+    forecast_category           TEXT,
+    close_date                  TEXT,
+    filtered_opportunity_amount REAL,
+    total_opportunity_amount    REAL,
+    opportunity_owner           TEXT,
+    flm_judgement               TEXT,
+    next_steps                  TEXT,
+    score                       INTEGER,
+    tier                        TEXT,
+    PRIMARY KEY (id, week_label)
+  )
+`);
 
 module.exports = db;

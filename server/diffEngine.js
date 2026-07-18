@@ -1,56 +1,40 @@
 /**
- * server/diffEngine.js
+ * server/diffEngine.js  (v2.3.0)
  *
- * Week-over-week diff engine for the ISC Automated Sales Forecast app (v2.1.0).
+ * DESIGN — Permanent Quarterly Audit Ledger
+ * ─────────────────────────────────────────
+ * Every confirmed "Final" baseline run is written to `baseline_ledger` with a
+ * globally-unique snapshot_id (UUID). Rows are NEVER overwritten or deleted.
+ * The table is an append-only audit trail for the entire quarterly sales cycle.
  *
- * DESIGN (revised):
- *   "Previous" = the most-recent snapshot in the `snapshots` table (frozen baseline
- *                saved deliberately by the user via "📌 Save Baseline" after the GM call).
- *   "Current"  = the live `opportunities` table as it stands right now.
+ * TWO save modes (controlled by caller):
+ *   confirmed = true  → "Confirm & Generate" — permanent historical record
+ *   confirmed = false → "Generate Only"      — test run, not used as diff baseline
  *
- *   This means Dushyant can refresh the pipeline as many times as he wants during
- *   the week (high-velocity deals updating frequently) and "⇄ What Changed" always
- *   shows: "here is what is different RIGHT NOW vs. the last time we held a GM call."
+ * computeDiff(db, [asOf])
+ *   Compares the live opportunities table against the most-recent CONFIRMED
+ *   baseline with confirmed_at < asOf (defaults to now). This ensures:
+ *   1. "today vs today" bug is impossible — the snapshot written THIS run has
+ *      confirmed_at = now, so it is never selected as the prior baseline.
+ *   2. Multiple test runs ("Generate Only") never pollute the diff baseline.
  *
- *   saveSnapshot(db)
- *     Freezes the current `opportunities` table as the new baseline, tagged with
- *     the current ISO week label (e.g. "2026-W29").
- *     Uses INSERT OR REPLACE — calling it multiple times in the same week
- *     intentionally OVERWRITES the prior snapshot for that week, so the baseline
- *     always reflects the pipeline at the moment "Save Baseline" was clicked.
- *     (Typically called once after the Friday GM call.)
- *
- *   computeDiff(db)
- *     Compares the most-recent snapshot (previous/baseline) against the live
- *     `opportunities` table (current). Returns a structured diff object.
- *
- * Diff categories returned:
- *   new       — in live opportunities, not in the baseline snapshot
- *   dropped   — in the baseline snapshot, not in live opportunities
- *   promoted  — stage moved forward (e.g. Qualify → Propose)
- *   demoted   — stage moved backward (e.g. Propose → Qualify)
- *   amount    — total_opportunity_amount changed by ≥ $50k AND ≥ 10%
- *   slipped   — close_date pushed out by ≥ 7 days
- *   pulled_in — close_date moved earlier by ≥ 7 days
- *   unchanged — no tracked fields changed
+ * Historical queries enabled by this schema:
+ *   - SR/SM stage trajectory across all weeks of a quarter
+ *   - Next Steps hygiene gaps (N consecutive weeks of blank next_steps)
+ *   - Close date drift over time per opportunity
+ *   - Quarter-over-quarter pipeline health comparison
  */
 
 'use strict';
 
+const { randomUUID } = require('crypto');
+
 // ---------------------------------------------------------------------------
-// Stage ordering — used to determine promotion vs demotion
-// Higher index = further along in the sales cycle.
+// Stage ordering — used to determine promotion vs. demotion
 // ---------------------------------------------------------------------------
 const STAGE_ORDER = [
-  'Identify',
-  'Qualify',
-  'Engage',
-  'Design',
-  'Propose',
-  'Negotiate',
-  'Closing',
-  'Closed Won',
-  'Closed Lost',
+  'Identify', 'Qualify', 'Engage', 'Design',
+  'Propose', 'Negotiate', 'Closing', 'Closed Won', 'Closed Lost',
 ];
 
 function stageIndex(stage) {
@@ -60,12 +44,13 @@ function stageIndex(stage) {
   return idx === -1 ? 0 : idx;
 }
 
+// ---------------------------------------------------------------------------
+// Label helpers
+// ---------------------------------------------------------------------------
+
 /**
- * Returns a human-readable timestamp label, e.g. "Jul 13, 2026 · 2:34 PM".
- * Used as the snapshot label — timestamp-based so multiple saves in the same
- * week are distinct and the diff engine always uses the most-recent one.
- * @param {Date} [date]
- * @returns {string}
+ * Human-readable timestamp label — "Jul 17, 2026 · 7:00 PM"
+ * Used as week_label in the ledger.
  */
 function snapshotLabel(date = new Date()) {
   const datePart = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -73,7 +58,29 @@ function snapshotLabel(date = new Date()) {
   return `${datePart} · ${timePart}`;
 }
 
-// Keep isoWeekLabel exported for test scripts that still use it
+/**
+ * Quarter label — "Q3 2026" — derived from a calendar date.
+ * Q1 = Jan–Mar, Q2 = Apr–Jun, Q3 = Jul–Sep, Q4 = Oct–Dec.
+ * Uses UTC month to avoid local-timezone date boundary issues.
+ */
+function quarterLabel(date = new Date()) {
+  const q = Math.floor(date.getUTCMonth() / 3) + 1;
+  return `Q${q} ${date.getUTCFullYear()}`;
+}
+
+/**
+ * Week sequence within the quarter (1-based).
+ * Week 1 = the week containing the first day of the quarter.
+ * Uses UTC dates to avoid local-timezone boundary issues.
+ */
+function weekSeqInQuarter(date = new Date()) {
+  const q      = Math.floor(date.getUTCMonth() / 3);
+  const qStart = Date.UTC(date.getUTCFullYear(), q * 3, 1);
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  return Math.floor((date.getTime() - qStart) / msPerWeek) + 1;
+}
+
+// Keep isoWeekLabel exported — test scripts may still use it
 function isoWeekLabel(date = new Date()) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
@@ -83,100 +90,122 @@ function isoWeekLabel(date = new Date()) {
 }
 
 // ---------------------------------------------------------------------------
-// saveSnapshot — called by Step 5 "Baseline & Generate GM Report"
+// saveSnapshot — writes one entry to baseline_ledger
 // ---------------------------------------------------------------------------
 /**
- * Freeze the current opportunities table as the new baseline snapshot.
- *
- * Uses a timestamp-based label (e.g. "Jul 13, 2026 · 2:34 PM") so multiple
- * saves in the same week are always distinct. The diff engine orders by
- * snapped_at DESC so the most-recent snapshot is always the baseline,
- * regardless of when during the week it was saved.
- *
- * Primary usage: automatically called when Dushyant clicks
- * "📊 Baseline & Generate GM Report" (Step 5).
- * Secondary usage: manual override via the utility "📌 Save Baseline" button.
+ * Freeze the current opportunities table as a new ledger entry.
  *
  * @param {import('better-sqlite3').Database} db
- * @returns {{ weekLabel: string, saved: number }}
+ * @param {{ confirmed?: boolean, now?: Date }} [opts]
+ *   confirmed  true  = "Confirm & Generate" — permanent historical record (default)
+ *              false = "Generate Only"      — test run, excluded from diff baselines
+ *   now        override the current timestamp (used by test harness to simulate weeks)
+ *
+ * @returns {{ snapshotId: string, weekLabel: string, quarterLabel: string,
+ *             weekSeq: number, confirmed: boolean, saved: number }}
  */
-function saveSnapshot(db) {
-  const weekLabel = snapshotLabel();   // timestamp label, not ISO week
-  const snappedAt = new Date().toISOString();
+function saveSnapshot(db, { confirmed = true, now = new Date() } = {}) {
+  const snapshotId   = randomUUID();
+  const wLabel       = snapshotLabel(now);
+  const qLabel       = quarterLabel(now);
+  const wSeq         = weekSeqInQuarter(now);
+  const confirmedAt  = now.toISOString();
+  const confirmedInt = confirmed ? 1 : 0;
 
   const rows = db.prepare('SELECT * FROM opportunities').all();
 
   const insert = db.prepare(`
-    INSERT OR REPLACE INTO snapshots
-      (id, week_label, snapped_at,
-       opportunity_name, account_name, stage, forecast_category,
+    INSERT INTO baseline_ledger
+      (snapshot_id, week_label, quarter_label, week_seq, confirmed_at, confirmed,
+       id, opportunity_name, account_name, stage, forecast_category,
        close_date, filtered_opportunity_amount, total_opportunity_amount,
-       opportunity_owner, flm_judgement, next_steps,
-       score, tier)
+       opportunity_owner, flm_judgement, next_steps, team_notes, score, tier)
     VALUES
-      (?, ?, ?,  ?, ?, ?, ?,  ?, ?, ?,  ?, ?, ?,  ?, ?)
+      (?, ?, ?, ?, ?, ?,
+       ?, ?, ?, ?, ?,
+       ?, ?, ?,
+       ?, ?, ?, ?, ?, ?)
   `);
 
   db.transaction(() => {
     for (const r of rows) {
       insert.run(
-        r.id, weekLabel, snappedAt,
-        r.opportunity_name, r.account_name, r.stage, r.forecast_category,
+        snapshotId, wLabel, qLabel, wSeq, confirmedAt, confirmedInt,
+        r.id, r.opportunity_name, r.account_name, r.stage, r.forecast_category,
         r.close_date, r.filtered_opportunity_amount, r.total_opportunity_amount,
-        r.opportunity_owner, r.flm_judgement, r.next_steps,
+        r.opportunity_owner, r.flm_judgement, r.next_steps, r.team_notes ?? null,
         r.score ?? null, r.tier ?? null
       );
     }
   })();
 
-  return { weekLabel, saved: rows.length };
+  return {
+    snapshotId,
+    weekLabel:     wLabel,
+    quarterLabel:  qLabel,
+    weekSeq:       wSeq,
+    confirmed,
+    saved:         rows.length,
+  };
 }
 
 // ---------------------------------------------------------------------------
-// computeDiff — live opportunities vs. most-recent snapshot
+// getPreviousBaseline — internal helper
 // ---------------------------------------------------------------------------
 /**
- * Compare the live opportunities table (current) against the most-recent
- * snapshot (previous/baseline).
+ * Returns the most-recent confirmed baseline whose confirmed_at is strictly
+ * before `asOf`. This is what computeDiff compares the live table against.
  *
- * Returns { hasData: false } when no snapshot exists yet — the UI shows
- * "Save a baseline first by clicking 📌 Save Baseline after your GM call."
+ * Returns null if no qualifying baseline exists yet.
  *
  * @param {import('better-sqlite3').Database} db
- * @returns {{
- *   hasData: boolean,
- *   currentWeek: string,   — always "live"
- *   previousWeek: string,  — week_label of the most-recent snapshot
- *   new: object[],
- *   dropped: object[],
- *   promoted: object[],
- *   demoted: object[],
- *   amount: object[],
- *   slipped: object[],
- *   pulled_in: object[],
- *   unchanged: object[],
- *   summary: string
- * }}
+ * @param {string} asOf  ISO timestamp — only baselines BEFORE this are considered
+ * @returns {{ snapshotId: string, weekLabel: string } | null}
  */
-function computeDiff(db) {
-  // Get the most-recent snapshot by snapped_at timestamp (the baseline)
-  // Ordering by snapped_at DESC ensures we always use the latest save,
-  // regardless of whether multiple snapshots exist in the same calendar week.
-  const baselineRow = db
-    .prepare("SELECT DISTINCT week_label FROM snapshots ORDER BY snapped_at DESC LIMIT 1")
-    .get();
+function getPreviousBaseline(db, asOf) {
+  const row = db.prepare(`
+    SELECT DISTINCT snapshot_id AS snapshotId, week_label AS weekLabel
+    FROM   baseline_ledger
+    WHERE  confirmed = 1
+      AND  confirmed_at < ?
+    ORDER  BY confirmed_at DESC
+    LIMIT  1
+  `).get(asOf);
+  return row || null;
+}
 
-  if (!baselineRow) {
+// ---------------------------------------------------------------------------
+// computeDiff — live opportunities vs. most-recent prior confirmed baseline
+// ---------------------------------------------------------------------------
+/**
+ * Compare the live opportunities table against the most-recent confirmed
+ * baseline that was saved BEFORE `asOf` (defaults to now).
+ *
+ * The `asOf < confirmed_at` guard makes "today vs today" structurally
+ * impossible — a snapshot saved during this run has confirmed_at = now,
+ * which is never < now.
+ *
+ * Returns { hasData: false } when no qualifying baseline exists.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {Date} [asOf]  defaults to new Date()
+ * @returns {object}  structured diff result
+ */
+function computeDiff(db, asOf = new Date()) {
+  const asOfIso = asOf.toISOString();
+  const baseline = getPreviousBaseline(db, asOfIso);
+
+  if (!baseline) {
     return { hasData: false, currentWeek: 'live', previousWeek: null };
   }
 
-  const previousWeek = baselineRow.week_label;
-  const currentWeek  = 'live';
+  const { snapshotId, weekLabel: previousWeek } = baseline;
+  const currentWeek = 'live';
 
-  // Current = live opportunities table
   const currentRows  = db.prepare('SELECT * FROM opportunities').all();
-  // Previous = most-recent snapshot
-  const previousRows = db.prepare('SELECT * FROM snapshots WHERE week_label = ?').all(previousWeek);
+  const previousRows = db.prepare(
+    'SELECT * FROM baseline_ledger WHERE snapshot_id = ?'
+  ).all(snapshotId);
 
   const currentMap  = new Map(currentRows.map(r => [r.id, r]));
   const previousMap = new Map(previousRows.map(r => [r.id, r]));
@@ -185,6 +214,7 @@ function computeDiff(db) {
     hasData: true,
     currentWeek,
     previousWeek,
+    snapshotId,
     new:       [],
     dropped:   [],
     promoted:  [],
@@ -195,18 +225,14 @@ function computeDiff(db) {
     unchanged: [],
   };
 
-  // New deals (in current, not in previous)
+  // New deals (in live, not in baseline)
   for (const [id, cur] of currentMap) {
-    if (!previousMap.has(id)) {
-      result.new.push({ ...cur });
-    }
+    if (!previousMap.has(id)) result.new.push({ ...cur });
   }
 
-  // Dropped deals (in previous, not in current)
+  // Dropped deals (in baseline, not in live)
   for (const [id, prev] of previousMap) {
-    if (!currentMap.has(id)) {
-      result.dropped.push({ ...prev });
-    }
+    if (!currentMap.has(id)) result.dropped.push({ ...prev });
   }
 
   // Changed deals (in both)
@@ -215,20 +241,15 @@ function computeDiff(db) {
     if (!prev) continue;
 
     const changes = [];
-
-    // Baseline confidence scores (null if snapshot predates v2.2.0 migration)
-    const scoreContext = {
-      prevScore: prev.score  ?? null,
-      prevTier:  prev.tier   ?? null,
-    };
+    const scoreContext = { prevScore: prev.score ?? null, prevTier: prev.tier ?? null };
 
     // Stage movement
     const prevSI = stageIndex(prev.stage);
     const curSI  = stageIndex(cur.stage);
     if (prev.stage !== cur.stage && prevSI !== -1 && curSI !== -1) {
       const delta = { ...cur, ...scoreContext, prevStage: prev.stage, curStage: cur.stage };
-      if (curSI > prevSI)  { result.promoted.push(delta); changes.push('stage'); }
-      if (curSI < prevSI)  { result.demoted.push(delta);  changes.push('stage'); }
+      if (curSI > prevSI) { result.promoted.push(delta); changes.push('stage'); }
+      if (curSI < prevSI) { result.demoted.push(delta);  changes.push('stage'); }
     }
 
     // Amount change ≥ $50k AND ≥ 10%
@@ -247,20 +268,19 @@ function computeDiff(db) {
       const curDate  = new Date(cur.close_date);
       const daysDiff = Math.round((curDate - prevDate) / 86400000);
       if (daysDiff >= 7) {
-        result.slipped.push({ ...cur, ...scoreContext, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
+        result.slipped.push({ ...cur, ...scoreContext,
+          prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
         changes.push('slipped');
       } else if (daysDiff <= -7) {
-        result.pulled_in.push({ ...cur, ...scoreContext, prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
+        result.pulled_in.push({ ...cur, ...scoreContext,
+          prevCloseDate: prev.close_date, curCloseDate: cur.close_date, daysDiff });
         changes.push('pulled_in');
       }
     }
 
-    if (changes.length === 0) {
-      result.unchanged.push({ ...cur });
-    }
+    if (changes.length === 0) result.unchanged.push({ ...cur });
   }
 
-  // Build a human-readable summary string (used in PPT and narrative prompt)
   const parts = [];
   if (result.new.length)       parts.push(`${result.new.length} new`);
   if (result.dropped.length)   parts.push(`${result.dropped.length} dropped`);
@@ -276,4 +296,38 @@ function computeDiff(db) {
   return result;
 }
 
-module.exports = { saveSnapshot, computeDiff, isoWeekLabel };
+// ---------------------------------------------------------------------------
+// getLedgerHistory — returns all confirmed baselines for the UI/analytics
+// ---------------------------------------------------------------------------
+/**
+ * Returns a summary of all confirmed baseline runs, newest first.
+ * Used by the UI to display the baseline history panel.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @returns {Array<{ snapshotId, weekLabel, quarterLabel, weekSeq, confirmedAt, oppCount }>}
+ */
+function getLedgerHistory(db) {
+  return db.prepare(`
+    SELECT snapshot_id  AS snapshotId,
+           week_label   AS weekLabel,
+           quarter_label AS quarterLabel,
+           week_seq     AS weekSeq,
+           confirmed_at AS confirmedAt,
+           COUNT(*)     AS oppCount
+    FROM   baseline_ledger
+    WHERE  confirmed = 1
+    GROUP  BY snapshot_id
+    ORDER  BY confirmed_at DESC
+  `).all();
+}
+
+module.exports = {
+  saveSnapshot,
+  computeDiff,
+  getPreviousBaseline,
+  getLedgerHistory,
+  isoWeekLabel,
+  snapshotLabel,
+  quarterLabel,
+  weekSeqInQuarter,
+};

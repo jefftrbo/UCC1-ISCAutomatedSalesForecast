@@ -24,7 +24,7 @@ const db = require('./db');
 const generatePpt = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
 const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
-const { saveSnapshot, computeDiff } = require('./diffEngine');
+const { saveSnapshot, computeDiff, getLedgerHistory } = require('./diffEngine');
 
 const app = express();
 const PORT = process.env.PORT || 3090;
@@ -256,19 +256,31 @@ app.get('/api/save-cookies', (req, res) => {
 
 // ---------------------------------------------------------------------------
 // POST /api/snapshot
-// Deliberately freezes the current pipeline as the new baseline for
-// week-over-week diff. Should be called AFTER the GM meeting to lock in
-// "this week's final state" so next week's diff compares against it.
-// Uses INSERT OR REPLACE — re-calling in the same week updates the baseline
-// to the current moment (intentional, not a no-op).
-// Returns: { weekLabel, saved }
+// Manual "Save Baseline" utility — writes a confirmed=1 entry to baseline_ledger.
+// For the normal weekly workflow, the snapshot is written INSIDE /api/generate-ppt
+// (after the diff is computed and the PPT is generated). This endpoint exists for
+// the utility "📌 Save Baseline" button (manual override, advanced action).
+// Returns: { snapshotId, weekLabel, quarterLabel, weekSeq, confirmed, saved }
 // ---------------------------------------------------------------------------
 app.post('/api/snapshot', (req, res) => {
   try {
-    const result = saveSnapshot(db);
+    const result = saveSnapshot(db, { confirmed: true });
     res.json(result);
   } catch (err) {
     console.error('POST /api/snapshot error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/ledger-history
+// Returns all confirmed baseline runs (newest first) for the UI history panel.
+// ---------------------------------------------------------------------------
+app.get('/api/ledger-history', (req, res) => {
+  try {
+    res.json(getLedgerHistory(db));
+  } catch (err) {
+    console.error('GET /api/ledger-history error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -368,11 +380,12 @@ app.post('/api/scrape', (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /api/generate-ppt
-// Queries all selected opportunities and generates a .pptx file.
-// Returns JSON with the relative file path so the frontend can download it.
 // ---------------------------------------------------------------------------
-app.post('/api/generate-ppt', async (req, res) => {
+// Shared PPT generation logic — used by both endpoints below.
+// confirmed = true  → "Confirm & Generate": writes immutable baseline AFTER PPT
+// confirmed = false → "Generate Only":      PPT only, no baseline written
+// ---------------------------------------------------------------------------
+async function runGeneratePpt(res, confirmed) {
   try {
     const selected = db
       .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY close_date ASC')
@@ -382,41 +395,65 @@ app.post('/api/generate-ppt', async (req, res) => {
       return res.status(400).json({ error: 'No opportunities selected. Please check at least one opportunity.' });
     }
 
-    const dateStamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-    const fileName = `forecast-${dateStamp}.pptx`;
+    const dateStamp = new Date().toISOString().slice(0, 10);
+    const fileName  = `forecast-${dateStamp}.pptx`;
     const outputDir = path.join(__dirname, '..', 'output');
     const outputPath = path.join(outputDir, fileName);
 
-    // Auto-generate narrative for cover slide (non-blocking — PPT still works if this fails)
+    // Step 1 — compute diff against the most-recent PRIOR confirmed baseline
+    // (asOf = now, so any snapshot written during this request is excluded)
+    let diff = null;
+    let deltaSummary = null;
+    try {
+      diff = computeDiff(db);   // uses new Date() internally — always prior baseline
+      if (diff.hasData) {
+        deltaSummary = await generateDeltaSummary(diff);
+      }
+    } catch (e) {
+      console.warn('generate-ppt: diff/delta skipped —', e.message);
+    }
+
+    // Step 2 — generate GM narrative for cover slide (non-blocking)
     let narrative = null;
     try {
       narrative = await generateNarrative(selected);
     } catch (e) {
-      console.warn('POST /api/generate-ppt: narrative generation skipped —', e.message);
+      console.warn('generate-ppt: narrative generation skipped —', e.message);
     }
 
-    // Auto-fetch week-over-week diff and AI delta summary (non-blocking)
-    let diff = null;
-    let deltaSummary = null;
-    try {
-      diff = computeDiff(db);
-      if (diff.hasData) {
-        const { generateDeltaSummary } = require('./watsonxScore');
-        deltaSummary = await generateDeltaSummary(diff);
-      }
-    } catch (e) {
-      console.warn('POST /api/generate-ppt: diff/delta skipped —', e.message);
-    }
-
+    // Step 3 — generate the PowerPoint
     await generatePpt(selected, outputPath, narrative, diff, deltaSummary);
 
-    // Return the download URL (served as static file)
-    res.json({ file: `/output/${fileName}`, count: selected.length });
+    // Step 4 — write immutable baseline entry ONLY on confirmed runs
+    let snapshotResult = null;
+    if (confirmed) {
+      snapshotResult = saveSnapshot(db, { confirmed: true });
+    }
+
+    res.json({
+      file:       `/output/${fileName}`,
+      count:      selected.length,
+      confirmed,
+      snapshot:   snapshotResult,   // null on Generate Only runs
+    });
   } catch (err) {
-    console.error('POST /api/generate-ppt error:', err.message);
+    console.error('generate-ppt error:', err.message);
     res.status(500).json({ error: err.message });
   }
-});
+}
+
+// POST /api/generate-ppt
+// "Confirm & Generate" — generates PPT using the PRIOR baseline's diff,
+// then writes a new immutable confirmed baseline entry to baseline_ledger.
+// This is the "Final" action — the permanent historical record for this week.
+// ---------------------------------------------------------------------------
+app.post('/api/generate-ppt', (req, res) => runGeneratePpt(res, true));
+
+// POST /api/generate-ppt-only
+// "Generate Only" — generates PPT using the PRIOR baseline's diff,
+// does NOT write a new baseline entry. Use for test runs and iteration.
+// ---------------------------------------------------------------------------
+app.post('/api/generate-ppt-only', (req, res) => runGeneratePpt(res, false));
 
 // Serve generated .pptx files from /output
 app.use('/output', express.static(path.join(__dirname, '..', 'output')));
