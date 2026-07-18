@@ -214,3 +214,63 @@ The entire stack runs on the user's local machine. No cloud infrastructure, no A
 - **ISC URL** — user will provide the real ISC forecast page URL; DOM selectors in the scraper will need tuning at that point
 - **IBM PPT Template** — user will provide a `.pptx` template file for GM submissions; `generatePpt.js` has a placeholder hook for this
 - **Additional fields** — user may request extra ISC fields beyond the standard set; DB schema and scraper are designed to accommodate new columns
+
+---
+
+### Sub-Task 7 — IBM watsonx.ai Integration (v2.0.0–v2.2.0)
+
+**Status:** `[x] done`
+
+- `server/watsonxScore.js` — `batchScore()`, `generateNarrative()`, `generateDeltaSummary()`; live IBM watsonx.ai REST API + graceful mock fallback
+- `server/scoreOpportunity.js` — rule-based confidence scoring engine (stage, close date, next steps, financials)
+- `server/generatePpt.js` — full PowerPoint generator: cover slide (narrative), scored deal slides, "What Changed" slide
+- UI: Carbon Design System overhaul, Model 3 action bar, named view presets (GM Prep / At Risk / Full Pipeline), per-tile diff modals, tri-state checkbox, GM Ready indicator, `public/login.html`
+
+---
+
+### Sub-Task 8 — Permanent Quarterly Audit Ledger (v2.3.0)
+
+**Status:** `[x] done`
+
+- `server/diffEngine.js` redesigned: `saveSnapshot()` with UUID per run, `computeDiff()` with `confirmed_at < asOf` guard (structural "today vs today" prevention), `getLedgerHistory()`
+- `server/db.js` — `baseline_ledger` table: append-only, UUID-keyed, quarter-tagged, week-sequenced
+- Three-button confirm modal: Cancel / Generate Only / ✅ Confirm & Generate
+- `scripts/test-baseline-ledger.js` — 34/34 assertions, 13-week Q3 2026 in-memory simulation, deterministic, runs in under 5 seconds
+- `scripts/seed-quarter.js` (v1) — smoke test helper for UI validation
+
+---
+
+### Sub-Task 9 — Simulated IBM SSO + Multi-Tenant Data Isolation (v2.4.0)
+
+**Status:** `[x] done`
+
+**Problem:** App was single-user with no authentication. Dushyant wants all TSLs and ATLs reporting to him to use the same app independently, with their data isolated from each other.
+
+**Solution:** Full multi-tenant architecture with simulated IBM w3id OIDC SSO (structurally identical to real production SSO; one-file swap when IBM app registration credentials arrive).
+
+**New files:**
+- `server/auth.js` — `POST /auth/login` (bcrypt check → session), `GET /auth/logout`, `GET /api/me`
+- `server/middleware/requireAuth.js` — 30-line auth guard; redirects browsers to `/login`, returns 401 JSON to API callers
+- `public/login.html` — IBM-styled mock SSO login page (IBM black top bar, w3id-lookalike form, TEST MODE notice, error banner)
+- `scripts/init-users.js` — reads `scripts/test-users.csv`, bcrypt-hashes passwords, upserts users table, assigns untagged rows to primary user
+
+**Modified files:**
+- `server/db.js` — `users` table; `user_id TEXT` migration on `opportunities` + `baseline_ledger`; indexes
+- `server/index.js` — `express-session` + `better-sqlite3-session-store`; auth routes; `requireAuth` on `/` and `/api/*`; `userId` threaded through all 10 query endpoints; PPT output namespaced to `/output/{safeId}/`
+- `server/diffEngine.js` — `userId` param on `saveSnapshot`, `computeDiff`, `getPreviousBaseline`, `getLedgerHistory`
+- `scraper/load-from-har.js` — `USER_ID` env var tags every upserted row
+- `public/index.html` — header user chip (avatar, display name, role, Sign Out); yellow TEST MODE banner; v2.4.0
+- `scripts/seed-quarter.js` — full rewrite: `--user`, `--all`, `--restore`, `--status` flags; 8 per-user seed templates with real health system accounts
+
+**Test results (9/9 passed):**
+- `GET /login` → 200 ✅
+- `GET /` (unauthed) → 302 `/login` ✅
+- `POST /auth/login` bad creds → 302 `/login?error=invalid` ✅
+- `POST /auth/login` Duey → 302 `/` ✅
+- `GET /api/me` Duey session → correct JSON ✅
+- `GET /api/opportunities` Duey → 221 rows ✅
+- `GET /api/opportunities` Jeff (no data) → 0 rows (isolation proven) ✅
+- `GET /auth/logout` → 302 `/login` ✅
+- `GET /api/me` after logout → 401 ✅
+
+**npm dependencies added:** `express-session`, `bcryptjs`, `better-sqlite3-session-store`

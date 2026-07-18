@@ -128,7 +128,7 @@
         <div class="app-subtitle">IBM watsonx Challenge 2026 · Growth Enablers Track · UCC1</div>
       </div>
       <div style="text-align:right; font-size:11px; color:#57606a;">
-        <div style="font-weight:700;">v2.2.0</div>
+        <div style="font-weight:700;">v2.4.0</div>
         <div>July 2026</div>
         <div>System Architecture</div>
       </div>
@@ -138,6 +138,7 @@
       <span class="badge blue">IBM Granite</span>
       <span class="badge blue">Llama 3</span>
       <span class="badge green">Carbon Design</span>
+      <span class="badge green">IBM w3id SSO</span>
       <span class="badge">Node.js / Express</span>
       <span class="badge">SQLite</span>
       <span class="badge">Salesforce CRM Analytics</span>
@@ -181,17 +182,17 @@
         </div>
         <div class="box accent">
           <div class="box-title">SQLite Database</div>
-          <div class="box-sub">server/db.js · salesforce.db<br>
-          opportunities + snapshots tables<br>
-          v2.0 + v2.2.0 migrations (score/tier cols)</div>
-          <div class="box-tag blue">better-sqlite3</div>
+          <div class="box-sub">server/db.js · opportunities.db<br>
+          users · opportunities · baseline_ledger<br>
+          user_id isolation · indexes per tenant</div>
+          <div class="box-tag blue">better-sqlite3 · multi-tenant</div>
         </div>
         <div class="box accent">
-          <div class="box-title">Snapshot Engine</div>
+          <div class="box-title">Audit Ledger Engine</div>
           <div class="box-sub">server/diffEngine.js<br>
-          saveSnapshot() · INSERT OR REPLACE<br>
-          Timestamp labels · live-vs-baseline model</div>
-          <div class="box-tag blue">Week-over-week diff</div>
+          saveSnapshot(userId) · computeDiff(userId)<br>
+          Append-only UUID baselines · per-user</div>
+          <div class="box-tag blue">Week-over-week diff · v2.3.0</div>
         </div>
       </div>
     </div>
@@ -239,21 +240,30 @@
     </div>
 
     <div class="layer" style="min-height:90px;">
-      <div class="layer-label">Application</div>
+      <div class="layer-label">Auth &amp; App</div>
       <div class="layer-content">
+        <div class="box accent">
+          <div class="box-title">IBM SSO Auth Layer</div>
+          <div class="box-sub">server/auth.js · express-session<br>
+          GET /login · POST /auth/login · GET /auth/logout<br>
+          Mock: bcrypt vs users table (SIMULATE_SSO=true)<br>
+          Prod: Passport.js OIDC → IBM w3id (one-file swap)</div>
+          <div class="box-tag blue">IBM w3id OIDC-ready</div>
+        </div>
         <div class="box green" style="flex:2;">
           <div class="box-title">Carbon Design UI Dashboard</div>
           <div class="box-sub">public/index.html · IBM Plex Sans · CDS tokens<br>
-          Model 3 action bar (status-driven, re-entrant) · Named view presets (GM Prep / At Risk / Full Pipeline)<br>
-          Per-tile diff modals · before→after confidence · GM Ready indicator · Pipeline status line</div>
+          User chip (avatar · name · role · Sign Out) · TEST MODE banner<br>
+          Model 3 action bar · Named view presets (GM Prep / At Risk / Full Pipeline)<br>
+          Per-tile diff modals · before→after confidence · GM Ready indicator</div>
           <div class="box-tag green">IBM Carbon Design System</div>
         </div>
         <div class="box green">
           <div class="box-title">Express API Server</div>
           <div class="box-sub">server/index.js · port 3090<br>
-          POST /api/upload-har · POST /api/score<br>
-          POST /api/generate-narrative · GET /api/diff<br>
-          POST /api/snapshot · GET /api/opportunities</div>
+          All /api/* routes require valid session<br>
+          userId threaded through all 10 query endpoints<br>
+          PPT output namespaced /output/{user_id}/</div>
           <div class="box-tag green">Node.js / Express 4</div>
         </div>
         <div class="box green">
@@ -272,25 +282,28 @@
     </div>
 
     <div class="layer">
-      <div class="layer-label">End User</div>
+      <div class="layer-label">End Users</div>
       <div class="layer-content">
         <div class="box orange">
-          <div class="box-title">Sales VP (Dushyant)</div>
-          <div class="box-sub">Weekly GM meeting prep<br>
-          90 min manual → &lt;5 min automated</div>
-          <div class="box-tag orange">Primary user</div>
+          <div class="box-title">Sales VP (Dushyant — GM)</div>
+          <div class="box-sub">221 real pipeline deals<br>
+          Weekly GM meeting prep · 90 min → &lt;5 min<br>
+          Confirmed baselines · quarterly audit ledger</div>
+          <div class="box-tag orange">Primary user · dkpatel@us.ibm.com</div>
         </div>
         <div class="box orange">
-          <div class="box-title">US Public Sector GMs</div>
-          <div class="box-sub">Consume PowerPoint output<br>
-          Weekly pipeline review meeting</div>
-          <div class="box-tag orange">Output consumers</div>
+          <div class="box-title">TSLs / ATLs (8 users)</div>
+          <div class="box-sub">Jeff Trbovich · Spencer Korn · Kim Salatino<br>
+          Jeff Underwood · Michael Marsalis · Ken Crum<br>
+          Andy Quintana · Brian Coyle · each isolated</div>
+          <div class="box-tag orange">Fully isolated per-user pipeline</div>
         </div>
         <div class="box orange">
-          <div class="box-title">Future: Public Market VPs</div>
-          <div class="box-sub">Viral adoption potential<br>
-          IBM Cloud hosted → any browser</div>
-          <div class="box-tag orange">Growth path</div>
+          <div class="box-title">Future: Any IBM Sales VP</div>
+          <div class="box-sub">IBM Cloud hosted · w3id SSO live<br>
+          Salesforce OAuth eliminates HAR step<br>
+          Same app · any Public Market VP</div>
+          <div class="box-tag orange">Growth path · CIO platform</div>
         </div>
       </div>
     </div>
@@ -301,12 +314,13 @@
 
   <div class="section-label">Deployment Status — Current vs. Target</div>
   <table>
-    <tr><th>Component</th><th>Current (v2.2.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
+    <tr><th>Component</th><th>Current (v2.4.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
     <tr><td>App hosting</td><td>localhost:3090 on Sales VP MacBook</td><td>IBM Cloud Code Engine · w3id SSO · internal URL</td><td><span class="warn">⚠</span> Pending ServiceNow AI System approval</td></tr>
+    <tr><td>Authentication</td><td>Simulated IBM SSO (bcrypt + express-session) · 9 test users · full OIDC-ready architecture</td><td>Real IBM w3id OIDC (one-file swap in server/auth.js)</td><td><span class="warn">⚠</span> Pending IBM app registration (Client ID + Secret)</td></tr>
+    <tr><td>Multi-tenancy</td><td>user_id isolation on all tables · per-user queries · namespaced PPT output</td><td>Same — no schema changes needed for production</td><td><span class="check">✓</span> Production-ready</td></tr>
     <tr><td>watsonx.ai</td><td>Personal API key · 3 models</td><td>CIO-provisioned watsonx.ai service account</td><td><span class="warn">⚠</span> Pending CIO provisioning</td></tr>
     <tr><td>Data ingestion</td><td>Manual HAR export (~2 min/week)</td><td>Salesforce Connected App OAuth 2.0 · automated</td><td><span class="cross">✗</span> Requires IBM IT Salesforce admin approval</td></tr>
     <tr><td>UI / AI / Diff engine / PPT</td><td>Fully built · production-ready</td><td>Same — no changes needed</td><td><span class="check">✓</span> Production-ready</td></tr>
-    <tr><td>Access control</td><td>None (local only)</td><td>IBM BlueGroup · w3id SSO · ITSS compliance</td><td><span class="cross">✗</span> Pending BlueGroup + ServiceNow approval</td></tr>
   </table>
 
   <hr>
@@ -315,7 +329,7 @@
   <table>
     <tr><th>Requirement</th><th>Detail</th><th>Owner</th><th>Ready?</th></tr>
     <tr><td>Architecture diagram</td><td>All data sources, integrations, services</td><td>Technical Lead</td><td><span class="check">✓</span> This document</td></tr>
-    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.2.0 live</td></tr>
+    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.4.0 live</td></tr>
     <tr><td>Business Lead</td><td>User enablement, product functionality, documentation</td><td>Dushyant K. Patel (Sales VP)</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Technical Lead</td><td>Design, feature dev, testing, maintenance</td><td>Jeffrey L. Trbovich</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Risk &amp; Compliance Lead</td><td>AI ethics, responsible use, data privacy, GPA/CRB</td><td>TBD</td><td><span class="cross">✗</span> Unassigned</td></tr>
@@ -349,7 +363,8 @@
       <div class="card-title">Technology Stack</div>
       <ul>
         <li><strong>Runtime:</strong> Node.js 18+ · Express 4</li>
-        <li><strong>Database:</strong> SQLite (better-sqlite3)</li>
+        <li><strong>Auth:</strong> express-session · bcryptjs · IBM w3id OIDC-ready</li>
+        <li><strong>Database:</strong> SQLite (better-sqlite3) · multi-tenant</li>
         <li><strong>AI — Scoring:</strong> ibm/granite-13b-instruct-v2</li>
         <li><strong>AI — Narrative:</strong> meta-llama/llama-3-70b-instruct</li>
         <li><strong>AI — Delta:</strong> ibm/granite-3-8b-instruct</li>
@@ -357,7 +372,7 @@
         <li><strong>UI:</strong> IBM Carbon Design System · IBM Plex Sans</li>
         <li><strong>Presentation:</strong> pptxgenjs</li>
         <li><strong>Data source:</strong> Salesforce CRM Analytics (HAR)</li>
-        <li><strong>Built with:</strong> IBM Bob (watsonx)</li>
+        <li><strong>Built with:</strong> IBM Bob (watsonx) · 26 sessions</li>
       </ul>
     </div>
     <div class="card">
@@ -365,18 +380,19 @@
       <ul>
         <li><strong>Time saved:</strong> 90 min → &lt;5 min per GM prep</li>
         <li><strong>Frequency:</strong> Weekly · US Public Sector IBM</li>
-        <li><strong>Deals tracked:</strong> 206 active opportunities</li>
+        <li><strong>Users:</strong> 9 IBMers (1 VP/GM + 5 TSLs + 3 ATLs)</li>
+        <li><strong>Deals tracked:</strong> 221 active opportunities (Duey's real pipeline)</li>
         <li><strong>AI outputs:</strong> Confidence score + tier · GM narrative · delta summary</li>
-        <li><strong>PowerPoint:</strong> Auto-generated GM-ready deck</li>
-        <li><strong>Diff engine:</strong> Surfaces week-over-week deal changes</li>
-        <li><strong>Scale:</strong> Any IBM Public Market VP · any instance</li>
+        <li><strong>PowerPoint:</strong> Auto-generated GM-ready deck per user</li>
+        <li><strong>Diff engine:</strong> Week-over-week per user · permanent audit ledger</li>
+        <li><strong>Scale:</strong> Multi-user · IBM intranet-ready · SSO-ready</li>
         <li><strong>Challenge:</strong> Growth Enablers · deadline July 22, 2026</li>
       </ul>
     </div>
   </div>
 
   <footer>
-    ISC Automated Sales Forecast · UCC1 · IBM watsonx Challenge 2026 · Growth Enablers Track · v2.2.0 · July 2026<br>
+    ISC Automated Sales Forecast · UCC1 · IBM watsonx Challenge 2026 · Growth Enablers Track · v2.4.0 · July 2026<br>
     Built by Jeffrey L. Trbovich with IBM Bob (watsonx AI) · github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast
     <br><br>Made with IBM Bob
   </footer>
