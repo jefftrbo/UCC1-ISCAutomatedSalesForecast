@@ -772,6 +772,233 @@
       font-style: italic;
     }
 
+    /* ── Deal Health Card modal ── */
+    /* Re-uses .diff-modal-backdrop / .diff-modal skeleton for consistency */
+    .health-modal .diff-modal-header { background: #0f62fe; }
+    .health-score-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--cds-layer-01);
+      border-bottom: 1px solid var(--cds-border-subtle);
+    }
+    .health-score-ring {
+      flex-shrink: 0;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .health-score-ring.green  { background: #198038; }
+    .health-score-ring.amber  { background: #f59e0b; }
+    .health-score-ring.red    { background: #da1e28; }
+    .health-score-details { flex: 1; }
+    .health-score-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      margin-bottom: 2px;
+    }
+    .health-score-meta {
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+    }
+    .health-components {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+    .health-comp-pill {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 2px;
+      background: var(--cds-background);
+      border: 1px solid var(--cds-border-subtle);
+      color: var(--cds-text-secondary);
+      white-space: nowrap;
+    }
+    .health-comp-pill.full  { border-color: #198038; color: #198038; }
+    .health-comp-pill.part  { border-color: #f59e0b; color: #9b6900; }
+    .health-comp-pill.zero  { border-color: #da1e28; color: #da1e28; }
+
+    /* Deal header inside health modal */
+    .health-deal-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--cds-border-subtle);
+    }
+    .health-deal-name {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .health-deal-meta {
+      font-size: 12px;
+      color: var(--cds-text-secondary);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .health-deal-meta span { white-space: nowrap; }
+    .health-deal-meta strong { color: var(--cds-text-primary); }
+
+    /* Action items section */
+    .health-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--cds-border-subtle);
+    }
+    .health-section:last-child { border-bottom: none; }
+    .health-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--cds-text-secondary);
+      margin-bottom: 10px;
+    }
+    .health-action-item {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      border-left: 3px solid transparent;
+      background: var(--cds-layer-01);
+      font-size: 13px;
+    }
+    .health-action-item:last-child { margin-bottom: 0; }
+    .health-action-item.P1 { border-left-color: #da1e28; }
+    .health-action-item.P2 { border-left-color: #f59e0b; }
+    .health-action-item.P3 { border-left-color: #8d8d8d; }
+    .health-action-item.clean { border-left-color: #198038; background: #f0faf3; }
+    .health-action-badge {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 2px;
+      margin-top: 1px;
+      white-space: nowrap;
+    }
+    .health-action-badge.P1    { background: #fff1f1; color: #da1e28; }
+    .health-action-badge.P2    { background: #fff3cd; color: #9b6900; }
+    .health-action-badge.P3    { background: #f0f0f0; color: #6f6f6f; }
+    .health-action-badge.clean { background: #defbe6; color: #198038; }
+
+    /* Week-over-week timeline table */
+    .health-timeline-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .health-timeline-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      padding: 5px 8px;
+      background: var(--cds-layer-01);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      white-space: nowrap;
+    }
+    .health-timeline-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      vertical-align: top;
+      color: var(--cds-text-primary);
+    }
+    .health-timeline-table tr:last-child td { border-bottom: none; }
+    .health-timeline-table tr:hover td { background: var(--cds-layer-01); }
+    .health-tl-delta { font-size: 11px; }
+    .health-tl-delta.up   { color: #198038; }
+    .health-tl-delta.down { color: #da1e28; }
+    .health-tl-delta.same { color: var(--cds-text-secondary); }
+
+    /* Rep hygiene summary tab */
+    .health-tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      background: var(--cds-layer-01);
+    }
+    .health-tab {
+      padding: 10px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--cds-text-secondary);
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .health-tab.active {
+      color: #0f62fe;
+      border-bottom-color: #0f62fe;
+    }
+
+    /* Per-row health icon button */
+    .btn-health {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+      line-height: 1;
+      opacity: 0.6;
+      vertical-align: middle;
+    }
+    .btn-health:hover { opacity: 1; }
+    .btn-health.red    { color: #da1e28; opacity: 1; }
+    .btn-health.amber  { color: #f59e0b; opacity: 1; }
+    .btn-health.green  { color: #198038; opacity: 0.75; }
+
+    /* Rep hygiene summary table */
+    .rep-hygiene-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .rep-hygiene-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      padding: 6px 8px;
+      background: var(--cds-layer-01);
+      border-bottom: 1px solid var(--cds-border-subtle);
+      white-space: nowrap;
+    }
+    .rep-hygiene-table td {
+      padding: 7px 8px;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      vertical-align: top;
+    }
+    .rep-hygiene-table tr:last-child td { border-bottom: none; }
+    .rep-hygiene-table tr:hover td { background: var(--cds-layer-01); }
+    .coaching-flag {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 2px;
+      white-space: nowrap;
+    }
+    .coaching-flag.urgent { background: #fff1f1; color: #da1e28; }
+    .coaching-flag.watch  { background: #fff3cd; color: #9b6900; }
+    .coaching-flag.clean  { background: #defbe6; color: #198038; }
+
     /* ── Main content ── */
     main { padding: 16px 24px 32px; }
 
@@ -1303,6 +1530,7 @@
       <thead>
         <tr>
           <th style="width:36px;text-align:center"><input type="checkbox" id="th-select-all" title="Select / deselect all visible rows" /></th>
+          <th style="width:32px;text-align:center" title="Deal Health Card — hygiene score &amp; action items">&#x2665;</th>
           <th data-col="score" class="score-cell">Confidence</th>
           <th data-col="opportunity_name" style="width:220px;min-width:220px;max-width:220px;">Opportunity</th>
           <th data-col="account_name">Account Detail</th>
@@ -1429,6 +1657,35 @@
       <button class="diff-modal-close" id="diff-modal-close" aria-label="Close">✕</button>
     </div>
     <div class="diff-modal-body" id="diff-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── Deal Health Card Modal ── -->
+<div class="diff-modal-backdrop" id="health-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="health-modal-title">
+  <div class="diff-modal health-modal" style="max-width:760px;">
+    <div class="diff-modal-header">
+      <div>
+        <div class="diff-modal-title" id="health-modal-title">&#x2665; Deal Health Card</div>
+        <div class="diff-modal-subtitle" id="health-modal-subtitle"></div>
+      </div>
+      <button class="diff-modal-close" id="health-modal-close" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Tab bar -->
+    <div class="health-tab-bar">
+      <button class="health-tab active" id="health-tab-deal" data-tab="deal">Deal Intelligence</button>
+      <button class="health-tab" id="health-tab-team" data-tab="team">Team Hygiene</button>
+    </div>
+
+    <!-- Deal Intelligence tab -->
+    <div id="health-panel-deal" class="diff-modal-body" style="padding:0;">
+      <!-- Populated by JS -->
+    </div>
+
+    <!-- Team Hygiene tab -->
+    <div id="health-panel-team" class="diff-modal-body" style="display:none;padding:0;">
+      <!-- Populated by JS on first open -->
+    </div>
   </div>
 </div>
 
@@ -1973,7 +2230,7 @@
     const tbody = document.getElementById('opp-tbody');
 
     if (sorted.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="24">
+      tbody.innerHTML = `<tr><td colspan="25">
         <div class="empty-state">
           <h2>${allOpportunities.length === 0 ? 'No data yet' : 'No results match your filters'}</h2>
           <p>${allOpportunities.length === 0
@@ -1983,11 +2240,18 @@
       return;
     }
 
-    tbody.innerHTML = sorted.map(opp => `
+    tbody.innerHTML = sorted.map(opp => {
+      const hs = opp._hygieneGrade || '';
+      const hIcon = hs === 'red' ? '&#x2665;' : hs === 'amber' ? '&#x2665;' : '&#x2665;';
+      return `
       <tr class="${opp.selected ? 'selected-row' : ''}" data-id="${esc(opp.id)}">
         <td>
           <input type="checkbox" ${opp.selected ? 'checked' : ''}
             data-id="${esc(opp.id)}" class="opp-checkbox" />
+        </td>
+        <td style="text-align:center">
+          <button class="btn-health ${esc(hs)}" data-id="${esc(opp.id)}"
+            title="Deal Health Card" aria-label="Open health card">&#x2665;</button>
         </td>
         <td class="score-cell">${scoreBadge(opp)}</td>
         <td class="wrap">${truncCell(opp.opportunity_name, 40)}</td>
@@ -2015,7 +2279,7 @@
               : '—'}</td>
         <td style="font-size:10px;color:#6f6f6f">${cell(opp.id)}</td>
       </tr>
-    `).join('');
+    `}).join('');
 
     updateSelectionSummary();
   }
@@ -2699,7 +2963,261 @@
       closeDiffModal();
       closePptConfirm();
       closeBaselineWarn();
+      closeHealthModal();
     }
+  });
+
+  // ── Deal Health Card ───────────────────────────────────────────────────────
+
+  let _repHygieneCacheKey = null; // user-scoped cache bust
+  let _repHygieneData     = null;
+
+  function fmtAmt(n) {
+    if (!n && n !== 0) return '—';
+    return '$' + Math.round(n).toLocaleString('en-US');
+  }
+
+  function hygieneRingClass(grade) {
+    return grade === 'green' ? 'green' : grade === 'amber' ? 'amber' : 'red';
+  }
+
+  function compPillClass(val, max) {
+    if (val === max)      return 'full';
+    if (val > 0)          return 'part';
+    return 'zero';
+  }
+
+  function buildHealthDealPanel(opp, hygiene, timeline) {
+    const fc = opp.forecast_category || '—';
+    const stage = opp.stage || '—';
+    const score = opp.score ?? opp.ai_score ?? null;
+    const grade = hygiene.hygieneGrade;
+
+    // ── Header ──
+    const header = `
+      <div class="health-deal-header">
+        <div class="health-deal-name">${esc(opp.opportunity_name || '—')}</div>
+        <div class="health-deal-meta">
+          <span><strong>Owner:</strong> ${esc(opp.opportunity_owner || '—')}</span>
+          <span><strong>Manager:</strong> ${esc(opp.opportunity_owners_manager || '—')}</span>
+          <span><strong>Account:</strong> ${esc(opp.account_name || '—')}</span>
+          <span><strong>Stage:</strong> ${esc(stage)}</span>
+          <span><strong>Forecast:</strong> ${esc(fc)}</span>
+          <span><strong>Close:</strong> ${esc(opp.close_date || '—')}</span>
+          <span><strong>IBM Tech Amt:</strong> ${fmtAmt(opp.filtered_opportunity_amount)}</span>
+          <span><strong>Total Amt:</strong> ${fmtAmt(opp.total_opportunity_amount)}</span>
+          ${score !== null ? `<span><strong>Conf Score:</strong> ${score}/100 (${esc(opp.tier || '—')})</span>` : ''}
+        </div>
+      </div>`;
+
+    // ── Hygiene Score Bar ──
+    const c = hygiene.components;
+    const pills = [
+      { label: `NS presence (${c.nsPresence}/35)`,    cls: compPillClass(c.nsPresence, 35) },
+      { label: `NS recency (${c.nsRecency}/25)`,       cls: compPillClass(c.nsRecency,  25) },
+      { label: `Team Notes (${c.tnPresence}/10)`,      cls: compPillClass(c.tnPresence, 10) },
+      { label: `Forecast align (${c.forecastAlign}/20)`,cls: compPillClass(c.forecastAlign, 20) },
+      { label: `FLM agree (${c.flmAgree}/10)`,         cls: compPillClass(c.flmAgree, 10) },
+    ].map(p => `<span class="health-comp-pill ${p.cls}">${p.label}</span>`).join('');
+
+    const nsMeta = hygiene.nsDateFound
+      ? `Last NS update: ${esc(hygiene.nsDateFound)}${hygiene.nsDaysSinceUpdate !== null ? ` · ${hygiene.nsDaysSinceUpdate} days ago` : ''}`
+      : (opp.next_steps && opp.next_steps.trim() ? 'No date prefix found in Next Steps' : 'No Next Steps recorded');
+
+    const scoreBar = `
+      <div class="health-score-bar">
+        <div class="health-score-ring ${hygieneRingClass(grade)}">${hygiene.hygieneScore}</div>
+        <div class="health-score-details">
+          <div class="health-score-label">Hygiene Score / 100 · ${grade.toUpperCase()}</div>
+          <div class="health-score-meta">${nsMeta}</div>
+          <div class="health-components">${pills}</div>
+        </div>
+      </div>`;
+
+    // ── Action Items ──
+    const items = hygiene.actionItems.map(ai => `
+      <div class="health-action-item ${esc(ai.priority)}">
+        <span class="health-action-badge ${esc(ai.priority)}">${ai.priority === 'clean' ? '✓' : ai.priority}</span>
+        <span>${esc(ai.text)}</span>
+      </div>`).join('');
+
+    const actionSection = `
+      <div class="health-section">
+        <div class="health-section-title">Action Items</div>
+        ${items}
+      </div>`;
+
+    // ── Next Steps + Team Notes text ──
+    const nsText = opp.next_steps && opp.next_steps.trim()
+      ? `<pre style="white-space:pre-wrap;font-size:12px;font-family:inherit;margin:0;line-height:1.5">${esc(opp.next_steps)}</pre>`
+      : `<em style="color:var(--cds-text-secondary);font-size:13px;">No Next Steps recorded.</em>`;
+    const tnText = opp.team_notes && opp.team_notes.trim()
+      ? `<pre style="white-space:pre-wrap;font-size:12px;font-family:inherit;margin:0;line-height:1.5">${esc(opp.team_notes)}</pre>`
+      : `<em style="color:var(--cds-text-secondary);font-size:13px;">No Team Notes / close plan recorded.</em>`;
+
+    const textSection = `
+      <div class="health-section">
+        <div class="health-section-title">Next Steps</div>
+        ${nsText}
+      </div>
+      <div class="health-section">
+        <div class="health-section-title">Team Notes / Close Plan</div>
+        ${tnText}
+      </div>`;
+
+    // ── Week-over-week timeline ──
+    let timelineSection = '';
+    if (timeline.length === 0) {
+      timelineSection = `
+        <div class="health-section">
+          <div class="health-section-title">Week-over-Week Timeline (Use Case 1)</div>
+          <em style="font-size:13px;color:var(--cds-text-secondary)">No confirmed baselines yet. Timeline builds after your first Confirm &amp; Generate.</em>
+        </div>`;
+    } else {
+      const rows = timeline.map((row, i) => {
+        const prev = i > 0 ? timeline[i - 1] : null;
+        const stageDelta = prev && prev.stage !== row.stage
+          ? `<span class="health-tl-delta ${prev.stage && row.stage > prev.stage ? 'up' : 'down'}"> → ${esc(row.stage)}</span>` : '';
+        const amtDelta = prev && prev.totalAmt !== row.totalAmt
+          ? `<span class="health-tl-delta ${row.totalAmt > prev.totalAmt ? 'up' : 'down'}"> ${row.totalAmt > prev.totalAmt ? '▲' : '▼'}</span>` : '';
+        const cdDelta = prev && prev.closeDate !== row.closeDate
+          ? `<span class="health-tl-delta down" title="Slipped from ${esc(prev.closeDate)}"> ⚠</span>` : '';
+        const nsPresent = row.nextSteps && row.nextSteps.trim() ? '✓' : '<span style="color:#da1e28">—</span>';
+        return `<tr>
+          <td>${esc(row.weekLabel)}</td>
+          <td>${esc(row.stage || '—')}${stageDelta}</td>
+          <td>${esc(row.forecastCategory || '—')}</td>
+          <td>${esc(row.closeDate || '—')}${cdDelta}</td>
+          <td style="text-align:right">${fmtAmt(row.totalAmt)}${amtDelta}</td>
+          <td style="text-align:center">${row.score ?? '—'}</td>
+          <td style="text-align:center">${nsPresent}</td>
+        </tr>`;
+      }).join('');
+
+      timelineSection = `
+        <div class="health-section">
+          <div class="health-section-title">Week-over-Week Timeline — ${timeline.length} baseline${timeline.length !== 1 ? 's' : ''}</div>
+          <table class="health-timeline-table">
+            <thead><tr>
+              <th>Snapshot</th><th>Stage</th><th>Forecast</th>
+              <th>Close Date</th><th style="text-align:right">Total Amt</th>
+              <th style="text-align:center">Score</th><th style="text-align:center">NS</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`;
+    }
+
+    return header + scoreBar + actionSection + textSection + timelineSection;
+  }
+
+  function buildRepHygienePanel(repData) {
+    if (!repData || repData.length === 0) {
+      return `<div class="health-section"><em style="font-size:13px;color:var(--cds-text-secondary)">No rep data available.</em></div>`;
+    }
+    const rows = repData.map(r => `
+      <tr>
+        <td style="font-weight:600">${esc(r.owner)}</td>
+        <td>${esc(r.manager || '—')}</td>
+        <td style="text-align:center">${r.dealCount}</td>
+        <td style="text-align:center;${r.blankNs > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.blankNs}</td>
+        <td style="text-align:center;${r.staleNs > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.staleNs}</td>
+        <td style="text-align:center;${r.liarDeals > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.liarDeals}</td>
+        <td style="text-align:center;${r.avgHygieneScore < 45 ? 'color:#da1e28;font-weight:600' : r.avgHygieneScore < 75 ? 'color:#f59e0b;font-weight:600' : ''}">${r.avgHygieneScore}</td>
+        <td><span class="coaching-flag ${r.coachingFlag}">${r.coachingFlag === 'urgent' ? '🔴 Urgent' : r.coachingFlag === 'watch' ? '🟡 Watch' : '✓ Clean'}</span></td>
+      </tr>`).join('');
+
+    return `
+      <div class="health-section" style="padding-top:14px">
+        <div class="health-section-title">Rep Hygiene Summary — ${repData.length} owners · sorted by coaching priority</div>
+        <table class="rep-hygiene-table">
+          <thead><tr>
+            <th>Owner</th><th>Manager</th><th style="text-align:center">Deals</th>
+            <th style="text-align:center">Blank NS</th><th style="text-align:center">Stale NS</th>
+            <th style="text-align:center">Forecast Mismatch</th><th style="text-align:center">Hygiene Score</th>
+            <th>Flag</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  function openHealthModal() {
+    document.getElementById('health-modal-backdrop').classList.add('open');
+    document.getElementById('health-modal-close').focus();
+  }
+
+  function closeHealthModal() {
+    document.getElementById('health-modal-backdrop').classList.remove('open');
+  }
+
+  async function loadHealthCard(oppId) {
+    const panel = document.getElementById('health-panel-deal');
+    panel.innerHTML = `<div class="health-section"><em style="color:var(--cds-text-secondary);font-size:13px;">Loading…</em></div>`;
+    document.getElementById('health-modal-subtitle').textContent = '';
+    openHealthModal();
+    // Switch to deal tab
+    document.querySelectorAll('.health-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('health-tab-deal').classList.add('active');
+    document.getElementById('health-panel-deal').style.display = '';
+    document.getElementById('health-panel-team').style.display = 'none';
+
+    try {
+      const res  = await fetch(`/api/opportunities/${encodeURIComponent(oppId)}/health`);
+      const data = await res.json();
+      if (!res.ok) { panel.innerHTML = `<div class="health-section" style="color:#da1e28">${esc(data.error || 'Error loading health data')}</div>`; return; }
+
+      const { opp, hygiene, timeline } = data;
+      document.getElementById('health-modal-subtitle').textContent =
+        `${opp.opportunity_name || ''} · Hygiene ${hygiene.hygieneScore}/100`;
+      panel.innerHTML = buildHealthDealPanel(opp, hygiene, timeline);
+    } catch (err) {
+      panel.innerHTML = `<div class="health-section" style="color:#da1e28">Error: ${esc(err.message)}</div>`;
+    }
+  }
+
+  async function loadTeamHygiene() {
+    const panel = document.getElementById('health-panel-team');
+    if (_repHygieneData) { panel.innerHTML = buildRepHygienePanel(_repHygieneData); return; }
+    panel.innerHTML = `<div class="health-section"><em style="color:var(--cds-text-secondary);font-size:13px;">Loading team hygiene data…</em></div>`;
+    try {
+      const res  = await fetch('/api/hygiene-summary');
+      const data = await res.json();
+      if (!res.ok) { panel.innerHTML = `<div class="health-section" style="color:#da1e28">${esc(data.error || 'Error')}</div>`; return; }
+      _repHygieneData = data;
+      panel.innerHTML = buildRepHygienePanel(data);
+    } catch (err) {
+      panel.innerHTML = `<div class="health-section" style="color:#da1e28">Error: ${esc(err.message)}</div>`;
+    }
+  }
+
+  // Health modal close / backdrop click
+  document.getElementById('health-modal-close').addEventListener('click', closeHealthModal);
+  document.getElementById('health-modal-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('health-modal-backdrop')) closeHealthModal();
+  });
+
+  // Tab switching
+  document.querySelectorAll('.health-tab').forEach(tab => {
+    tab.addEventListener('click', async () => {
+      const which = tab.dataset.tab;
+      document.querySelectorAll('.health-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      if (which === 'deal') {
+        document.getElementById('health-panel-deal').style.display = '';
+        document.getElementById('health-panel-team').style.display = 'none';
+      } else {
+        document.getElementById('health-panel-deal').style.display = 'none';
+        document.getElementById('health-panel-team').style.display = '';
+        await loadTeamHygiene();
+      }
+    });
+  });
+
+  // Event delegation — .btn-health clicks anywhere in the table
+  document.getElementById('opp-tbody').addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-health');
+    if (btn) loadHealthCard(btn.dataset.id);
   });
 
   // ── Step 5 confirm modal ───────────────────────────────────────────────────
@@ -2885,7 +3403,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.4.0';
+  const APP_VERSION = '2.5.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });

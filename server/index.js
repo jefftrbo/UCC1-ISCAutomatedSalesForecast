@@ -33,6 +33,7 @@ const generatePpt  = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
 const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
 const { saveSnapshot, computeDiff, getLedgerHistory } = require('./diffEngine');
+const { scoreHygiene, getOppTimeline, getRepHygieneSummary } = require('./hygieneScore');
 
 const app  = express();
 const PORT = process.env.PORT || 3090;
@@ -509,6 +510,47 @@ app.post('/api/generate-ppt', (req, res) => runGeneratePpt(req, res, true));
 app.post('/api/generate-ppt-only', (req, res) => runGeneratePpt(req, res, false));
 
 // Serve generated .pptx files from /output
+// ---------------------------------------------------------------------------
+// GET /api/opportunities/:id/health
+// Returns hygiene score, action items, and week-over-week timeline for one
+// opportunity. Used by the Deal Health Card modal in the UI.
+// ---------------------------------------------------------------------------
+app.get('/api/opportunities/:id/health', (req, res) => {
+  const userId = req.session.user.ibm_id;
+  const { id } = req.params;
+  try {
+    const opp = db.prepare(
+      'SELECT * FROM opportunities WHERE id = ? AND user_id = ?'
+    ).get(id, userId);
+
+    if (!opp) {
+      return res.status(404).json({ error: 'Opportunity not found' });
+    }
+
+    const hygiene  = scoreHygiene(opp);
+    const timeline = getOppTimeline(db, id, userId);
+
+    res.json({ opp, hygiene, timeline });
+  } catch (err) {
+    console.error('GET /api/opportunities/:id/health error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /api/hygiene-summary
+// Returns per-rep hygiene aggregates (coaching dashboard) for the current user.
+// ---------------------------------------------------------------------------
+app.get('/api/hygiene-summary', (req, res) => {
+  const userId = req.session.user.ibm_id;
+  try {
+    res.json(getRepHygieneSummary(db, userId));
+  } catch (err) {
+    console.error('GET /api/hygiene-summary error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/output', express.static(path.join(__dirname, '..', 'output')));
 
 // ---------------------------------------------------------------------------
