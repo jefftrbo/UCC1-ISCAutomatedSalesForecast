@@ -1273,7 +1273,7 @@
 
 <!-- ── Step 5: Baseline & Generate GM Report — confirm modal ── -->
 <div class="diff-modal-backdrop" id="ppt-confirm-backdrop" role="dialog" aria-modal="true" aria-labelledby="ppt-confirm-title">
-  <div class="diff-modal" style="max-width:520px;">
+  <div class="diff-modal" style="max-width:560px;">
     <div class="diff-modal-header">
       <div>
         <div class="diff-modal-title" id="ppt-confirm-title">📊 Baseline &amp; Generate GM Report</div>
@@ -1282,26 +1282,24 @@
       <button class="diff-modal-close" id="ppt-confirm-close" aria-label="Cancel">✕</button>
     </div>
     <div class="diff-modal-body">
-      <p style="font-size:14px;line-height:1.7;color:var(--cds-text-primary);margin-bottom:16px;">
-        This will do <strong>two things</strong> in sequence:
-      </p>
       <div class="diff-deal-delta delta-positive" style="margin-bottom:12px;">
-        <div class="diff-delta-label">1 — Save Pipeline Baseline</div>
+        <div class="diff-delta-label">1 — Generate GM Report (PowerPoint)</div>
         <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
-          The current pipeline will be locked as your reference point, timestamped to right now.
-          Next week, <strong>⇄ What Changed</strong> will compare live data against exactly
-          what is in today's GM report — so your diff always reflects real movement since the last call.
+          Compares live pipeline against your last confirmed baseline and generates
+          the PowerPoint deck — downloaded automatically.
         </div>
       </div>
       <div class="diff-deal-delta delta-positive" style="margin-bottom:20px;">
-        <div class="diff-delta-label">2 — Generate GM Report (PowerPoint)</div>
+        <div class="diff-delta-label">2 — Confirm as Final Baseline for This Week <span style="font-weight:400;color:var(--cds-text-secondary)">(✅ Confirm &amp; Generate only)</span></div>
         <div class="diff-delta-value" style="margin-top:4px;line-height:1.6;">
-          A PowerPoint deck will be generated from your selected opportunities
-          and downloaded automatically.
+          Permanently locks today's pipeline as the historical record for this week.
+          Next week's <strong>⇄ What Changed</strong> will compare against exactly what you confirm here.
+          <strong>This cannot be undone.</strong> Use <em>Generate Only</em> to iterate until the report is right.
         </div>
       </div>
-      <div style="display:flex;gap:12px;justify-content:flex-end;">
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
         <button class="btn-secondary" id="ppt-confirm-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-secondary" id="ppt-confirm-generate-only" style="padding:8px 20px;">Generate Only</button>
         <button class="btn-success" id="ppt-confirm-ok" style="padding:8px 20px;font-weight:600;">✅ Confirm &amp; Generate</button>
       </div>
     </div>
@@ -2645,26 +2643,21 @@
     if (e.target === document.getElementById('ppt-confirm-backdrop')) closePptConfirm();
   });
 
-  document.getElementById('ppt-confirm-ok').addEventListener('click', async () => {
+  // Shared handler for both Confirm & Generate and Generate Only
+  async function runPptAction(endpoint) {
     closePptConfirm();
-    setPipelineStatus('📌', 'Saving pipeline baseline…', false);
-    // Step 1 — save baseline
-    try {
-      const snapRes  = await fetch('/api/snapshot', { method: 'POST' });
-      const snapData = await snapRes.json();
-      if (!snapRes.ok) { setStatus(snapData.error || 'Baseline save failed.', 'error'); return; }
-      setPipelineStatus('📊', `Baseline saved (${snapData.weekLabel}) — generating GM Report…`, false);
-    } catch (err) {
-      setStatus('Baseline save failed: ' + err.message, 'error'); return;
-    }
-    // Step 2 — generate PPT
+    const isConfirm = endpoint === '/api/generate-ppt';
+    setPipelineStatus('📊', isConfirm ? 'Generating GM Report &amp; saving final baseline…' : 'Generating GM Report (test run)…', false);
     const btn = document.getElementById('btn-generate');
     btn.disabled = true;
     try {
-      const res = await fetch('/api/generate-ppt', { method: 'POST' });
+      const res  = await fetch(endpoint, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) { setStatus(data.error || 'Failed to generate GM Report.', 'error'); return; }
-      setPipelineStatus('✅', `GM Report generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…`, false);
+      const baselineNote = isConfirm && data.snapshot
+        ? ` · Baseline locked (${data.snapshot.weekLabel})`
+        : ' · Test run — no baseline written';
+      setPipelineStatus('✅', `GM Report generated with ${data.count} opportunit${data.count===1?'y':'ies'} — downloading…${baselineNote}`, false);
       updateActionBar('ppt', 'fresh');
       const a = document.createElement('a');
       a.href = data.file;
@@ -2678,7 +2671,12 @@
       btn.disabled = false;
       updateSelectionSummary();
     }
-  });
+  }
+
+  document.getElementById('ppt-confirm-ok').addEventListener('click', () =>
+    runPptAction('/api/generate-ppt'));
+  document.getElementById('ppt-confirm-generate-only').addEventListener('click', () =>
+    runPptAction('/api/generate-ppt-only'));
 
   // ── Save Baseline utility — manual override warning modal ─────────────────
   function openBaselineWarn() {
@@ -2814,7 +2812,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.2.5';
+  const APP_VERSION = '2.3.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
