@@ -4844,4 +4844,85 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
 
   }
 
+  ## Session 27 — Documentation Update: All Artifacts v2.4.0 (July 18, 2026) {
+
+    **Date:** 2026-07-18
+    **Branch:** `main` / `develop` (documentation-only — no code changes)
+    **Commit:** `05458ca`
+
+    ### Context
+    User request: update all guides, architecture diagrams, challenge submission docs, and plan files to reflect v2.4.0 state exactly — same level of detail as the session log.
+
+    ### Documents Updated
+
+    #### `README.md` — Full rewrite for v2.4.0
+    - Added **Sign In** as the first step in the "What It Does" table
+    - Removed Cookie Editor extension prerequisite (no longer relevant)
+    - **First-Time Setup** now has 5 steps: clone → env → `init-users.js` → `seed-quarter.js --all` → `npm start`
+    - Start URL is now `/login` (not root)
+    - **Test Users table** — all 9 IBM IDs, passwords, and pipeline descriptions
+    - HAR export note: ISC defaults `Accounts Assigned To` to *your* name; user must change to VP
+    - **App Header section** added: user chip, role abbreviation, Sign Out, TEST MODE banner
+    - **App Structure** updated: `auth.js`, `requireAuth.js`, `login.html`, `init-users.js`, `seed-quarter.js` with all flags
+    - **Running Tests** section: `--all`, `--user`, `--restore` flags documented
+    - **Troubleshooting**: login-specific rows added
+    - **Transitioning to Real IBM SSO** section: exact code block showing the one-file swap
+    - **Version History**: v2.3.0 + v2.4.0 rows added
+    - Footer: `v2.4.0`, 26 sessions, multi-user tagline
+
+    #### `UCC1-ArchitectureDiagram.html` — Structural updates
+    - Version badge: `v2.2.0` → `v2.4.0`
+    - Added IBM w3id SSO badge in header
+    - **DB box**: `salesforce.db` → `opportunities.db`; schema now shows `users · opportunities · baseline_ledger`; multi-tenant label
+    - **Audit Ledger Engine box**: `saveSnapshot(userId)` / `computeDiff(userId)`; per-user label
+    - **New Auth Layer box** added: `server/auth.js`, express-session, `SIMULATE_SSO` toggle, IBM w3id OIDC-ready tag
+    - **UI Dashboard box**: user chip + TEST MODE banner added to description
+    - **Express API box**: `requireAuth` + `userId` threading + namespaced PPT output
+    - **End Users layer**: Dushyant (221 real deals), 8 named TSLs/ATLs with isolated pipelines, Future VP (growth path)
+    - **Deployment table**: Authentication row + Multi-tenancy row added; `v2.2.0` → `v2.4.0`
+    - **Technology Stack card**: auth libs added, 26 sessions
+    - **Business Value card**: 9 users, 221 deals, per-user deck, IBM intranet-ready
+
+    #### `UCC1-ChallengeSubmissionDraft.html` — Content updates
+    - Version: `v2.3.0` → `v2.4.0`
+    - Tagline: "multi-user, for any IBM Sales leader"
+    - Creativity criterion: SSO architecture added
+    - Solution Description: multi-user/SSO paragraph + user chip UI
+    - Scale: changed to present tense ("it *is* a multi-user application")
+    - Innovation: new paragraph — "Multi-user IBM SSO architecture as innovation"
+    - Team/GitHub/Key Numbers: 25 → 26 sessions throughout
+    - Key Numbers: 221 opps, 9 users (replaces 3 watsonx models stat), 26 sessions
+    - Tech pills: IBM w3id SSO + express-session/bcryptjs added
+    - All footers/version refs: `v2.3.0` → `v2.4.0`
+
+    #### `UCC1-plan.md` — Three new sub-tasks appended
+    - **Sub-Task 7**: IBM watsonx.ai Integration (v2.0.0–v2.2.0)
+    - **Sub-Task 8**: Permanent Quarterly Audit Ledger (v2.3.0)
+    - **Sub-Task 9**: Simulated IBM SSO + Multi-Tenant (v2.4.0) — full file list, test results table, npm deps
+
+    ### What Was NOT Changed
+    - `UCC1-Requirements.md` — original requirements document; intentionally preserved as-is (historical record)
+    - `UCC1-SessionLog.md` — separate high-level log; not in scope
+    - `UCC1-DeploymentOptionsDiscussion.md` — deployment options discussion; v2.4.0 doesn't change the options analyzed
+
+    ### Current Git State
+    - `main`: `05458ca` (docs commit)
+    - `develop`: synced to `main`
+    - `v2.4.0` tag: `ec42d69` (code release)
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Eligibility gate |
+    | 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🔴 3 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟡 4 | Record demo video — 3–4 min screen recording of full multi-user workflow | ⚠ Not recorded |
+    | 🟡 5 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+    | 🟡 6 | Submit ServiceNow AI System Demand (attach `UCC1-ArchitectureDiagram.html`) | ⚠ Not submitted |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
   }
+
+}
