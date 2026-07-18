@@ -4735,4 +4735,113 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     ### How to Resume
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
+
+  ## Session 26 — v2.4.0: Simulated IBM SSO + Multi-Tenant Data Isolation (July 18, 2026) {
+
+    **Date:** 2026-07-18
+    **Branch:** `feature/sso-multi-tenant`
+    **Commit:** `fd70e6b`
+    **Version bump:** `2.3.0` → `2.4.0`
+
+    ### Context
+    User request: upgrade app to support multiple IBM users (TSLs, ATLs, GM) with:
+    1. Simulated IBM SSO (real w3id OIDC architecture, mock credentials from CSV)
+    2. Full per-user DB isolation (every row in every table tagged by `ibm_id`)
+    3. Login UI at `localhost:3090/login`, user chip in header, logout flow
+
+    ### Pre-build design artifacts
+    Two HTML artifacts created before writing any code:
+    - `multi_user_feasibility` — full SSO/multi-tenant feasibility analysis
+    - `v240_design_brief` — pre-build spec: file location, CSV format, 8 gap analysis, 14-item file change list
+
+    Screenshots provided by user confirmed:
+    - Their IBM ID is `trbovich@us.ibm.com` (ISC shows "Jeffrey L (Jeff) Trbovich" as `Accounts Assigned To`)
+    - The filter pattern per user is identical (IBM Pipeline, Deployment, etc.) — only `View_As_Territory` changes
+    - CSV provided at `scripts/test-users.csv` (9 users: Duey Patel first, Jeff Trbovich second, 7 others)
+
+    ### What Was Built
+
+    #### New files
+    | File | Purpose |
+    |---|---|
+    | `server/auth.js` | `POST /auth/login` (bcrypt check → session), `GET /auth/logout`, `GET /api/me` |
+    | `server/middleware/requireAuth.js` | 30-line auth guard — redirects browsers to `/login`, returns 401 JSON to API callers |
+    | `public/login.html` | IBM-styled mock SSO login page with IBM black top bar, w3id-lookalike form, TEST MODE notice, error banner |
+    | `scripts/init-users.js` | Reads `scripts/test-users.csv`, bcrypt-hashes passwords, upserts into `users` table, assigns all untagged rows to Duey |
+
+    #### Modified files
+    | File | Changes |
+    |---|---|
+    | `server/db.js` | Added `users` table; `user_id TEXT` migration on `opportunities` and `baseline_ledger`; indexes `idx_opp_user_id`, `idx_ledger_user_id` |
+    | `server/index.js` | Added `express-session` + `better-sqlite3-session-store`; auth routes mounted; `requireAuth` on `/` and `/api/*`; `userId` threaded through all 10 query endpoints; PPT output namespaced to `/output/{safeId}/` |
+    | `server/diffEngine.js` | `userId` param added to `saveSnapshot`, `computeDiff`, `getPreviousBaseline`, `getLedgerHistory`; all queries filter by `user_id` |
+    | `scraper/load-from-har.js` | Reads `process.env.USER_ID`; tags every upserted row; `COALESCE` on conflict so existing `user_id` is never overwritten |
+    | `public/index.html` | Header: user avatar (initials), display name, role, Sign Out button; yellow `🔬 TEST MODE` banner showing `ibm_id` and "Switch User" link; version bumped to `2.4.0` |
+    | `.env.example` | Added `SIMULATE_SSO`, `SESSION_SECRET`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_ISSUER_URL` |
+    | `.gitignore` | Added `scripts/test-users.csv` (contains real IBM IDs) |
+
+    #### npm dependency changes
+    - Added: `express-session`, `bcryptjs`, `better-sqlite3-session-store`
+    - Removed: `connect-sqlite3` (incompatible with `better-sqlite3` — expects callback API)
+
+    ### `init-users.js` run output
+    ```
+    ✓ Duey Patel           dkpatel@us.ibm.com
+    ✓ Jeff Trbovich         trbovich@us.ibm.com
+    ✓ Spencer Korn          spencer.korn@ibm.com
+    ✓ Kim Salatino          kim.salatino@ibm.com
+    ✓ Jeff Underwood        junderwood@ibm.com
+    ✓ Michael Marsalis      marsal@us.ibm.com
+    ✓ Ken Crum              kcrum@us.ibm.com
+    ✓ Andy Quintana         andy.quintana@ibm.com
+    ✓ Brian Coyle           bcoyle@us.ibm.com
+    ✅ 9 users loaded. opportunities → 221 rows tagged dkpatel@us.ibm.com
+                          baseline_ledger → 643 rows tagged dkpatel@us.ibm.com
+    ```
+
+    ### Validation — 9 tests, all passed
+    | Test | Expected | Actual |
+    |---|---|---|
+    | `GET /login` (unauthenticated) | 200 | ✅ 200 |
+    | `GET /` (unauthenticated) | 302 → /login | ✅ 302 → /login |
+    | `POST /auth/login` bad creds | 302 → /login?error=invalid | ✅ 302 |
+    | `POST /auth/login` Duey (dk) | 302 → / | ✅ 302 |
+    | `GET /api/me` Duey session | JSON with ibm_id/display_name/role | ✅ correct JSON |
+    | `GET /api/opportunities` Duey | 221 rows | ✅ 221 |
+    | `GET /api/opportunities` Jeff (new user) | 0 rows — data isolation proven | ✅ 0 |
+    | `GET /auth/logout` | 302 → /login | ✅ 302 |
+    | `GET /api/me` after logout | 401 JSON | ✅ 401 |
+
+    ### Architecture — swap to real IBM SSO
+    When IBM app registration credentials are available, replace one block in `server/auth.js`:
+    ```js
+    // TODAY (SIMULATE_SSO=true): bcrypt check against users table
+    // PRODUCTION (SIMULATE_SSO=false): replace with Passport.js OIDC strategy
+    passport.use(new OIDCStrategy({ issuer, clientID, clientSecret, callbackURL, ... },
+      (issuer, profile, done) => done(null, { ibm_id: profile.emails[0].value, ... })
+    ));
+    ```
+    Session shape is identical either way. All DB queries, middleware, and frontend are unchanged.
+
+    ### Current Git State
+    - `feature/sso-multi-tenant`: `fd70e6b` (this session)
+    - `develop` / `main`: `2c7c0c0` (v2.3.0)
+
+    ### What's Next (Prioritized)
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Seed demo data for 8 non-Duey users with `seed-quarter.js --user` | ⏳ Not yet (Option A agreed) |
+    | 🔴 2 | Merge feature/sso-multi-tenant → develop → main, tag v2.4.0 | ⏳ Pending validation |
+    | 🔴 3 | Update `UCC1-ChallengeSubmissionDraft.html` for v2.4.0 | ⏳ Pending |
+    | 🔴 4 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Eligibility gate |
+    | 🔴 5 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 6 | Record demo video — 3–4 min screen recording | ⚠ Not recorded |
+    | 🟡 7 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+    | 🟢 8 | Live watsonx credential test | ⏳ Pending |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+  }
+
   }

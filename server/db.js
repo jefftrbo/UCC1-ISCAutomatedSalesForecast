@@ -9,6 +9,20 @@ const db = new Database(DB_PATH);
 // Enable WAL mode for better concurrent read performance
 db.pragma('journal_mode = WAL');
 
+// ── v2.4.0 — users table (simulated IBM SSO user registry) ───────────────────
+// Populated by: node scripts/init-users.js  (reads scripts/test-users.csv)
+// In production: this table is unused — identity comes from w3id OIDC token.
+db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    ibm_id       TEXT PRIMARY KEY,   -- IBM intranet email — tenant key for all data
+    display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,     -- bcrypt hash of the fake test password
+    role         TEXT,               -- GM / TSL / ATL / etc.
+    team         TEXT,               -- e.g. "Health Care and Life Sciences"
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  )
+`);
+
 // Create the opportunities table if it doesn't already exist.
 //
 // All 20 columns confirmed from the ISC "Forecast v66.0 — Deal List by Opportunity"
@@ -75,6 +89,8 @@ const v2Columns = [
   // v2.2.0 — persist rules-based score + tier so snapshots capture before→after confidence
   { name: 'score',         ddl: 'ALTER TABLE opportunities ADD COLUMN score INTEGER'          },
   { name: 'tier',          ddl: 'ALTER TABLE opportunities ADD COLUMN tier TEXT'              },
+  // v2.4.0 — multi-tenant isolation: every row belongs to exactly one IBM user
+  { name: 'user_id',       ddl: 'ALTER TABLE opportunities ADD COLUMN user_id TEXT'           },
 ];
 v2Columns.forEach(({ name, ddl }) => {
   if (!existingCols.includes(name)) {
@@ -82,6 +98,17 @@ v2Columns.forEach(({ name, ddl }) => {
     console.log(`[db] Migration: added column ${name}`);
   }
 });
+
+// ── v2.4.0 — user_id index on opportunities (query performance per tenant) ───
+db.exec(`CREATE INDEX IF NOT EXISTS idx_opp_user_id ON opportunities(user_id)`);
+
+// ── v2.4.0 — user_id column on baseline_ledger ───────────────────────────────
+const ledgerCols = db.pragma('table_info(baseline_ledger)').map(c => c.name);
+if (!ledgerCols.includes('user_id')) {
+  db.exec('ALTER TABLE baseline_ledger ADD COLUMN user_id TEXT');
+  console.log('[db] Migration: added column user_id to baseline_ledger');
+}
+db.exec(`CREATE INDEX IF NOT EXISTS idx_ledger_user_id ON baseline_ledger(user_id)`);
 
 // ── v2.3.0 — baseline_ledger table (permanent quarterly audit trail) ──────────
 //

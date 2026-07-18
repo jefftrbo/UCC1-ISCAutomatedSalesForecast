@@ -5,6 +5,10 @@
  * Listens on http://localhost:3090
  *
  * Endpoints:
+ *   GET  /login                         — login page (served by auth.js)
+ *   POST /auth/login                    — credential check + session creation
+ *   GET  /auth/logout                   — destroy session, redirect to /login
+ *   GET  /api/me                        — returns current session user
  *   GET  /api/opportunities             — fetch all opportunities (rule + AI scores)
  *   POST /api/opportunities/:id/select  — update selected flag for one opportunity
  *   POST /api/scrape                    — trigger HAR/devtools/Playwright scraper
@@ -17,32 +21,65 @@
  */
 
 require('dotenv').config();
-const express = require('express');
-const path = require('path');
-const { spawn } = require('child_process');
-const db = require('./db');
-const generatePpt = require('./generatePpt');
+const express      = require('express');
+const session      = require('express-session');
+const BetterSqlite3Store = require('better-sqlite3-session-store')(session);
+const path         = require('path');
+const { spawn }    = require('child_process');
+const db           = require('./db');
+const authRouter   = require('./auth');
+const requireAuth  = require('./middleware/requireAuth');
+const generatePpt  = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
 const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
 const { saveSnapshot, computeDiff, getLedgerHistory } = require('./diffEngine');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 3090;
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));  // needed for POST /auth/login form body
 
-// Serve frontend static files from /public
+// ── Session middleware ────────────────────────────────────────────────────────
+// Sessions are stored in the same SQLite DB via better-sqlite3-session-store.
+app.use(session({
+  store:             new BetterSqlite3Store({ client: db }),
+  secret:            process.env.SESSION_SECRET || 'isc-forecast-dev-secret-change-in-prod',
+  resave:            false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    maxAge:   8 * 60 * 60 * 1000,   // 8 hours — one working day
+    sameSite: 'lax',
+  },
+}));
+
+// ── Auth routes (public — no requireAuth) ─────────────────────────────────────
+app.use('/', authRouter);
+
+// ── Protect the root app page — redirect unauthenticated browsers to /login ──
+// Static middleware runs AFTER this check, so index.html is never served raw.
+app.get('/', requireAuth, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+});
+
+// ── Static files (login.html and other assets, no auth needed) ───────────────
+// index.html is intentionally NOT served from here — handled explicitly above.
 app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// ── All /api/* routes require a valid session ────────────────────────────────
+app.use('/api', requireAuth);
 
 // ---------------------------------------------------------------------------
 // GET /api/opportunities
-// Returns all opportunities with both rule-based and AI scores.
+// Returns all opportunities (for the authenticated user) with rule + AI scores.
 // ---------------------------------------------------------------------------
 app.get('/api/opportunities', (req, res) => {
+  const userId = req.session.user.ibm_id;
   try {
     const rows = db
-      .prepare('SELECT * FROM opportunities ORDER BY close_date ASC, total_opportunity_amount DESC')
-      .all();
+      .prepare('SELECT * FROM opportunities WHERE user_id = ? ORDER BY close_date ASC, total_opportunity_amount DESC')
+      .all(userId);
     const scored = rows.map(row => {
       const { score, tier, closeQuarter, breakdown } = scoreOpportunity(row);
       return {
@@ -67,13 +104,14 @@ app.get('/api/opportunities', (req, res) => {
 // Returns the current watsonx mode so the frontend can show the right UI.
 // ---------------------------------------------------------------------------
 app.get('/api/watsonx-status', (req, res) => {
-  const scored = db.prepare('SELECT COUNT(*) as n FROM opportunities WHERE ai_score IS NOT NULL').get();
+  const userId = req.session.user.ibm_id;
+  const scored = db.prepare('SELECT COUNT(*) as n FROM opportunities WHERE user_id = ? AND ai_score IS NOT NULL').get(userId);
   res.json({
     enabled:  isLiveMode(),
     mode:     isLiveMode() ? 'live' : 'mock',
     model:    modelId,
     scored:   scored.n,
-    total:    db.prepare('SELECT COUNT(*) as n FROM opportunities').get().n,
+    total:    db.prepare('SELECT COUNT(*) as n FROM opportunities WHERE user_id = ?').get(userId).n,
   });
 });
 
@@ -84,6 +122,7 @@ app.get('/api/watsonx-status', (req, res) => {
 // Re-scores all rows on every call — scores are cheap and data may have changed.
 // ---------------------------------------------------------------------------
 app.post('/api/score-opportunities', async (req, res) => {
+  const userId = req.session.user.ibm_id;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
 
@@ -92,8 +131,8 @@ app.post('/api/score-opportunities', async (req, res) => {
 
   try {
     const rows = db
-      .prepare('SELECT * FROM opportunities ORDER BY close_date ASC')
-      .all();
+      .prepare('SELECT * FROM opportunities WHERE user_id = ? ORDER BY close_date ASC')
+      .all(userId);
 
     res.write(`Scoring ${rows.length} opportunities...\n`);
 
@@ -146,6 +185,7 @@ app.post('/api/score-opportunities', async (req, res) => {
 // Returns: { paragraph, bullets, mock, model, count }
 // ---------------------------------------------------------------------------
 app.post('/api/generate-narrative', async (req, res) => {
+  const userId = req.session.user.ibm_id;
   try {
     let opps;
     const ids = req.body && Array.isArray(req.body.ids) ? req.body.ids : null;
@@ -154,16 +194,16 @@ app.post('/api/generate-narrative', async (req, res) => {
       // Fetch only the rows the frontend is currently showing, preserving frontend order
       const placeholders = ids.map(() => '?').join(',');
       const byId = db
-        .prepare(`SELECT * FROM opportunities WHERE id IN (${placeholders})`)
-        .all(...ids);
+        .prepare(`SELECT * FROM opportunities WHERE user_id = ? AND id IN (${placeholders})`)
+        .all(userId, ...ids);
       // Re-sort to match the order the frontend sent (ids are already sorted by the UI)
       const idIndex = new Map(ids.map((id, i) => [id, i]));
       opps = byId.sort((a, b) => (idIndex.get(a.id) ?? 0) - (idIndex.get(b.id) ?? 0));
     } else {
-      // Fallback: all selected rows
+      // Fallback: all selected rows for this user
       opps = db
-        .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY total_opportunity_amount DESC')
-        .all();
+        .prepare('SELECT * FROM opportunities WHERE user_id = ? AND selected = 1 ORDER BY total_opportunity_amount DESC')
+        .all(userId);
     }
 
     if (opps.length === 0) {
@@ -190,17 +230,18 @@ app.post('/api/generate-narrative', async (req, res) => {
 // Toggles the GM meeting inclusion flag for a single opportunity.
 // ---------------------------------------------------------------------------
 app.post('/api/opportunities/:id/select', (req, res) => {
-  const { id } = req.params;
+  const { id }    = req.params;
   const { selected } = req.body;
+  const userId    = req.session.user.ibm_id;
 
   if (typeof selected !== 'boolean') {
     return res.status(400).json({ error: '"selected" must be a boolean' });
   }
 
   try {
-    db.prepare('UPDATE opportunities SET selected = ? WHERE id = ?').run(
+    db.prepare('UPDATE opportunities SET selected = ? WHERE id = ? AND user_id = ?').run(
       selected ? 1 : 0,
-      id
+      id, userId
     );
     res.json({ ok: true });
   } catch (err) {
@@ -263,8 +304,9 @@ app.get('/api/save-cookies', (req, res) => {
 // Returns: { snapshotId, weekLabel, quarterLabel, weekSeq, confirmed, saved }
 // ---------------------------------------------------------------------------
 app.post('/api/snapshot', (req, res) => {
+  const userId = req.session.user.ibm_id;
   try {
-    const result = saveSnapshot(db, { confirmed: true });
+    const result = saveSnapshot(db, { confirmed: true, userId });
     res.json(result);
   } catch (err) {
     console.error('POST /api/snapshot error:', err.message);
@@ -277,8 +319,9 @@ app.post('/api/snapshot', (req, res) => {
 // Returns all confirmed baseline runs (newest first) for the UI history panel.
 // ---------------------------------------------------------------------------
 app.get('/api/ledger-history', (req, res) => {
+  const userId = req.session.user.ibm_id;
   try {
-    res.json(getLedgerHistory(db));
+    res.json(getLedgerHistory(db, userId));
   } catch (err) {
     console.error('GET /api/ledger-history error:', err.message);
     res.status(500).json({ error: err.message });
@@ -294,8 +337,9 @@ app.get('/api/ledger-history', (req, res) => {
 // Returns: diff object from diffEngine.computeDiff()
 // ---------------------------------------------------------------------------
 app.get('/api/diff', async (req, res) => {
+  const userId = req.session.user.ibm_id;
   try {
-    const diff = computeDiff(db);
+    const diff = computeDiff(db, new Date(), userId);
     if (!diff.hasData) {
       return res.json(diff);
     }
@@ -326,6 +370,7 @@ app.get('/api/diff', async (req, res) => {
 // Streams stdout/stderr back as plain text so the UI can show progress.
 // ---------------------------------------------------------------------------
 app.post('/api/scrape', (req, res) => {
+  const userId = req.session.user.ibm_id;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.setHeader('Transfer-Encoding', 'chunked');
 
@@ -352,7 +397,11 @@ app.post('/api/scrape', (req, res) => {
 
   res.write(statusMsg);
 
-  const child = spawn(process.execPath, args, { cwd: path.join(__dirname, '..') });
+  // Pass the authenticated user's ID to the scraper so it tags rows correctly
+  const child = spawn(process.execPath, args, {
+    cwd: path.join(__dirname, '..'),
+    env: { ...process.env, USER_ID: userId },
+  });
 
   child.stdout.on('data', (data) => {
     process.stdout.write(data);
@@ -385,11 +434,12 @@ app.post('/api/scrape', (req, res) => {
 // confirmed = true  → "Confirm & Generate": writes immutable baseline AFTER PPT
 // confirmed = false → "Generate Only":      PPT only, no baseline written
 // ---------------------------------------------------------------------------
-async function runGeneratePpt(res, confirmed) {
+async function runGeneratePpt(req, res, confirmed) {
+  const userId = req.session.user.ibm_id;
   try {
     const selected = db
-      .prepare('SELECT * FROM opportunities WHERE selected = 1 ORDER BY close_date ASC')
-      .all();
+      .prepare('SELECT * FROM opportunities WHERE user_id = ? AND selected = 1 ORDER BY close_date ASC')
+      .all(userId);
 
     if (selected.length === 0) {
       return res.status(400).json({ error: 'No opportunities selected. Please check at least one opportunity.' });
@@ -397,7 +447,10 @@ async function runGeneratePpt(res, confirmed) {
 
     const dateStamp = new Date().toISOString().slice(0, 10);
     const fileName  = `forecast-${dateStamp}.pptx`;
-    const outputDir = path.join(__dirname, '..', 'output');
+    // Namespace output directory by user ID to prevent cross-user file collisions
+    const safeId    = userId.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const outputDir = path.join(__dirname, '..', 'output', safeId);
+    require('fs').mkdirSync(outputDir, { recursive: true });
     const outputPath = path.join(outputDir, fileName);
 
     // Step 1 — compute diff against the most-recent PRIOR confirmed baseline
@@ -405,7 +458,7 @@ async function runGeneratePpt(res, confirmed) {
     let diff = null;
     let deltaSummary = null;
     try {
-      diff = computeDiff(db);   // uses new Date() internally — always prior baseline
+      diff = computeDiff(db, new Date(), userId);
       if (diff.hasData) {
         deltaSummary = await generateDeltaSummary(diff);
       }
@@ -427,11 +480,11 @@ async function runGeneratePpt(res, confirmed) {
     // Step 4 — write immutable baseline entry ONLY on confirmed runs
     let snapshotResult = null;
     if (confirmed) {
-      snapshotResult = saveSnapshot(db, { confirmed: true });
+      snapshotResult = saveSnapshot(db, { confirmed: true, userId });
     }
 
     res.json({
-      file:       `/output/${fileName}`,
+      file:       `/output/${safeId}/${fileName}`,
       count:      selected.length,
       confirmed,
       snapshot:   snapshotResult,   // null on Generate Only runs
@@ -447,13 +500,13 @@ async function runGeneratePpt(res, confirmed) {
 // then writes a new immutable confirmed baseline entry to baseline_ledger.
 // This is the "Final" action — the permanent historical record for this week.
 // ---------------------------------------------------------------------------
-app.post('/api/generate-ppt', (req, res) => runGeneratePpt(res, true));
+app.post('/api/generate-ppt', (req, res) => runGeneratePpt(req, res, true));
 
 // POST /api/generate-ppt-only
 // "Generate Only" — generates PPT using the PRIOR baseline's diff,
 // does NOT write a new baseline entry. Use for test runs and iteration.
 // ---------------------------------------------------------------------------
-app.post('/api/generate-ppt-only', (req, res) => runGeneratePpt(res, false));
+app.post('/api/generate-ppt-only', (req, res) => runGeneratePpt(req, res, false));
 
 // Serve generated .pptx files from /output
 app.use('/output', express.static(path.join(__dirname, '..', 'output')));

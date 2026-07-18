@@ -1,0 +1,333 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ISC Automated Sales Forecast — Project Narrative</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 48px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  /* Header */
+  .page-header {
+    border-bottom: 2px solid #1f2328;
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #57606a;
+    margin-bottom: 6px;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #57606a;
+  }
+
+  /* Sections */
+  section { margin-bottom: 36px; }
+  h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #57606a;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+  }
+  p { margin-bottom: 10px; }
+  p:last-child { margin-bottom: 0; }
+
+  /* Callout box */
+  .callout {
+    background: #f7f8fa;
+    border-left: 3px solid #3b82d4;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 13px;
+  }
+  .callout.amber { border-left-color: #f59e0b; }
+  .callout.green { border-left-color: #198038; }
+
+  /* Feature list */
+  .feature-list { list-style: none; padding: 0; }
+  .feature-list li {
+    display: flex;
+    gap: 10px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13.5px;
+  }
+  .feature-list li:last-child { border-bottom: none; }
+  .feature-list .icon {
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+    color: #57606a;
+    font-style: normal;
+  }
+  .feature-list .label { font-weight: 600; color: #1f2328; }
+  .feature-list .desc { color: #57606a; font-size: 12.5px; margin-top: 1px; }
+
+  /* Status table */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  th {
+    text-align: left;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #57606a;
+    padding: 6px 10px;
+    background: #f7f8fa;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .badge.done     { background: #defbe6; color: #198038; }
+  .badge.progress { background: #fff3cd; color: #9b6900; }
+  .badge.planned  { background: #f0f0f0; color: #57606a; }
+  .badge.blocked  { background: #fff1f1; color: #b91c1c; }
+
+  /* Timeline */
+  .timeline { list-style: none; padding: 0; }
+  .timeline li {
+    display: flex;
+    gap: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+  }
+  .timeline li:last-child { border-bottom: none; }
+  .tl-week {
+    flex-shrink: 0;
+    width: 90px;
+    font-weight: 600;
+    color: #3b82d4;
+    font-size: 12px;
+  }
+  .tl-item { color: #1f2328; }
+  .tl-sub  { font-size: 12px; color: #57606a; margin-top: 2px; }
+
+  /* Git status bar */
+  .git-bar {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11.5px;
+    font-family: "SF Mono", "Menlo", monospace;
+    margin-top: 8px;
+  }
+  .git-pill {
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 3px 10px;
+    border-radius: 2px;
+    color: #57606a;
+  }
+  .git-pill b { color: #1f2328; }
+
+  /* Footer */
+  footer {
+    margin-top: 48px;
+    padding-top: 12px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <div class="eyebrow">IBM watsonx Challenge 2026 · UCC1 Submission</div>
+    <h1>ISC Automated Sales Forecast</h1>
+    <div class="subtitle">Project narrative — what it does, where it stands, what's next  ·  July 14, 2025</div>
+  </div>
+
+  
+  <section>
+    <h2>The problem it solves</h2>
+    <p>Every week before a GM meeting, a Sales VP has to manually export their pipeline from IBM Sales Cloud (ISC), copy deal data into a spreadsheet, write a narrative summary, and build a PowerPoint — a process that takes 60–90 minutes and is error-prone because it's done by hand under time pressure.</p>
+    <p>There's no automated way to see <em>what changed</em> since last week: which deals were promoted, which slipped, which dropped out entirely. That comparison lives only in the VP's memory.</p>
+    <div class="callout">
+      <strong>The core value proposition:</strong> Replace that 90-minute manual process with a single local web app that loads the live pipeline, scores every deal with watsonx.ai, surfaces week-over-week changes automatically, and generates the GM PowerPoint in one click.
+    </div>
+  </section>
+
+  
+  <section>
+    <h2>What the app does today</h2>
+    <ul class="feature-list">
+      <li>
+        <span class="icon">⟳</span>
+        <div>
+          <div class="label">Refresh Data</div>
+          <div class="desc">Loads 206 live opportunities from ISC via a HAR export (IBM w3id passkey auth blocks automated scraping — HAR is the practical workaround). Stores to local SQLite in under 2 seconds.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">⬡</span>
+        <div>
+          <div class="label">Score with watsonx.ai</div>
+          <div class="desc">Runs automatically after every refresh. Each deal gets a confidence score (0–100) and tier (High / Medium / Low) using a rules-based engine today, switchable to a live watsonx.ai llama-3-70b model via a single .env flag. Scores are persisted to the database — not just computed in memory.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">✍</span>
+        <div>
+          <div class="label">Generate Narrative</div>
+          <div class="desc">watsonx.ai writes a GM meeting narrative paragraph + bullet points scoped to whatever filter Dushyant has applied — e.g. just Q3 Commit deals, or just one geography. Mock mode produces realistic output when live credentials aren't available.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">⇄</span>
+        <div>
+          <div class="label">What Changed (week-over-week diff)</div>
+          <div class="desc">Compares the live pipeline against the last saved baseline snapshot. Surfaces promoted deals, demoted deals, slipped close dates, amount changes, new deals, and removals — each in a drill-down modal with the before/after confidence score delta.</div>
+        </div>
+      </li>
+      <li>
+        <span class="icon">📊</span>
+        <div>
+          <div class="label">Baseline &amp; Generate GM Report</div>
+          <div class="desc">One click saves today's pipeline as the new baseline (timestamped, not ISO-week, so two snapshots in the same week don't collide) and immediately generates a formatted PowerPoint for the GM meeting. Next week's diff compares against this exact snapshot.</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  
+  <section>
+    <h2>How Dushyant uses it</h2>
+    <p>The app uses a <strong>status-driven action bar</strong> — five flat buttons, always available, no numbered sequence lock. Each button shows a timestamp chip after it runs (<em>Done · 7:06 AM</em> in green, or an amber <em>Score failed</em> if something went wrong).</p>
+    <p>This matters because Dushyant's real workflow isn't linear. He might refresh data three times before a meeting, re-score after updating a deal in Salesforce, and run the diff twice to compare two different filter views. The old numbered-step strip forced a one-way sequence — the new action bar treats every action as independently re-runnable at any time.</p>
+    <div class="callout green">
+      <strong>Tested today (July 14):</strong> Action bar renders correctly, all 5 buttons fire their handlers, status chips update with timestamps after each action, the What Changed diff modal shows before/after confidence scores correctly (e.g. Labcorp: 28 → 42, +14 pts after stage promotion).
+    </div>
+  </section>
+
+  
+  <section>
+    <h2>Build status</h2>
+    <table>
+      <thead>
+        <tr><th>Capability</th><th>Status</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Pipeline load from HAR</td><td><span class="badge done">Done</span></td><td>206 opportunities, &lt;2s</td></tr>
+        <tr><td>SQLite persistence</td><td><span class="badge done">Done</span></td><td>opportunities + snapshots tables</td></tr>
+        <tr><td>Rules-based confidence scoring</td><td><span class="badge done">Done</span></td><td>Persisted to DB, score + tier columns</td></tr>
+        <tr><td>watsonx.ai scoring (live)</td><td><span class="badge blocked">Blocked</span></td><td>Credentials pending — week of 7/14. Mock mode works fully.</td></tr>
+        <tr><td>GM narrative generation</td><td><span class="badge done">Done</span></td><td>Filter-scoped, mock + live switchable</td></tr>
+        <tr><td>Week-over-week diff engine</td><td><span class="badge done">Done</span></td><td>6 change types, timestamp-ordered snapshots</td></tr>
+        <tr><td>Diff detail modals (before/after score)</td><td><span class="badge done">Done</span></td><td>Deal cards with confidence delta blocks</td></tr>
+        <tr><td>PowerPoint GM Report generation</td><td><span class="badge done">Done</span></td><td>Baseline save + PPT in single confirm flow</td></tr>
+        <tr><td>Carbon Design System UX</td><td><span class="badge done">Done</span></td><td>IBM Plex Sans, CDS tokens, GM Ready indicator</td></tr>
+        <tr><td>Status-driven action bar (Model 3)</td><td><span class="badge done">Done</span></td><td>Merged to develop today as v2.2.0-rc1</td></tr>
+        <tr><td>Named view presets</td><td><span class="badge planned">Planned</span></td><td>GM Prep / At Risk / Full Pipeline — not yet built</td></tr>
+        <tr><td>Live watsonx credential test</td><td><span class="badge blocked">Blocked</span></td><td>Waiting on IBM access — week of 7/14</td></tr>
+        <tr><td>Second HAR scrape for real diff</td><td><span class="badge planned">Planned</span></td><td>First real week-over-week comparison — week of 7/14</td></tr>
+      </tbody>
+    </table>
+
+    <div class="git-bar" style="margin-top:14px">
+      <div class="git-pill"><b>main</b> v2.1.0-rc1</div>
+      <div class="git-pill"><b>develop</b> v2.2.0-rc1 (today)</div>
+      <div class="git-pill">5 feature branches merged</div>
+      <div class="git-pill">v1.0.0 tag on GitHub</div>
+    </div>
+  </section>
+
+  
+  <section>
+    <h2>What's still to go</h2>
+    <ul class="timeline">
+      <li>
+        <div class="tl-week">w/c Jul 14</div>
+        <div>
+          <div class="tl-item">Connect live watsonx.ai credentials</div>
+          <div class="tl-sub">Flip WATSONX_ENABLED=true, test llama-3-70b scoring and narrative on real pipeline data</div>
+        </div>
+      </li>
+      <li>
+        <div class="tl-week">w/c Jul 14</div>
+        <div>
+          <div class="tl-item">Second HAR scrape — first real diff</div>
+          <div class="tl-sub">Generate the first genuine week-over-week comparison against the Jul 12 baseline already saved</div>
+        </div>
+      </li>
+      <li>
+        <div class="tl-week">w/c Jul 14</div>
+        <div>
+          <div class="tl-item">Merge develop → main, publish v2.2.0 GitHub Release</div>
+          <div class="tl-sub">Tag, release notes, update pre-release flag</div>
+        </div>
+      </li>
+      <li>
+        <div class="tl-week">w/c Jul 21</div>
+        <div>
+          <div class="tl-item">IBM watsonx Challenge submission</div>
+          <div class="tl-sub">Register at w3.ibm.com/w3publisher/challenge · select Growth Enablers · complete PLAN-3067F00C01E4 on Your Learning</div>
+        </div>
+      </li>
+      <li>
+        <div class="tl-week">Stretch</div>
+        <div>
+          <div class="tl-item">Named view presets (GM Prep / At Risk / Full Pipeline)</div>
+          <div class="tl-sub">One-click filter configurations for Dushyant's three most common views</div>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  
+  <section>
+    <h2>The one technical constraint worth knowing</h2>
+    <div class="callout amber">
+      <strong>Why HAR export instead of live API sync?</strong> IBM Sales Cloud uses Salesforce CRM Analytics protected by IBM w3id SSO with passkey (biometric/device-bound) authentication. Automated login via Playwright or cookie injection was thoroughly attempted across 8 approaches over 5+ hours — passkeys are registered per browser and bound to the OS Secure Enclave, making programmatic auth structurally impossible without IBM IT involvement. The HAR export workaround (browser DevTools → copy network response) takes about 60 seconds and is reliable — it's the practical solution until an official ISC API or service account is available.
+    </div>
+  </section>
+
+</div>
+
+<footer>Made with IBM Bob</footer>
+</body>
+</html>

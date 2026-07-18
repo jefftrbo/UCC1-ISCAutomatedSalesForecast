@@ -1,0 +1,2 @@
+I am working on a project with Bob as part of IBMer watsonx Challenge. but my Coins used up. it only have 4 coins available. Can I get another 100 coins in this month in order to submit the work on July 22?
+https://ibm-cloud.slack.com/archives/C077GHC6FQS/p1783864024508089
