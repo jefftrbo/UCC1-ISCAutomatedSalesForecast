@@ -104,7 +104,7 @@ function isoWeekLabel(date = new Date()) {
  * @returns {{ snapshotId: string, weekLabel: string, quarterLabel: string,
  *             weekSeq: number, confirmed: boolean, saved: number }}
  */
-function saveSnapshot(db, { confirmed = true, now = new Date() } = {}) {
+function saveSnapshot(db, { confirmed = true, now = new Date(), userId = null } = {}) {
   const snapshotId   = randomUUID();
   const wLabel       = snapshotLabel(now);
   const qLabel       = quarterLabel(now);
@@ -112,19 +112,21 @@ function saveSnapshot(db, { confirmed = true, now = new Date() } = {}) {
   const confirmedAt  = now.toISOString();
   const confirmedInt = confirmed ? 1 : 0;
 
-  const rows = db.prepare('SELECT * FROM opportunities').all();
+  const rows = userId
+    ? db.prepare('SELECT * FROM opportunities WHERE user_id = ?').all(userId)
+    : db.prepare('SELECT * FROM opportunities').all();
 
   const insert = db.prepare(`
     INSERT INTO baseline_ledger
       (snapshot_id, week_label, quarter_label, week_seq, confirmed_at, confirmed,
        id, opportunity_name, account_name, stage, forecast_category,
        close_date, filtered_opportunity_amount, total_opportunity_amount,
-       opportunity_owner, flm_judgement, next_steps, team_notes, score, tier)
+       opportunity_owner, flm_judgement, next_steps, team_notes, score, tier, user_id)
     VALUES
       (?, ?, ?, ?, ?, ?,
        ?, ?, ?, ?, ?,
        ?, ?, ?,
-       ?, ?, ?, ?, ?, ?)
+       ?, ?, ?, ?, ?, ?, ?)
   `);
 
   db.transaction(() => {
@@ -134,7 +136,8 @@ function saveSnapshot(db, { confirmed = true, now = new Date() } = {}) {
         r.id, r.opportunity_name, r.account_name, r.stage, r.forecast_category,
         r.close_date, r.filtered_opportunity_amount, r.total_opportunity_amount,
         r.opportunity_owner, r.flm_judgement, r.next_steps, r.team_notes ?? null,
-        r.score ?? null, r.tier ?? null
+        r.score ?? null, r.tier ?? null,
+        userId ?? r.user_id ?? null
       );
     }
   })();
@@ -162,15 +165,24 @@ function saveSnapshot(db, { confirmed = true, now = new Date() } = {}) {
  * @param {string} asOf  ISO timestamp — only baselines BEFORE this are considered
  * @returns {{ snapshotId: string, weekLabel: string } | null}
  */
-function getPreviousBaseline(db, asOf) {
-  const row = db.prepare(`
-    SELECT DISTINCT snapshot_id AS snapshotId, week_label AS weekLabel
-    FROM   baseline_ledger
-    WHERE  confirmed = 1
-      AND  confirmed_at < ?
-    ORDER  BY confirmed_at DESC
-    LIMIT  1
-  `).get(asOf);
+function getPreviousBaseline(db, asOf, userId = null) {
+  const row = userId
+    ? db.prepare(`
+        SELECT DISTINCT snapshot_id AS snapshotId, week_label AS weekLabel
+        FROM   baseline_ledger
+        WHERE  confirmed = 1 AND user_id = ?
+          AND  confirmed_at < ?
+        ORDER  BY confirmed_at DESC
+        LIMIT  1
+      `).get(userId, asOf)
+    : db.prepare(`
+        SELECT DISTINCT snapshot_id AS snapshotId, week_label AS weekLabel
+        FROM   baseline_ledger
+        WHERE  confirmed = 1
+          AND  confirmed_at < ?
+        ORDER  BY confirmed_at DESC
+        LIMIT  1
+      `).get(asOf);
   return row || null;
 }
 
@@ -191,9 +203,9 @@ function getPreviousBaseline(db, asOf) {
  * @param {Date} [asOf]  defaults to new Date()
  * @returns {object}  structured diff result
  */
-function computeDiff(db, asOf = new Date()) {
+function computeDiff(db, asOf = new Date(), userId = null) {
   const asOfIso = asOf.toISOString();
-  const baseline = getPreviousBaseline(db, asOfIso);
+  const baseline = getPreviousBaseline(db, asOfIso, userId);
 
   if (!baseline) {
     return { hasData: false, currentWeek: 'live', previousWeek: null };
@@ -202,7 +214,9 @@ function computeDiff(db, asOf = new Date()) {
   const { snapshotId, weekLabel: previousWeek } = baseline;
   const currentWeek = 'live';
 
-  const currentRows  = db.prepare('SELECT * FROM opportunities').all();
+  const currentRows  = userId
+    ? db.prepare('SELECT * FROM opportunities WHERE user_id = ?').all(userId)
+    : db.prepare('SELECT * FROM opportunities').all();
   const previousRows = db.prepare(
     'SELECT * FROM baseline_ledger WHERE snapshot_id = ?'
   ).all(snapshotId);
@@ -306,19 +320,29 @@ function computeDiff(db, asOf = new Date()) {
  * @param {import('better-sqlite3').Database} db
  * @returns {Array<{ snapshotId, weekLabel, quarterLabel, weekSeq, confirmedAt, oppCount }>}
  */
-function getLedgerHistory(db) {
-  return db.prepare(`
-    SELECT snapshot_id  AS snapshotId,
-           week_label   AS weekLabel,
-           quarter_label AS quarterLabel,
-           week_seq     AS weekSeq,
-           confirmed_at AS confirmedAt,
-           COUNT(*)     AS oppCount
-    FROM   baseline_ledger
-    WHERE  confirmed = 1
-    GROUP  BY snapshot_id
-    ORDER  BY confirmed_at DESC
-  `).all();
+function getLedgerHistory(db, userId = null) {
+  const sql = userId
+    ? `SELECT snapshot_id  AS snapshotId,
+              week_label   AS weekLabel,
+              quarter_label AS quarterLabel,
+              week_seq     AS weekSeq,
+              confirmed_at AS confirmedAt,
+              COUNT(*)     AS oppCount
+       FROM   baseline_ledger
+       WHERE  confirmed = 1 AND user_id = ?
+       GROUP  BY snapshot_id
+       ORDER  BY confirmed_at DESC`
+    : `SELECT snapshot_id  AS snapshotId,
+              week_label   AS weekLabel,
+              quarter_label AS quarterLabel,
+              week_seq     AS weekSeq,
+              confirmed_at AS confirmedAt,
+              COUNT(*)     AS oppCount
+       FROM   baseline_ledger
+       WHERE  confirmed = 1
+       GROUP  BY snapshot_id
+       ORDER  BY confirmed_at DESC`;
+  return userId ? db.prepare(sql).all(userId) : db.prepare(sql).all();
 }
 
 module.exports = {

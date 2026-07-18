@@ -235,8 +235,20 @@ function parseRecords(payload, scraped_at) {
 }
 
 // ---------------------------------------------------------------------------
-// Upsert — preserves user's `selected` flag on re-import
+// Upsert — preserves user's `selected` flag on re-import; tags rows with user_id
 // ---------------------------------------------------------------------------
+// USER_ID is injected by server/index.js when spawning this script as a child process.
+// When running the script directly from the CLI (dev mode), it falls back to null,
+// which means the row will NOT be assigned to a user — run init-users.js afterwards
+// or set USER_ID=yourname@ibm.com manually.
+const USER_ID = process.env.USER_ID || null;
+if (USER_ID) {
+  console.log(`[har] Tagging rows as user: ${USER_ID}`);
+} else {
+  console.warn('[har] WARNING: USER_ID not set — rows will have user_id = NULL.');
+  console.warn('[har] Run: USER_ID=yourname@ibm.com node scraper/load-from-har.js');
+}
+
 const upsert = db.prepare(`
   INSERT INTO opportunities (
     id, opportunity_name,
@@ -245,7 +257,7 @@ const upsert = db.prepare(`
     close_date, create_date, stage, forecast_category, flm_judgement,
     account_name, account_company, account_db_dc,
     next_steps, team_notes, business_partner, technology_client,
-    acquisition_pipeline, ibm_technology_plan, raw_data, scraped_at
+    acquisition_pipeline, ibm_technology_plan, raw_data, scraped_at, user_id
   ) VALUES (
     @id, @opportunity_name,
     @filtered_opportunity_amount, @total_opportunity_amount,
@@ -253,7 +265,7 @@ const upsert = db.prepare(`
     @close_date, @create_date, @stage, @forecast_category, @flm_judgement,
     @account_name, @account_company, @account_db_dc,
     @next_steps, @team_notes, @business_partner, @technology_client,
-    @acquisition_pipeline, @ibm_technology_plan, @raw_data, @scraped_at
+    @acquisition_pipeline, @ibm_technology_plan, @raw_data, @scraped_at, @user_id
   )
   ON CONFLICT(id) DO UPDATE SET
     opportunity_name            = excluded.opportunity_name,
@@ -277,10 +289,13 @@ const upsert = db.prepare(`
     acquisition_pipeline        = excluded.acquisition_pipeline,
     ibm_technology_plan         = excluded.ibm_technology_plan,
     raw_data                    = excluded.raw_data,
-    scraped_at                  = excluded.scraped_at
+    scraped_at                  = excluded.scraped_at,
+    user_id                     = COALESCE(excluded.user_id, opportunities.user_id)
 `);
 
-const upsertMany = db.transaction((rows) => { for (const row of rows) upsert.run(row); });
+const upsertMany = db.transaction((rows) => {
+  for (const row of rows) upsert.run({ ...row, user_id: USER_ID });
+});
 
 // ---------------------------------------------------------------------------
 // Main
