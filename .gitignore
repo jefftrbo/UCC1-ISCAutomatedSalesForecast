@@ -31,3 +31,6 @@ browser-profile/
 
 # Environment variables — never commit
 .env
+
+# ── v2.4.0 — test user list contains real IBM IDs — never commit ──────────────
+scripts/test-users.csv
