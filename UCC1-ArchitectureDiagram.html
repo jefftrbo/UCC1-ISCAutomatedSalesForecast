@@ -128,7 +128,7 @@
         <div class="app-subtitle">IBM watsonx Challenge 2026 · Growth Enablers Track · UCC1</div>
       </div>
       <div style="text-align:right; font-size:11px; color:#57606a;">
-        <div style="font-weight:700;">v2.4.0</div>
+        <div style="font-weight:700;">v2.5.0</div>
         <div>July 2026</div>
         <div>System Architecture</div>
       </div>
@@ -194,11 +194,19 @@
           Append-only UUID baselines · per-user</div>
           <div class="box-tag blue">Week-over-week diff · v2.3.0</div>
         </div>
+        <div class="box blue">
+          <div class="box-title">Pipeline Intelligence Engine</div>
+          <div class="box-sub">server/hygieneScore.js<br>
+          scoreHygiene() · getOppTimeline() · getRepHygieneSummary()<br>
+          0–100 hygiene score · liar-deal detection · rep coaching flags<br>
+          GET /api/opportunities/:id/health · GET /api/hygiene-summary</div>
+          <div class="box-tag blue">Deal Health Card · Use Cases 1/2/3 · v2.5.0</div>
+        </div>
       </div>
     </div>
 
     <div class="arrow-row">
-      <div class="arrow">↓ Rule-based scoring → persisted · Diff computed against saved baseline</div>
+      <div class="arrow">↓ Rule-based scoring → persisted · Diff computed against saved baseline · Hygiene scored on demand</div>
     </div>
 
     <div class="layer" style="min-height:90px;">
@@ -314,7 +322,7 @@
 
   <div class="section-label">Deployment Status — Current vs. Target</div>
   <table>
-    <tr><th>Component</th><th>Current (v2.4.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
+    <tr><th>Component</th><th>Current (v2.5.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
     <tr><td>App hosting</td><td>localhost:3090 on Sales VP MacBook</td><td>IBM Cloud Code Engine · w3id SSO · internal URL</td><td><span class="warn">⚠</span> Pending ServiceNow AI System approval</td></tr>
     <tr><td>Authentication</td><td>Simulated IBM SSO (bcrypt + express-session) · 9 test users · full OIDC-ready architecture</td><td>Real IBM w3id OIDC (one-file swap in server/auth.js)</td><td><span class="warn">⚠</span> Pending IBM app registration (Client ID + Secret)</td></tr>
     <tr><td>Multi-tenancy</td><td>user_id isolation on all tables · per-user queries · namespaced PPT output</td><td>Same — no schema changes needed for production</td><td><span class="check">✓</span> Production-ready</td></tr>
@@ -329,7 +337,7 @@
   <table>
     <tr><th>Requirement</th><th>Detail</th><th>Owner</th><th>Ready?</th></tr>
     <tr><td>Architecture diagram</td><td>All data sources, integrations, services</td><td>Technical Lead</td><td><span class="check">✓</span> This document</td></tr>
-    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.4.0 live</td></tr>
+    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.5.0 live</td></tr>
     <tr><td>Business Lead</td><td>User enablement, product functionality, documentation</td><td>Dushyant K. Patel (Sales VP)</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Technical Lead</td><td>Design, feature dev, testing, maintenance</td><td>Jeffrey L. Trbovich</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Risk &amp; Compliance Lead</td><td>AI ethics, responsible use, data privacy, GPA/CRB</td><td>TBD</td><td><span class="cross">✗</span> Unassigned</td></tr>
@@ -372,7 +380,7 @@
         <li><strong>UI:</strong> IBM Carbon Design System · IBM Plex Sans</li>
         <li><strong>Presentation:</strong> pptxgenjs</li>
         <li><strong>Data source:</strong> Salesforce CRM Analytics (HAR)</li>
-        <li><strong>Built with:</strong> IBM Bob (watsonx) · 26 sessions</li>
+        <li><strong>Built with:</strong> IBM Bob (watsonx) · 28 sessions</li>
       </ul>
     </div>
     <div class="card">
@@ -392,7 +400,7 @@
   </div>
 
   <footer>
-    ISC Automated Sales Forecast · UCC1 · IBM watsonx Challenge 2026 · Growth Enablers Track · v2.4.0 · July 2026<br>
+    ISC Automated Sales Forecast · UCC1 · IBM watsonx Challenge 2026 · Growth Enablers Track · v2.5.0 · July 2026<br>
     Built by Jeffrey L. Trbovich with IBM Bob (watsonx AI) · github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast
     <br><br>Made with IBM Bob
   </footer>

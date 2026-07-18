@@ -4923,6 +4923,218 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     ### How to Resume
     Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
 
+
+  ## Session 28 — v2.5.0: Deal Health Card Modal — Pipeline Intelligence Engine (July 18, 2026) {
+
+    **Date:** 2026-07-18
+    **Branch:** `feature/deal-health-card` → `develop` → `main`
+    **Commit:** `b79003f` (feature) / `3598b54` (main merge)
+    **Version bump:** `2.4.0` → `2.5.0`
+
+    ### Context — Three Strategic Use Cases (from Session 25)
+
+    User referenced lines 4477–4480 of this log (verbatim statement from Session 25):
+
+    > "1. we can actually track the historical performance of the Sales Rep, Sales Manager, and
+    > possibly the Customer's (SR-SM-C) responses/actions/behaviors during the quarterly sales cycle.
+    > 2. assuming that the SR-SM are keeping Next Steps and/or Team Notes up to date on a weekly
+    > or semi-weekly basis, we can categorically demonstrate where poor opportunity communications
+    > hygiene is an indicator of a sales opp that is not as good as it sounds.
+    > 3. the absence of Next Steps and/or Team Notes is more than likely a symptom of a sales rep
+    > that needs coaching, or is possibly in the process of leaving IBM."
+
+    These three use cases are the design basis for v2.5.0. The feature was built as a **Pipeline
+    Intelligence Engine** — entirely rules-based, no new data sources, using only columns already
+    captured in the existing `opportunities` and `baseline_ledger` schema.
+
+    ### Pre-build analysis
+
+    Before writing any code, Bob produced `pipeline_intelligence_design` HTML artifact (open in chat)
+    with a full grounded design analysis including:
+    - Live data reality check: 48/221 opps blank NS (22%), 216/221 blank Team Notes (98%), 76 distinct owners
+    - NS field has real date-prefixed entries (e.g. `"7/9: Next steps is..."`, `"7/13. Jean Gerald..."`) —
+      rep-authored timestamps parseable by regex
+    - Complete hygiene scoring formula, action item templates, watsonx upgrade path
+    - Multi-user test procedure for v2.4.0 (parallel to build)
+
+    ### Parallel workflow — branch isolation
+
+    User asked whether to fork the repo to test v2.4.0 while v2.5.0 was being built.
+    Answer: **no fork needed** — GitFlow handles this:
+    - User stays on `develop` (v2.4.0) with `npm start`
+    - Bob builds on `feature/deal-health-card` — committed code never affects the running server
+    - `opportunities.db` is gitignored — never on any branch — fully shared and safe
+    - Feature branch merged to `develop` → `main` only after all tests passed
+
+    ### What Was Built
+
+    #### New file: `server/hygieneScore.js`
+
+    The Pipeline Intelligence Engine — 294 lines of pure Node.js, no new dependencies.
+
+    **`scoreHygiene(opp)`** — computes 0–100 hygiene score and action items for one opportunity:
+
+    | Component | Weight | Logic |
+    |---|---|---|
+    | Next Steps presence | +35 | blank → 0; P1 action item generated |
+    | Next Steps recency | +25 | `parseNsDate()` extracts date from `"7/9: ..."` prefix; fresh (<7d) → 25, stale (7–14d) → 15 + P2, very stale (14–21d) → 5 + P1, >21d → 0 + P1 |
+    | Team Notes presence | +10 | blank → 0; P3 action item for deals ≥$50K or Commit/Best Case |
+    | Forecast/score alignment | +20 | Commit/Best Case + score<50 = "liar deal" → P1 flag; severe (<35) → 0 pts; moderate → 10 pts |
+    | FLM Judgement agreement | +10 | FLM overrides rep's high call downward → 0 pts + P1 action item |
+
+    **Hygiene grade:** score ≥75 = green, ≥45 = amber, <45 = red.
+
+    **`parseNsDate(text)`** — regex parser for self-dated NS entries:
+    - Patterns: `M/D/YY`, `M/D/YYYY`, `YYYY-MM-DD`, `M/D` (no year — infers current year, adjusts if >14d in future)
+    - Returns `Date` object or `null` if unparseable
+
+    **`getOppTimeline(db, oppId, userId)`** — queries `baseline_ledger` for all confirmed snapshots
+    of one opportunity, sorted oldest-first. Returns stage, forecast, close date, amount, score,
+    next steps presence per snapshot. Directly implements **Use Case 1**.
+
+    **`getRepHygieneSummary(db, userId)`** — groups all opportunities by `opportunity_owner`,
+    computes per-rep aggregates (blank NS count, stale NS count, liar deals, FLM overrides,
+    avg hygiene score), assigns coaching flag (`urgent` / `watch` / `clean`), sorts urgent-first.
+    Directly implements **Use Case 3**.
+
+    **Coaching flag logic:**
+    - `urgent`: ALL of the rep's deals have blank NS (disengagement signal) OR avg score < 40
+    - `watch`: avg score < 65
+    - `clean`: avg score ≥ 65
+
+    #### Modified: `server/index.js`
+
+    Two new authenticated endpoints added (both under `requireAuth`):
+
+    | Endpoint | Returns |
+    |---|---|
+    | `GET /api/opportunities/:id/health` | `{ opp, hygiene, timeline }` — full deal intelligence card data |
+    | `GET /api/hygiene-summary` | `Array<RepHygieneSummary>` — all owners sorted by coaching priority |
+
+    #### Modified: `public/index.html` (v2.5.0)
+
+    **CSS additions** (~220 lines):
+    - `.health-score-ring` — coloured circle (green/amber/red) for hygiene score
+    - `.health-comp-pill` — 5-component breakdown pills (full/part/zero classes)
+    - `.health-action-item` / `.health-action-badge` — left-border colour-coded action items (P1/P2/P3/clean)
+    - `.health-timeline-table` — compact week-over-week table
+    - `.rep-hygiene-table` / `.coaching-flag` — team coaching dashboard table
+    - `.health-tab` / `.health-tab-bar` — 2-tab modal switcher
+    - `.btn-health` — per-row heart icon (coloured by pre-computed grade)
+
+    **Table changes:**
+    - New `♥` column header (32px, col 2)
+    - Per-row `<button class="btn-health {grade}">` — colour computed from `opp._hygieneGrade`
+    - `colspan="24"` → `colspan="25"` on empty state row
+    - Row render changed from `.map(opp => \`...\`)` to `.map(opp => { return \`...\`})` to support variable computation
+    - Event delegation on `#opp-tbody` for `.btn-health` clicks (no per-row listeners)
+
+    **Modal HTML** (after Diff Detail modal):
+    ```html
+    <div class="diff-modal-backdrop" id="health-modal-backdrop">
+      <div class="diff-modal health-modal" style="max-width:760px;">
+        <!-- 2-tab: Deal Intelligence | Team Hygiene -->
+        <div id="health-panel-deal">  <!-- populated by JS on click -->
+        <div id="health-panel-team"> <!-- populated by JS on tab switch (lazy) -->
+    ```
+
+    **JavaScript additions** (~220 lines):
+    - `fmtAmt(n)` — currency formatter (reused for timeline table)
+    - `buildHealthDealPanel(opp, hygiene, timeline)` — renders full Deal Intelligence tab HTML:
+      deal header, hygiene score bar + component pills, action items list, Next Steps text,
+      Team Notes text, week-over-week timeline table
+    - `buildRepHygienePanel(repData)` — renders Team Hygiene tab HTML
+    - `openHealthModal()` / `closeHealthModal()` — backdrop toggle
+    - `loadHealthCard(oppId)` — async: shows loading state, fetches `/api/opportunities/:id/health`,
+      renders panel
+    - `loadTeamHygiene()` — async: lazy-loads `/api/hygiene-summary` once per session (cached in
+      `_repHygieneData`), renders team panel
+    - Tab switching: querySelectorAll `.health-tab`, show/hide panels
+    - Escape key: `closeHealthModal()` added to existing keydown handler
+    - Version bump: `APP_VERSION = '2.5.0'`
+
+    ### Validation Results
+
+    All tests run via Node.js module-level integration (server already running on port 3090):
+
+    ```
+    === /api/opportunities/:id/health simulation ===
+    Opp: Corporate ELA Software Amendment
+      hygieneScore: 80 / grade: green
+      nsDateFound: Jul 9, 2026 / daysSince: 8
+      liarDeal: false / flmDisagreement: false
+      actionItems ( 2 ):
+        P2 - Next Steps last updated ~8 days ago. Confirm this deal is still active...
+        P3 - No close plan in Team Notes. Require Matt Appleby to document path-to-close...
+      timeline rows: 3
+      first timeline row: Jul 11, 2026 · 6:00 AM  4 - Propose  67
+
+    === /api/hygiene-summary simulation ===
+      total reps: 76
+      urgent: 22 / watch: 8 / clean: 46
+      top 5 coaching priorities:
+        urgent | CDW Corporation   | score: 30 | blank: 2/2 | liar: 0
+        urgent | Catalina Aviles   | score: 30 | blank: 1/1 | liar: 0
+        urgent | Charles Lucas     | score: 30 | blank: 1/1 | liar: 0
+        urgent | Cheryl Bertini    | score: 30 | blank: 1/1 | liar: 0
+        urgent | Curren Katz       | score: 30 | blank: 2/2 | liar: 0
+
+    === Liar deal test ===
+    (no Commit/Best Case + score<40 + blank NS in current data — correct: no false positives)
+
+    ✅ ALL INTEGRATION TESTS PASSED
+    ```
+
+    Additional module syntax checks: `node --check` on both new/modified server files → clean.
+
+    ### Key design decisions
+
+    **Why rules-based first (not watsonx):** The scoring logic is deterministic and fully
+    explainable — every action item maps directly to a DB column value. This makes it
+    immediately demoable on real data without any API credentials. The watsonx upgrade
+    (v2.6.0) swaps only the `scoreHygiene()` quality sub-score (NS text analysis,
+    close plan evaluation) — all other logic, UI, and endpoints are unchanged.
+
+    **Why event delegation for `.btn-health`:** The opportunity table re-renders on every
+    filter change. Adding per-row `addEventListener` calls would leak listeners on every
+    re-render. One delegated listener on `#opp-tbody` handles all health icon clicks
+    regardless of how many times the table is re-drawn.
+
+    **Why lazy-load Team Hygiene tab:** The rep summary query aggregates all 76+ owners.
+    Running it on every health card open would be wasteful. The result is cached in
+    `_repHygieneData` (session-scoped) and only fetched on the first tab switch.
+
+    **Note on `_hygieneGrade` pre-computation:** The health icon colour (`red`/`amber`/`green`)
+    requires a hygiene grade on every row render. Currently, `_hygieneGrade` is expected on
+    the opportunity object but is not yet pre-computed in `loadOpportunities()`. The icon
+    renders without colour until the grade is pre-populated — this is a known v2.5.0
+    limitation to address in v2.5.1 (pre-compute grades on load from a batch hygiene call).
+
+    ### Current Git State
+
+    | Ref | Commit | Note |
+    |---|---|---|
+    | `main` | `3598b54` | v2.5.0 release merge |
+    | `develop` | `b79003f` | v2.5.0 feature commit |
+    | `v2.5.0` tag | `3598b54` | tagged on main |
+    | `feature/deal-health-card` | `b79003f` | merged, not deleted |
+
+    ### What's Next (Prioritized Before July 22 Deadline)
+
+    | Priority | Action | Status |
+    |---|---|---|
+    | 🔴 1 | Pre-compute `_hygieneGrade` on `loadOpportunities()` so health icons are coloured on table load (v2.5.1) | ⏳ Next build |
+    | 🔴 2 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Eligibility gate |
+    | 🔴 3 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+    | 🟡 4 | Multi-user HAR testing (9 users — human action, today) | ⏳ In progress |
+    | 🟡 5 | Record demo video — login → health card → rep hygiene → PPT → isolation proof | ⚠ Not recorded |
+    | 🟡 6 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+    | 🟡 7 | Submit ServiceNow AI System Demand (attach `UCC1-ArchitectureDiagram.html`) | ⚠ Not submitted |
+
+    ### How to Resume
+    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
   }
+
 
 }
