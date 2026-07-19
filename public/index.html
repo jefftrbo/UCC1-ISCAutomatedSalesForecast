@@ -3239,6 +3239,15 @@
     if (e.target === document.getElementById('rep-drill-backdrop')) closeRepDrill();
   });
 
+  // Delegated click handler — catches .rep-drill-link clicks on dynamically-rendered rows
+  // (inline onclick can't reach loadRepDrill because it lives inside a closure, not on window)
+  document.getElementById('health-panel-team').addEventListener('click', (e) => {
+    const link = e.target.closest('.rep-drill-link');
+    if (!link) return;
+    e.preventDefault();
+    loadRepDrill(link.dataset.owner);
+  });
+
   async function loadRepDrill(ownerName) {
     const body = document.getElementById('rep-drill-body');
     document.getElementById('rep-drill-title').textContent = ownerName;
@@ -3481,7 +3490,7 @@
 
     const dataRow = r => `
       <tr>
-        <td><a class="rep-drill-link" onclick="event.preventDefault();loadRepDrill(${JSON.stringify(r.owner)})">${esc(r.owner)}</a></td>
+        <td><a class="rep-drill-link" data-owner="${esc(r.owner)}" href="#" tabindex="0">${esc(r.owner)}</a></td>
         <td>${r.dealCount}</td>
         <td style="${r.blankNs > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.blankNs}</td>
         <td style="${r.staleNs > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.staleNs}</td>
