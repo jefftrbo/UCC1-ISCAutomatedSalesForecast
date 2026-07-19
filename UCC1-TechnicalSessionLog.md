@@ -1,5 +1,46 @@
 ---
 
+## Session 40 — Team Hygiene Cache Bust (v2.5.18) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `4113f53` (feat) · `f6c239b` (release merge)
+**Version bump:** `2.5.17` → `2.5.18`
+
+### User Feedback
+
+> "Spencer Korn appears as a group header multiple times scattered throughout the list.
+> The rep count shows 76 instead of 217."
+
+### Root Cause
+
+`_repHygieneData` is a module-level cache set once on first Team Hygiene open and never cleared. If the page was loaded before a HAR re-import (e.g. Duey's old 76-rep data), the cache holds the old array for the entire browser session — regardless of subsequent Refresh Data calls. The server sort and grouping logic were both correct; the input was stale.
+
+### What Was Delivered
+
+**Two targeted changes in `public/index.html`:**
+
+1. **Cache bust on refresh** — `_repHygieneData = null` added as the first line of the `loadOpportunities` patch (line ~3549). Every Refresh Data + auto-score cycle now discards the cached response so the next Team Hygiene open always re-fetches from `/api/hygiene-summary`.
+
+2. **Client-side re-sort safety net** — `buildRepHygienePanel` now sorts `[...repData]` by Manager→Owner asc (blanks last) before grouping. The group-by-contiguous-run loop is guaranteed to see a properly ordered array even if some other code path delivers unsorted data in future.
+
+Also in this commit: `UCC1-ChallengeSubmissionDraft.html` item 1 (`PLAN-3067F00C01E4`) updated from ❌ to ✅ Completed 11 Jul 2026 (confirmed via Your Learning screenshot).
+
+### Remaining Before July 22 Deadline
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| 🔴 1 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | ❌ Must complete |
+| 🔴 2 | **Identify R&C Lead** — one person from Dushyant's org | ❌ Unassigned |
+| 🟡 3 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⚠ Pending |
+| 🟡 5 | Record demo video (3–4 min) | ⚠ Not recorded |
+| ✅ | No IBM Confidential data in repo | ✅ Confirmed |
+
+
+---
+
 ## Session 39 — Team Hygiene Grouped Manager Display (v2.5.17) — July 19, 2026
 
 **Date:** 2026-07-19

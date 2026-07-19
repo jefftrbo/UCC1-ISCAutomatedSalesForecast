@@ -999,6 +999,7 @@
       top: 0;
       z-index: 2;
       overflow: hidden;
+      cursor: help; /* tooltip hint — all columns have data-tip */
     }
     /* Manager group header row — spans all 8 data cols */
     .rep-hygiene-group-header td {
@@ -3300,12 +3301,14 @@
         <div class="health-section-title" style="padding:0 16px 8px">Rep Hygiene Summary — ${repData.length} owners · ${groups.filter(g=>g.manager).length} managers</div>
         <table class="rep-hygiene-table">
           <thead><tr>
-            <th>Owner</th><th>Deals</th>
-            <th>Blank NS</th><th>Stale NS</th>
-            <th>Forecast Mismatch</th>
-            <th title="Deals closing within 4 days of quarter-end">QE Close</th>
-            <th>Hygiene Score</th>
-            <th>Flag</th>
+            <th class="has-tip" data-tip="Rep name — the opportunity owner in Salesforce ISC.">Owner</th>
+            <th class="has-tip" data-tip="Total open opportunities assigned to this rep (stages 1–5 only).">Deals</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Blank Next Steps&lt;/b&gt; — opps with no Next Steps text at all.&lt;br&gt;&lt;br&gt;What to tell your rep:&lt;br&gt;&amp;ldquo;These deals have zero next steps — add at least one action before our next call.&amp;rdquo;">Blank NS</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Stale Next Steps&lt;/b&gt; — opps where Next Steps text hasn&amp;rsquo;t changed in 14+ days.&lt;br&gt;&lt;br&gt;What to tell your rep:&lt;br&gt;&amp;ldquo;These deals look frozen — update next steps to show progress.&amp;rdquo;">Stale NS</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Forecast Mismatch&lt;/b&gt; — opps where the forecast category doesn&amp;rsquo;t match the deal stage (e.g. Commit at stage 2).&lt;br&gt;&lt;br&gt;What to tell your rep:&lt;br&gt;&amp;ldquo;Your forecast call doesn&amp;rsquo;t match where the deal actually is — align them before the GM call.&amp;rdquo;">Forecast Mismatch</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Quarter-End Close&lt;/b&gt; — opps with a close date within 4 calendar days of quarter-end. A pattern associated with deal padding.&lt;br&gt;&lt;br&gt;What to tell your rep:&lt;br&gt;&amp;ldquo;These close dates look padded to quarter-end — push for a real, deal-specific date.&amp;rdquo;">QE Close</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Hygiene Score&lt;/b&gt; — average score (0–100) across all this rep&amp;rsquo;s open deals.&lt;br&gt;&lt;br&gt;🟢 &amp;ge;75 · Clean&lt;br&gt;🟡 45–74 · Needs attention&lt;br&gt;🔴 &lt;45 · Urgent coaching needed">Hygiene Score</th>
+            <th class="has-tip" data-tip="&lt;b&gt;Coaching Flag&lt;/b&gt;&lt;br&gt;&lt;br&gt;🔴 &lt;b&gt;Urgent&lt;/b&gt; — score &lt;45 or 2+ blank next steps&lt;br&gt;🟡 &lt;b&gt;Watch&lt;/b&gt; — score 45–74 or 1 blank next step&lt;br&gt;✓ &lt;b&gt;Clean&lt;/b&gt; — score &amp;ge;75, no blank next steps">Flag</th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
@@ -3588,7 +3591,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.18';
+  const APP_VERSION = '2.5.19';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
