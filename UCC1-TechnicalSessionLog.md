@@ -3,9 +3,9 @@
 ## Session 30 — Manager Field Fix + Fresh HAR (v2.5.8) — July 19, 2026
 
 **Date:** 2026-07-19
-**Branch:** `develop`
-**Commit:** `9c9a1ad`
-**Version bump:** none (single-line fix, patch release pending)
+**Branch:** `develop` → `main`
+**Commit:** `9c9a1ad` (fix) · `8b8044b` (version bump) · `8f26388` (release merge)
+**Version bump:** `2.5.7` → `2.5.8`
 
 ### Context
 
@@ -50,6 +50,14 @@ to `''` (shown as `—` in Team Hygiene tab).
   PAUL DOROBA → Jim Mazzeo ✅ (matches ISC screenshot evidence from prior session)
 
 **Commit:** `9c9a1ad` — `fix(har): resolve manager field name — Opp.MGR.Mgr.User_Name_mk__c`
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `8f26388` | v2.5.8 release merge |
+| `develop` | `8b8044b` | v2.5.8 version bump |
+| `v2.5.8` tag | `8f26388` | tagged on main |
 
 ### Also confirmed
 
