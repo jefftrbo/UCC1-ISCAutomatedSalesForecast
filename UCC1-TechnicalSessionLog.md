@@ -1,5 +1,86 @@
 ---
 
+## Session 38 — Team Hygiene Manager-First Grouping (v2.5.16) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `1e981ad` (feat) · `c9e4967` (release merge)
+**Version bump:** `2.5.15` → `2.5.16`
+
+### Context & User Rationale
+
+The screen shows hygiene data to VPs, Directors, Managers, TSLs, and ATLs — all of whom
+have either direct or dotted-line responsibility for the reps in the table. Sorting by
+rep name alphabetically forces each manager to hunt for their own people. Sorting by
+Manager first, then Owner within each manager group, makes the screen immediately
+actionable: a manager opens Team Hygiene and their entire book of reports is visually
+contiguous.
+
+User requirements:
+1. Preserve hygiene scoring per opp owner (rep) — unchanged
+2. Reorder: Manager first column, then Owner
+3. Sort: Manager ascending → Owner ascending within each group
+4. Blank-manager rows (partner sellers with no IBM LDAP) → bottom, Owner ascending
+
+### What Was Delivered
+
+**`server/hygieneScore.js` — sort replaced:**
+
+```js
+// Before: coaching-priority sort (urgent→watch→clean, then score ASC)
+results.sort((a, b) => {
+  const order = { urgent: 0, watch: 1, clean: 2 };
+  const od = order[a.coachingFlag] - order[b.coachingFlag];
+  return od !== 0 ? od : a.avgHygieneScore - b.avgHygieneScore;
+});
+
+// After: Manager→Owner sort (blanks last)
+results.sort((a, b) => {
+  const aHasMgr = a.manager && a.manager.trim().length > 0;
+  const bHasMgr = b.manager && b.manager.trim().length > 0;
+  if (aHasMgr && !bHasMgr) return -1;   // blanks to bottom
+  if (!aHasMgr && bHasMgr) return  1;
+  if (aHasMgr && bHasMgr) {
+    const mCmp = a.manager.localeCompare(b.manager);
+    if (mCmp !== 0) return mCmp;
+  }
+  return (a.owner || '').localeCompare(b.owner || '');
+});
+```
+
+**`public/index.html` — column reorder + visual treatment:**
+- `<td>` row render: Manager first, Owner second
+- `<th>` header: "Manager" | "Owner" | metrics…
+- CSS col 1 (Manager): muted text (`--cds-text-secondary`), 11.5px, `border-right` separator
+- CSS col 2 (Owner): `font-weight: 600` (same emphasis as before, just moved to col 2)
+- Section title updated to describe the grouping logic
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `c9e4967` | v2.5.16 release merge |
+| `develop` | `1e981ad` | v2.5.16 feature commit |
+| `v2.5.16` tag | `c9e4967` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full UX overhaul (v2.5.8–v2.5.16) | ✅ Both tables polished, modal adaptive, hygiene grouped by manager |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 37 — Team Hygiene UX Overhaul (v2.5.15) — July 19, 2026
 
 **Date:** 2026-07-19
