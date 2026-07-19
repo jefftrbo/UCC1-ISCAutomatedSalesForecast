@@ -344,6 +344,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.10 | Sticky column header fix — `position: relative; overflow: hidden` was overriding `position: sticky`, headers scrolled away vertically |
 | v2.5.11 | Frozen left columns fix — `border-collapse: collapse` suppresses sticky on `td`/`th` per CSS spec; switched to `border-collapse: separate; border-spacing: 0` |
 | v2.5.12 | Frozen column z-index fix — corner cells (sticky top+left) now `z-index: 20`; body frozen cells `z-index: 2`; header cells `z-index: 10`; left columns stay visible on vertical scroll |
+| v2.5.13 | Team Hygiene table frozen columns — Owner+Manager cols frozen on H+V scroll; `.rep-hygiene-wrap` scrollable container; z-index ladder applied to modal table |
 
 ---
 
@@ -359,4 +360,4 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.12*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.13*
