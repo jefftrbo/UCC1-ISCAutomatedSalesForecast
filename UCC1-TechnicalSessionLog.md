@@ -1,5 +1,84 @@
 ---
 
+## Session 32 — Sticky Column Header Fix (v2.5.10) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `5c1ef70` (fix) · `fb62d78` (release merge)
+**Version bump:** `2.5.9` → `2.5.10`
+
+### Bug Report
+
+User reported that column headers disappear when vertically scrolling past the first
+visible page of rows. Screenshot evidence showed the full header row present on load,
+then completely absent after scrolling down — every row was headerless, making columns
+unidentifiable without scrolling back to the top.
+
+### Root Cause
+
+[`public/index.html`](public/index.html) had two conflicting `thead th` rules:
+
+**Rule 1 (line 1040):**
+```css
+thead th { position: sticky; top: 0; z-index: 10; ... }
+```
+
+**Rule 2 (line 1079) — added later for column resize handles:**
+```css
+thead th { position: relative; overflow: hidden; }
+```
+
+Rule 2 came **after** Rule 1 in the cascade and had equal specificity, so
+`position: relative` **overwrote** `position: sticky`. The header became
+a normal document-flow element and scrolled away with the table body.
+
+The `overflow: hidden` was added to clip `.col-resizer` pseudo-elements,
+but the resizer handles are `position: absolute; right: 0` — they stay
+flush to the cell edge without any clip. `overflow: hidden` was never needed.
+
+### Fix
+
+One line change in [`public/index.html`](public/index.html:1079):
+
+```css
+/* Before */
+thead th { position: relative; overflow: hidden; }
+
+/* After */
+thead th { position: sticky; }
+```
+
+Replacing `relative` with `sticky` re-establishes the sticky context that
+Rule 1 intended. The `overflow: hidden` is removed entirely — resize handles
+are unaffected. Header is now permanently locked at the top of `.table-wrap`
+regardless of vertical scroll depth.
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `fb62d78` | v2.5.10 release merge |
+| `develop` | `5c1ef70` | v2.5.10 fix commit |
+| `v2.5.10` tag | `fb62d78` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Manager field fix + column widths + sticky header | ✅ v2.5.8–v2.5.10 |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 31 — Column Width Overhaul Validated (v2.5.9) — July 19, 2026
 
 **Date:** 2026-07-19

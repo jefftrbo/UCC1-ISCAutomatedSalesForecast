@@ -1030,7 +1030,10 @@
     table {
       width: max-content;
       min-width: 100%;
-      border-collapse: collapse;
+      /* border-separate + border-spacing:0 is required for position:sticky on td/th —
+         border-collapse:collapse suppresses sticky in the CSS spec and most browsers */
+      border-collapse: separate;
+      border-spacing: 0;
       table-layout: auto;  /* switches to fixed after initColResize locks widths */
     }
     table.cols-sized {
@@ -1095,7 +1098,8 @@
     }
     .col-resizer:hover::after, .col-resizer.resizing::after { background: #0043ce; }
 
-    tbody tr { border-top: 1px solid #e0e0e0; }
+    /* border-collapse:separate — row separators must be on td, not tr */
+    tbody tr { border-top: none; }
     tbody tr:hover { background: #edf5ff; }
     tbody tr.selected-row { background: #edf5ff; }
 
@@ -1105,6 +1109,7 @@
       vertical-align: middle;
       white-space: nowrap;
       border-right: 1px solid #f0f0f0;
+      border-top: 1px solid #e0e0e0;  /* replaces tr border-top (needed for border-separate) */
     }
     td.wrap   { white-space: normal; }
     .truncated-text { color: #161616; }
@@ -3501,7 +3506,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.10';
+  const APP_VERSION = '2.5.11';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
