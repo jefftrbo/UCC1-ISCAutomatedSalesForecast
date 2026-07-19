@@ -141,9 +141,12 @@ Once the CRM Analytics dashboard loads:
 1. **Accounts Assigned To:** Your name defaults — change to the Sales VP whose pipeline you're preparing (e.g. "Dushyant K Patel")
 2. Click the **"Deal List by Opportunity"** tab
 3. **Forecast Grouping:** Select **Call, Upside, Stretch**
-4. Confirm the table shows the expected opportunities (~200 for a VP)
+4. **Opportunity Status Grouping:** Leave as **Open only** (do not select Won/Lost/"-")
+5. Confirm the table shows the expected opportunities (~200 for a VP)
 
 > **Note:** ISC defaults the `Accounts Assigned To` filter to **your own name**. Every user must clear their name and select the VP (or their own account set) before exporting. This is the same filter shown in the ISC screenshots — only `View_As_Territory` changes per user.
+
+> **Why the record count in the app is lower than ISC's total:** ISC's summary row (e.g. "1,087 Opps") counts **all** opportunity statuses — Open, Won, Lost, and "-". The app only imports **Open** pipeline opportunities (active stages 1–5: Engage → Negotiate) because Won and Lost deals are not relevant to forecast prep. A difference of 10–20% between ISC's total and the app's loaded count is **normal and expected**.
 
 #### Step A3 — Open Chrome DevTools and start recording
 
@@ -289,6 +292,7 @@ node scripts/seed-quarter.js --restore --all
 |---|---|
 | Can't reach `localhost:3090` — redirected to `/login` | Expected — sign in first with any user from the test list |
 | Login fails with "IBM ID or password incorrect" | Run `node scripts/init-users.js` to ensure the users table is populated |
+| **App shows fewer records than ISC's total count** | Expected — ISC counts Open + Won + Lost + "-". The app imports Open-only (stages 1–5). A 10–20% difference is normal. |
 | HAR file parses but shows 0 opportunities | Filters weren't applied before export — re-apply Owner + Forecast Grouping and re-export |
 | Opportunities visible to wrong user | Run `node scripts/init-users.js` again — it tags unowned rows to the primary user |
 | watsonx scoring fails | Check `WATSONX_ENABLED=true` and that API key + project ID are in `.env` |
@@ -335,6 +339,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.5 | PPT uses filtered+checked IDs from frontend (fixes 906-vs-172 bug) |
 | v2.5.6 | Padded-close detection signal · P1/P2/P3 QE-close flag · UTC timezone fix |
 | v2.5.7 | Team Hygiene sticky header · QE Close column per rep · amber highlight |
+| v2.5.8 | Manager name field fix — `Opp.MGR.Mgr.User_Name_mk__c` resolves 870/949 reps · ISC count mismatch documented across all user docs |
 
 ---
 
@@ -345,9 +350,9 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 - **Business value:** 90 min → under 5 min weekly GM prep · 94% time reduction
 - **Multi-user:** 9 IBM TSLs/ATLs/GMs with full data isolation, IBM SSO architecture
 - **watsonx.ai models:** `ibm/granite-13b-instruct-v2` (scoring) · `meta-llama/llama-3-70b-instruct` (narrative) · `ibm/granite-3-8b-instruct` (delta summary)
-- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 29 sessions
+- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 30 sessions
 - **Deployment path:** CIO "Build with watsonx" Path to Production
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.7*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.8*

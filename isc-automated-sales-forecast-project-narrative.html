@@ -107,7 +107,7 @@
   <div class="page-header">
     <div class="eyebrow">IBM watsonx Challenge 2026 · UCC1 Submission · Growth Enablers Track</div>
     <h1>ISC Automated Sales Forecast</h1>
-    <div class="subtitle">Project narrative — what it does, where it stands, what's next &nbsp;·&nbsp; v2.5.7 &nbsp;·&nbsp; July 18, 2026</div>
+    <div class="subtitle">Project narrative — what it does, where it stands, what's next &nbsp;·&nbsp; v2.5.8 &nbsp;·&nbsp; July 19, 2026</div>
   </div>
 
   <!-- ── Key Numbers ── -->
@@ -131,7 +131,7 @@
 
   <!-- ── What it does ── -->
   <section>
-    <h2>What the app does today (v2.5.7)</h2>
+    <h2>What the app does today (v2.5.8)</h2>
     <ul class="feature-list">
 
       <li>
@@ -224,6 +224,7 @@
         <tr><td>Pipeline Intelligence Engine (v2.5.0)</td><td><span class="badge done">Done</span></td><td>22 urgent / 8 watch / 46 clean on Duey's real pipeline</td></tr>
         <tr><td>Padded-close detection (v2.5.6)</td><td><span class="badge done">Done</span></td><td>QE-close flag (P1/P2/P3) on deals closing within 4 days of quarter-end</td></tr>
         <tr><td>Team Hygiene UX — sticky header + QE Close column (v2.5.7)</td><td><span class="badge done">Done</span></td><td>Sticky thead, QE Close count per rep, amber highlight</td></tr>
+        <tr><td>Manager name field fix (v2.5.8)</td><td><span class="badge done">Done</span></td><td>Opp.MGR.Mgr.User_Name_mk__c — 870/949 reps resolving; ISC count mismatch documented</td></tr>
         <tr><td>Named view presets</td><td><span class="badge done">Done</span></td><td>GM Prep / At Risk / Full Pipeline — one-click filter configs</td></tr>
         <tr><td>PowerPoint GM Report generation</td><td><span class="badge done">Done</span></td><td>3-button confirm, per-user namespaced output, diff + narrative in PPT</td></tr>
         <tr><td>IBM Carbon Design System UX</td><td><span class="badge done">Done</span></td><td>IBM Plex Sans, Carbon tokens, GM Ready indicator, user identity chip</td></tr>
@@ -233,10 +234,10 @@
     </table>
 
     <div class="git-bar" style="margin-top:14px">
-      <div class="git-pill"><b>main</b> 0353462 · v2.5.7</div>
-      <div class="git-pill"><b>develop</b> synced to main</div>
-      <div class="git-pill"><b>tag</b> v2.5.7 on main</div>
-      <div class="git-pill">29 sessions · 17 feature branches merged</div>
+      <div class="git-pill"><b>main</b> pending · v2.5.8</div>
+      <div class="git-pill"><b>develop</b> bc21831 · v2.5.8</div>
+      <div class="git-pill"><b>tag</b> v2.5.8 on main</div>
+      <div class="git-pill">30 sessions · 17 feature branches merged</div>
       <div class="git-pill">github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast</div>
     </div>
   </section>
@@ -299,6 +300,9 @@
     <div class="callout amber">
       <strong>Why HAR export instead of live API sync?</strong> IBM Sales Cloud uses Salesforce CRM Analytics protected by IBM w3id SSO with passkey (biometric/device-bound, OS Secure Enclave) authentication. Automated login was attempted across 8 approaches over 5+ hours — Playwright automation, cookie injection, CDP interception, Salesforce REST API, ISC devtools — all blocked by IBM's own security model. The HAR export (DevTools Network tab → Export HAR → save as <code>scraper/isc-export.har</code>) takes approximately 90 seconds and is fully reliable. It is the practical solution until an official Salesforce Connected App or ISC service account is available — which becomes possible once the app is approved as an official IBM AI System via the CIO ServiceNow path.
     </div>
+    <div class="callout" style="margin-top:1rem;">
+      <strong>Why the app's record count is lower than ISC's displayed total.</strong> ISC's summary row (e.g. "1,087 Opps") counts <em>all</em> opportunity statuses — Open, Won, Lost, and "–". The HAR export captures only the <strong>active Open pipeline</strong> (stages 1–5: Engage → Negotiate). Won and Lost deals are excluded because they are not relevant to forecast preparation. A 10–20% difference between ISC's headline total and the app's loaded count is <strong>normal and expected</strong> — it reflects exactly the right working set for a GM pipeline review.
+    </div>
   </section>
 
   <!-- ── SSO swap note ── -->
@@ -319,6 +323,6 @@
 
 </div>
 
-<footer>ISC Automated Sales Forecast &nbsp;·&nbsp; UCC1 &nbsp;·&nbsp; IBM watsonx Challenge 2026 &nbsp;·&nbsp; Growth Enablers Track &nbsp;·&nbsp; v2.5.7 &nbsp;·&nbsp; July 18, 2026<br><br>Made with IBM Bob</footer>
+<footer>ISC Automated Sales Forecast &nbsp;·&nbsp; UCC1 &nbsp;·&nbsp; IBM watsonx Challenge 2026 &nbsp;·&nbsp; Growth Enablers Track &nbsp;·&nbsp; v2.5.8 &nbsp;·&nbsp; July 19, 2026<br><br>Made with IBM Bob</footer>
 </body>
 </html>
