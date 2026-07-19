@@ -1,5 +1,52 @@
 ---
 
+## Session 42 — Rep Drill-Down Modal (v2.5.20) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `80a1fd8` (feat) · `e99641c` (release merge)
+**Version bump:** `2.5.19` → `2.5.20`
+
+### User Request
+
+> "Can you make the Owner name a hyperlink so that you can click on it and pop up another
+> modal window showing each of the opps that need attention? Chelsea Conway can take a
+> screenshot of Debbie's 5 sales opps that need a Next Step."
+
+### What Was Delivered
+
+**Owner name in Team Hygiene is now a blue clickable link that opens a rep-specific deal detail modal.**
+
+**New server endpoint:** `GET /api/rep-drill?owner=<name>`
+- Fetches all open deals for that owner
+- Runs `scoreHygiene()` on each deal to detect: blank NS, stale NS (14+ days), liar deal (forecast ≠ stage), padded close (QE close date)
+- Returns deals sorted issues-first (hygiene score ascending), then clean deals
+
+**New `#rep-drill-backdrop` modal (z-index 10000, above the health modal):**
+- Blue header: rep name + deal count + attention count (e.g. "7 open deals · 5 need attention")
+- Table columns: Opportunity · Account · IBM Tech Amt · Total Amt · Next Steps · Close Date · Quarter · Create Date · Stage · Forecast
+- Issue rows have a light red background (`#fff8f8`) — immediately visually distinct
+- Per-deal issue badges inline under the opp name: `Blank NS` (red) · `Stale Nd` (amber) · `Forecast ≠ Stage` (orange) · `QE Close` (blue)
+- Blank NS shown as `— no next steps —` in red italic in the Next Steps column
+- Closes on ✕ · backdrop click · Escape key
+
+**Chelsea's workflow:** Team Hygiene → Chelsea Conway group → click "Debbie Partee" → modal shows 7 deals, 5 highlighted red with `Blank NS` badge → screenshot → paste into Slack.
+
+### Remaining Before July 22 Deadline
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| 🔴 1 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | ❌ Must complete |
+| 🔴 2 | **Identify R&C Lead** — one person from Dushyant's org | ❌ Unassigned |
+| 🟡 3 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⚠ Pending |
+| 🟡 5 | Record demo video (3–4 min) | ⚠ Not recorded |
+| ✅ | No IBM Confidential data in repo | ✅ Confirmed |
+
+
+---
+
 ## Session 41 — Team Hygiene Column Tooltips (v2.5.19) — July 19, 2026
 
 **Date:** 2026-07-19
