@@ -1,5 +1,85 @@
 ---
 
+## Session 33 — Frozen Left Columns Fix (v2.5.11) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `a7cb585` (fix) · `8d55816` (release merge)
+**Version bump:** `2.5.10` → `2.5.11`
+
+### Bug Report
+
+User reported the three left columns (☐ checkbox, ♥ health, Confidence) disappear
+when scrolling horizontally. They were supposed to be frozen — the CSS had
+`position: sticky; left: Npx` on the relevant `th` and `td` selectors — but in
+practice they scrolled away with the rest of the table.
+
+### Root Cause
+
+**`border-collapse: collapse` suppresses `position: sticky` on `td`/`th` per the CSS spec.**
+
+This is not a browser bug — it is documented CSS behavior. The spec states that sticky
+positioning on table cells is undefined/ignored when `border-collapse: collapse` is active
+because the browser cannot maintain both the border-collapse painting model and a sticky
+positioning context simultaneously. Chromium, Firefox, and Safari all suppress it.
+
+The CSS already had correctly written sticky rules:
+```css
+thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0; }
+thead th:nth-child(2), tbody td:nth-child(2) { position: sticky; left: 36px; }
+thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 68px; }
+```
+But the table declaration was:
+```css
+table { border-collapse: collapse; }
+```
+The browser silently ignored every single sticky declaration on the cells.
+
+### Fix
+
+Two changes in `table { }`:
+
+```css
+/* Before */
+table { border-collapse: collapse; }
+
+/* After */
+table { border-collapse: separate; border-spacing: 0; }
+```
+
+`border-spacing: 0` makes `separate` visually identical to `collapse` — no gaps between
+cells. The sticky declarations on the cells now take full effect.
+
+**Side effect handled:** `border-collapse: separate` means `tbody tr { border-top }` no
+longer renders (row borders must sit on cells, not rows). Moved to `td { border-top: 1px
+solid #e0e0e0 }` — identical visual result.
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `8d55816` | v2.5.11 release merge |
+| `develop` | `a7cb585` | v2.5.11 fix commit |
+| `v2.5.11` tag | `8d55816` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Manager field, column widths, sticky header, frozen cols | ✅ v2.5.8–v2.5.11 |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 32 — Sticky Column Header Fix (v2.5.10) — July 19, 2026
 
 **Date:** 2026-07-19
