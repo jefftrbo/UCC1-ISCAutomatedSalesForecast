@@ -1,5 +1,87 @@
 ---
 
+## Session 37 — Team Hygiene UX Overhaul (v2.5.15) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `be5ea6e` (feat) · `0fbdfc6` (release merge)
+**Version bump:** `2.5.14` → `2.5.15`
+
+### User Feedback
+
+> The sticky/scroll fight was caused by columns expanding to the longest name in
+> the dataset ("PRADEEP RAMAKRISHNAN NAIR JOTHEESHMATHI AMMA"), making the table
+> unworkably wide. The Deals column was absurdly wide. Requested: either fix all
+> column widths the same way the main pipeline table was fixed, OR auto-widen the
+> modal when Team Hygiene tab is active.
+
+### Root Insight
+
+Trying to solve H/V scroll freezing inside a 760px modal containing a 9-column
+table whose first two columns had `width: auto` was the wrong battle. The real fix:
+**give the table enough room to breathe** so horizontal scroll rarely triggers.
+Sticky-left only matters when the table is wider than its container — fix the
+container width first.
+
+### What Was Delivered
+
+**1. Modal auto-resize on tab switch:**
+```js
+const MODAL_DEAL_WIDTH = '760px';
+const MODAL_TEAM_WIDTH = 'min(95vw, 1100px)';
+// Deal Intelligence tab → 760px
+// Team Hygiene tab     → up to 1100px
+```
+
+**2. `table-layout: fixed` + all 9 column widths explicit:**
+
+| Column | Width |
+|---|---|
+| Owner | 160px (CSS ellipsis if overflows) |
+| Manager | 150px (CSS ellipsis if overflows) |
+| Deals | 55px |
+| Blank NS | 72px |
+| Stale NS | 68px |
+| Forecast Mismatch | 120px |
+| QE Close | 72px |
+| Hygiene Score | 100px |
+| Flag | 80px |
+| **Total** | **877px** — fits in 1100px modal |
+
+**3. CSS `overflow: hidden; text-overflow: ellipsis`** on all `td` — long names
+clip to their column width rather than blowing up the layout. No JS needed.
+
+**4. Removed all sticky-left CSS** from hygiene table — no longer needed when
+the modal is wide enough. Simplifies the code significantly.
+
+**5. Removed redundant inline `text-align:center` from `<th>` tags** — now CSS-only.
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `0fbdfc6` | v2.5.15 release merge |
+| `develop` | `be5ea6e` | v2.5.15 feature commit |
+| `v2.5.15` tag | `0fbdfc6` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full UX overhaul (v2.5.8–v2.5.15) | ✅ Both tables polished, modal adaptive |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 36 — Team Hygiene Frozen Columns Fix (v2.5.14) — July 19, 2026
 
 **Date:** 2026-07-19
