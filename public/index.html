@@ -3248,10 +3248,21 @@
     if (!repData || repData.length === 0) {
       return `<div class="health-section"><em style="font-size:13px;color:var(--cds-text-secondary)">No rep data available.</em></div>`;
     }
-    // Group by manager — server already sorted Manager→Owner asc, blanks last
+    // Client-side safety net: re-sort Manager→Owner asc, blanks last
+    // (guards against stale cache that may have been captured before server sort was fixed)
+    const sorted = [...repData].sort((a, b) => {
+      const am = (a.manager && a.manager.trim()) || '';
+      const bm = (b.manager && b.manager.trim()) || '';
+      if (!am && bm) return 1;
+      if (am && !bm) return -1;
+      if (am !== bm) return am.localeCompare(bm);
+      return (a.owner || '').localeCompare(b.owner || '');
+    });
+
+    // Group by manager (contiguous runs — sort above guarantees each manager is contiguous)
     const groups = [];
     let currentMgr = undefined;
-    for (const r of repData) {
+    for (const r of sorted) {
       const mgrKey = (r.manager && r.manager.trim()) ? r.manager.trim() : null;
       if (mgrKey !== currentMgr) {
         groups.push({ manager: mgrKey, reps: [] });
@@ -3539,6 +3550,7 @@
   // (stage, close date, amount). Workflow Step 2 completes automatically.
   const _origLoad = loadOpportunities;
   loadOpportunities = async function() {
+    _repHygieneData = null; // bust cache so Team Hygiene always re-fetches after refresh
     await _origLoad();
     if (allOpportunities.length === 0) return;
 
@@ -3576,7 +3588,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.17';
+  const APP_VERSION = '2.5.18';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });

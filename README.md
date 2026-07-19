@@ -349,6 +349,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.15 | Team Hygiene UX overhaul — modal widens to `min(95vw,1100px)` on Team Hygiene tab; `table-layout:fixed` with explicit col widths; CSS ellipsis truncation on Owner/Manager; Deals col 55px |
 | v2.5.16 | Team Hygiene reorder — Manager first col, Owner second; sorted Manager→Owner asc; blank-manager (partner sellers) pinned to bottom |
 | v2.5.17 | Team Hygiene grouped display — Manager shown once as blue group header row spanning all cols; each rep listed under their manager; partner sellers grouped at bottom |
+| v2.5.18 | Team Hygiene cache bust — clear `_repHygieneData` on every `loadOpportunities` call; client-side re-sort safety net in `buildRepHygienePanel` so stale cache never causes duplicate group headers |
 
 ---
 
@@ -364,4 +365,4 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.17*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.18*
