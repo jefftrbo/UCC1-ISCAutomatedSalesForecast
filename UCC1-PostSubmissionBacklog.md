@@ -298,6 +298,112 @@ Per-user HAR upload (v2.6.0 in this backlog) should land first — it establishe
 
 ---
 
+## v2.6.2 — Multi-Column Sort Modal (User-Driven Sort Stack)
+
+**Priority: HIGH — small effort, strong demo value, buildable before 7/22 if time permits**
+
+### Problem Statement
+
+The pipeline table sorts by a single column at a time. The current default (Confidence score, descending) is invisible to the user — there is no label, no indicator, no way to know *why* the rows are in the order they're in without being told. More critically, a VP hunting for Best Case / Stretch candidates needs to organize data by a *deal-hunting mental model*, not by confidence score:
+
+> "Show me all Q3 deals, grouped by account, with largest amount first."
+> "Show me everything closing in September, sorted by stage so I can see what's closest to close."
+
+Neither of these is possible today. The user can click a column header to set one sort key, but can't stack keys.
+
+### What It Does
+
+A **"⇅ Sort"** button in the action bar (or near the filter controls) opens a sort modal with a drag-or-ordered pick list. The user builds a sort stack from the available columns, sets direction (↑ / ↓) for each key, and clicks Apply. The table re-renders with a multi-level comparator. The active sort is shown as a readable pill row under the table header: `Sorted by: Quarter ↑ → Account ↑ → Close Date ↑`.
+
+Example outcome (your exact use case):
+```
+Quarter ↑ → Account Detail ↑ → Stage ↑ → Close Date ↑ → Total Amt ↓ → Forecast ↑
+```
+
+### Technical Design
+
+**Sort stack:** Replace the single `sortCol` / `sortDir` variables with an array:
+```js
+let sortStack = [{ col: 'score', dir: 'desc' }]; // default — same as today
+```
+
+**Comparator in `renderTable()`:** Walk the stack until a non-zero comparison is found:
+```js
+const sorted = [...filtered].sort((a, b) => {
+  for (const { col, dir } of sortStack) {
+    let va = a[col], vb = b[col];
+    if (col === 'score' || col.includes('amount')) { va = va ?? 0; vb = vb ?? 0; }
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+  }
+  return 0;
+});
+```
+
+**Column label map** — internal DB column name → display label (needed for the modal pick list):
+```js
+const COL_LABELS = {
+  score:                        'Confidence Score',
+  closeQuarter:                 'Quarter',
+  account_name:                 'Account Detail',
+  stage:                        'Stage',
+  close_date:                   'Close Date',
+  filtered_opportunity_amount:  'IBM Tech Amt',
+  total_opportunity_amount:     'Total Amt',
+  forecast_category:            'Forecast',
+  opportunity_owner:            'Owner',
+  opportunity_owners_manager:   "Owner's Manager",
+  flm_judgement:                'FLM Judgement',
+  opportunity_name:             'Opportunity',
+  create_date:                  'Create Date',
+};
+```
+
+**Modal structure:** A small modal (narrower than the diff modal — ~520px) with:
+- A list of active sort keys (up to 6), each showing: [column dropdown] [↑/↓ toggle] [✕ remove]
+- "Add level" button (disabled when 6 keys active)
+- "Apply" / "Clear Sort" / "Cancel" buttons
+- No drag-and-drop in Phase 1 — ordered list with Add/Remove only
+
+**Single-click column header sort:** Still works — clicking a `th` sets `sortStack = [{ col, dir }]` (replaces the whole stack with one key). The sort pill row updates accordingly. Backward-compatible.
+
+### Phase 2: Group-by Visual Dividers
+
+When the first sort key is a categorical field (Quarter, Stage, Forecast, Owner), insert a `<tr class="group-header">` row between value changes. This makes the table read as a structured report:
+
+```
+── Q3 2026 ──────────────────────────────
+  State Farm   Hybrid Cloud ELA   $12.5M   Best Case
+  AT&T         watsonx.data ELA   $8.2M    Pipeline
+── Q4 2026 ──────────────────────────────
+  Ford Motor   Maximo Upgrade     $3.1M    Pipeline
+```
+
+Phase 2 is separate from Phase 1 (the sort stack). Calling it out here so it's not forgotten — the group-header `<tr>` approach is clean and requires ~20 lines.
+
+### Effort Estimate
+
+| Phase | Scope | Estimate |
+|---|---|---|
+| Phase 1: Sort stack + modal | All client-side, zero server changes | ~105 lines |
+| Phase 2: Group-by divider rows | Client-side, `renderTable()` only | ~20 lines |
+
+### Files That Change
+
+| File | Change |
+|---|---|
+| `public/index.html` | Replace `sortCol`/`sortDir` with `sortStack` array; update `renderTable()` comparator; add sort modal HTML + CSS; add "⇅ Sort" button to action bar; add sort pill display row; update single-click `th` handler |
+
+**Zero server changes. Zero DB changes. Zero new dependencies.**
+
+### Named Preset Integration
+
+The sort stack can be saved into the named view presets (v2.2.0 feature). "GM Prep" preset could default to `Quarter ↑ → Forecast ↑ → Total Amt ↓`. This is an optional Phase 3 enhancement, not required for Phase 1.
+
+---
+
 ## Deferred UX Items
 
 | Item | Description | Effort |
