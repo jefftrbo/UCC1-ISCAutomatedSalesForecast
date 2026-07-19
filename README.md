@@ -341,6 +341,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.7 | Team Hygiene sticky header · QE Close column per rep · amber highlight |
 | v2.5.8 | Manager name field fix — `Opp.MGR.Mgr.User_Name_mk__c` resolves 870/949 reps · ISC count mismatch documented across all user docs |
 | v2.5.9 | Column width tuning — explicit widths on all 25 columns · truncation on Owner/Manager/Created By/Company/Partner/Technology/Pipeline · sticky col offsets corrected |
+| v2.5.10 | Sticky column header fix — `position: relative; overflow: hidden` override was replacing `position: sticky` on `thead th`, causing headers to scroll away |
 
 ---
 
@@ -356,4 +357,4 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.9*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.10*
