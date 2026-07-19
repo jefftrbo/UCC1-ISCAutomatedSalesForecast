@@ -1,5 +1,76 @@
 ---
 
+## Session 34 — Frozen Column z-index Fix (v2.5.12) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `a537a1b` (fix) · `8b84fbd` (release merge)
+**Version bump:** `2.5.11` → `2.5.12`
+
+### Bug Report
+
+v2.5.11 fixed horizontal frozen columns (`border-collapse: separate`). But the first
+3 columns still disappeared when scrolling **vertically** — the checkbox, health icon,
+and Confidence badge vanished below the header row on scroll.
+
+### Root Cause
+
+**All three sticky contexts shared the same `z-index: 12`**, creating a z-index collision:
+
+| Cell type | Sticky axis | Old z-index | Problem |
+|---|---|---|---|
+| Normal body cells | none | 0 | — |
+| Body frozen cols (td 1/2/3) | left | 12 | Same as header corners |
+| Scrolling header cells (th 4–25) | top | 10 | Lower than body frozen |
+| Corner header cells (th 1/2/3) | **top + left** | 12 | Same as body frozen → collision |
+
+When scrolling vertically, the sticky body frozen cells (`z: 12`) painted **over** the
+sticky corner header cells (`z: 12`) because they shared the same stacking level and
+the body cells came later in the DOM. The header corners were occluded — visually gone.
+
+### Fix — z-index ladder
+
+The correct hierarchy for a table with both frozen rows and frozen columns:
+
+```
+body normal cells:      z-index: 0   (default, no sticky)
+body frozen cells:      z-index: 2   (above normal, sticky left only)
+scrolling header cells: z-index: 10  (above body, sticky top only)
+corner header cells:    z-index: 20  (above everything, sticky top+left)
+```
+
+Applied to [`public/index.html`](public/index.html):
+- `thead th:nth-child(1/2/3), tbody td:nth-child(1/2/3)` → `z-index: 2`
+- `thead th:nth-child(1/2/3)` (additional rule) → `z-index: 20`
+- `thead th` (all headers) → `z-index: 10` (unchanged)
+- Explicit `top: 0` added to per-column `thead th:nth-child` rules for certainty
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `8b84fbd` | v2.5.12 release merge |
+| `develop` | `a537a1b` | v2.5.12 fix commit |
+| `v2.5.12` tag | `8b84fbd` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full table UX overhaul (v2.5.8–v2.5.12) | ✅ Manager names, widths, sticky header, frozen cols |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 33 — Frozen Left Columns Fix (v2.5.11) — July 19, 2026
 
 **Date:** 2026-07-19
