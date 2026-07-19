@@ -391,4 +391,212 @@ async function generatePpt(opportunities, outputPath, narrative = null, diff = n
   return outputPath;
 }
 
-module.exports = generatePpt;
+// ---------------------------------------------------------------------------
+// generatePtmpSlide — PTMP (Plan to Make Plan) one-pager for GM review
+// ---------------------------------------------------------------------------
+// Produces a single slide in Frank Attaie's PTMP format:
+//   Title | Summary table (Budget / Call / Gap / Upside / Stretch)
+//   Left:  Deals In Call > $500K
+//   Right: Deals to close Gap  +  Other Upside/Stretch > $500K
+//   Bottom left: Action Plan
+//
+// @param {object} opts
+//   ownerName   {string}  — e.g. "Dushyant K Patel"
+//   teamLabel   {string}  — e.g. "HCLS 3Q26"
+//   budget      {number}  — 3Q budget in dollars (user-entered)
+//   callDeals   {Array}   — Best Case deals (selected by rep)
+//   pipeDeals   {Array}   — Pipeline deals for gap/stretch list
+//   actionPlan  {string}  — free text or watsonx bullets joined by \n
+// ---------------------------------------------------------------------------
+async function generatePtmpSlide(opts) {
+  const {
+    ownerName  = 'Patel',
+    teamLabel  = '3Q26',
+    budget     = 0,
+    callDeals  = [],
+    pipeDeals  = [],
+    actionPlan = '',
+    outputPath,
+  } = opts;
+
+  const pres = new PptxGenJS();
+  pres.layout = 'LAYOUT_WIDE'; // 13.33" × 7.5"
+  pres.author = 'ISC Automated Sales Forecast';
+  pres.subject = 'PTMP — Plan to Make Plan';
+
+  // Derived financials
+  const sumAmt = arr => arr.reduce((s, r) => s + (r.filtered_opportunity_amount || 0), 0);
+  const callTotal    = sumAmt(callDeals);
+  const gap          = Math.max(0, budget - callTotal);
+  const upside       = sumAmt(pipeDeals.filter(r => (r.filtered_opportunity_amount || 0) >= 500000));
+  const stretch      = sumAmt(pipeDeals);
+
+  const fmt = n => {
+    if (!n && n !== 0) return '—';
+    if (Math.abs(n) >= 1e6) return '$' + (Math.round(n / 1e5) / 10).toFixed(1) + 'M';
+    return '$' + Math.round(n / 1e3) + 'K';
+  };
+  const fmtShort = (n, name) => {
+    const trimmed = (name || '').replace(/-US$/, '').slice(0, 18);
+    const amt = fmt(n);
+    return `${trimmed}   ${amt}`;
+  };
+
+  // Extract short account + opp label
+  const dealLabel = r => {
+    const acct = (r.account_name || '').replace(/-US$/, '').slice(0, 16);
+    // Use opp name if short enough, else try to extract product keyword
+    const opp  = (r.opportunity_name || '').slice(0, 22);
+    return { acct, opp, amt: fmt(r.filtered_opportunity_amount) };
+  };
+
+  // Owner last name for slide title
+  const lastName = (ownerName || '').split(' ').filter(Boolean).pop() || ownerName;
+
+  const slide = pres.addSlide();
+
+  // ── Title (top-left) ──────────────────────────────────────────────────────
+  slide.addText(`${lastName} ${teamLabel} PTMP`, {
+    x: 0.3, y: 0.15, w: 4.5, h: 0.75,
+    fontSize: 22, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+    wrap: true, valign: 'top',
+  });
+
+  // ── Summary table (top-right 5-column) ───────────────────────────────────
+  const HDR_BLUE = '1A4F8A';
+  const summaryHeader = [
+    { text: '3Q Budget',  options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+    { text: '3Q Call',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+    { text: 'Gap',        options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+    { text: 'Upside',     options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+    { text: 'Stretch',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+  ];
+  const summaryData = [
+    { text: fmt(budget),     options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(callTotal),  options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(gap),        options: { align: 'center', fontSize: 13, bold: true, color: gap > 0 ? 'da1e28' : '198038', fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(upside),     options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(stretch),    options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+  ];
+  slide.addTable([summaryHeader, summaryData], {
+    x: 4.8, y: 0.12, w: 8.2,
+    colW: [1.64, 1.64, 1.64, 1.64, 1.64],
+    rowH: [0.32, 0.40],
+    border: { pt: 0.5, color: 'AAAAAA' },
+  });
+
+  // Thin rule under title block
+  slide.addShape(pres.ShapeType.line, {
+    x: 0.3, y: 1.0, w: 12.7, h: 0,
+    line: { color: 'CCCCCC', width: 0.5 },
+  });
+
+  // ── LEFT COLUMN: Deals In Call > $500K ───────────────────────────────────
+  const callBig = callDeals
+    .filter(r => (r.filtered_opportunity_amount || 0) >= 500000)
+    .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
+    .slice(0, 10);
+
+  slide.addText('Deals In Call > $500K', {
+    x: 0.3, y: 1.1, w: 6.0, h: 0.3,
+    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+  });
+
+  const callBullets = callBig.map(r => {
+    const { acct, opp, amt } = dealLabel(r);
+    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
+  });
+  if (callBullets.length === 0) callBullets.push({ text: 'No deals in Call > $500K', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
+
+  slide.addText(callBullets, {
+    x: 0.3, y: 1.45, w: 6.0, h: 3.2,
+    fontFace: 'Calibri', wrap: true, valign: 'top',
+  });
+
+  // ── LEFT BOTTOM: Action Plan ──────────────────────────────────────────────
+  slide.addText('Action Plan', {
+    x: 0.3, y: 4.75, w: 6.0, h: 0.28,
+    fontSize: 10, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+  });
+  const planLines = (actionPlan || '').split('\n').filter(Boolean).slice(0, 8);
+  const planBullets = planLines.map((line, i) => ({
+    text: line,
+    options: { bullet: i > 0, fontSize: 8.5, color: i === 0 ? IBM_DARK : IBM_GRAY, fontFace: 'Calibri' },
+  }));
+  if (planBullets.length === 0) planBullets.push({ text: 'Action plan not provided.', options: { fontSize: 8.5, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
+  slide.addText(planBullets, {
+    x: 0.3, y: 5.05, w: 6.0, h: 2.1,
+    fontFace: 'Calibri', wrap: true, valign: 'top',
+  });
+
+  // ── RIGHT COLUMN: Deals to close Gap ────────────────────────────────────
+  const gapLabel = `Deals to close Gap of ${fmt(gap)}`;
+  slide.addText(gapLabel, {
+    x: 6.7, y: 1.1, w: 6.3, h: 0.3,
+    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+  });
+
+  // Select pipeline deals that together sum toward the gap, largest first
+  const gapDeals = [];
+  let running = 0;
+  const sortedPipe = [...pipeDeals]
+    .filter(r => (r.filtered_opportunity_amount || 0) >= 200000)
+    .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0));
+  for (const r of sortedPipe) {
+    if (gapDeals.length >= 8) break;
+    gapDeals.push(r);
+    running += r.filtered_opportunity_amount || 0;
+    if (gap > 0 && running >= gap * 1.1) break; // stop once we've covered gap with 10% buffer
+  }
+
+  const gapBullets = gapDeals.map(r => {
+    const { acct, opp, amt } = dealLabel(r);
+    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
+  });
+  if (gapBullets.length === 0) gapBullets.push({ text: budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
+
+  slide.addText(gapBullets, {
+    x: 6.7, y: 1.45, w: 6.3, h: 1.9,
+    fontFace: 'Calibri', wrap: true, valign: 'top',
+  });
+
+  // ── RIGHT BOTTOM: Other Upside/Stretch > $500K ──────────────────────────
+  // Exclude deals already listed in gap section
+  const gapIds = new Set(gapDeals.map(r => r.id));
+  const otherStretch = pipeDeals
+    .filter(r => !gapIds.has(r.id) && (r.filtered_opportunity_amount || 0) >= 500000)
+    .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
+    .slice(0, 8);
+
+  slide.addText('Other Deals in Upside / Stretch > $500K', {
+    x: 6.7, y: 3.55, w: 6.3, h: 0.3,
+    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+  });
+
+  const stretchBullets = otherStretch.map(r => {
+    const { acct, opp, amt } = dealLabel(r);
+    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
+  });
+  if (stretchBullets.length === 0) stretchBullets.push({ text: 'No additional stretch deals > $500K.', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
+
+  slide.addText(stretchBullets, {
+    x: 6.7, y: 3.9, w: 6.3, h: 3.2,
+    fontFace: 'Calibri', wrap: true, valign: 'top',
+  });
+
+  // ── Bottom bar ────────────────────────────────────────────────────────────
+  slide.addShape(pres.ShapeType.rect, {
+    x: 0, y: BOTTOM_BAR_Y, w: '100%', h: SLIDE_H - BOTTOM_BAR_Y,
+    fill: { color: IBM_BLUE },
+  });
+  const now = new Date();
+  slide.addText(`ISC Automated Sales Forecast  ·  Generated ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}  ·  v2.6.0`, {
+    x: 0.3, y: BOTTOM_BAR_Y + 0.05, w: 12.7, h: 0.4,
+    fontSize: 9, color: WHITE, fontFace: 'Calibri',
+  });
+
+  await pres.writeFile({ fileName: outputPath });
+  return outputPath;
+}
+
+module.exports = { generatePpt, generatePtmpSlide };
