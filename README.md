@@ -351,6 +351,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.17 | Team Hygiene grouped display — Manager shown once as blue group header row spanning all cols; each rep listed under their manager; partner sellers grouped at bottom |
 | v2.5.18 | Team Hygiene cache bust — clear `_repHygieneData` on every `loadOpportunities` call; client-side re-sort safety net in `buildRepHygienePanel` so stale cache never causes duplicate group headers |
 | v2.5.19 | Team Hygiene column tooltips — `has-tip` on all 8 column headers with actionable coaching language ("what to tell your rep"); `cursor:help` on `th` |
+| v2.5.20 | Rep drill-down modal — Owner name is a clickable link; opens a second modal showing that rep's deals with per-row issue badges (Blank NS · Stale NS · Forecast ≠ Stage · QE Close); deals with issues shown first |
 
 ---
 
@@ -366,4 +367,4 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.19*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.20*

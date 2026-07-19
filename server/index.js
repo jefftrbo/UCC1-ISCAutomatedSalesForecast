@@ -571,6 +571,61 @@ app.get('/api/hygiene-summary', (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/rep-drill?owner=<name>
+// Returns per-deal hygiene detail for one rep — powers the drill-down modal.
+// Sorted: deals with issues first (hygiene score asc), then clean deals.
+// ---------------------------------------------------------------------------
+app.get('/api/rep-drill', (req, res) => {
+  const userId = req.session.user.ibm_id;
+  const owner  = (req.query.owner || '').trim();
+  if (!owner) return res.status(400).json({ error: 'owner param required' });
+  try {
+    const rows = db.prepare(
+      'SELECT * FROM opportunities WHERE user_id = ? AND opportunity_owner = ? ORDER BY close_date ASC'
+    ).all(userId, owner);
+
+    const deals = rows.map(row => {
+      const h = scoreHygiene(row);
+      const { closeQuarter } = scoreOpportunity(row);
+      return {
+        id:             row.id,
+        opportunity_name:        row.opportunity_name,
+        account_name:            row.account_name,
+        ibm_technology_plan:     row.ibm_technology_plan,
+        filtered_opportunity_amount: row.filtered_opportunity_amount,
+        total_opportunity_amount:    row.total_opportunity_amount,
+        next_steps:     row.next_steps,
+        close_date:     row.close_date,
+        close_quarter:  closeQuarter,
+        create_date:    row.create_date,
+        stage:          row.stage,
+        forecast_category: row.forecast_category,
+        hygieneScore:   h.hygieneScore,
+        nsBlank:        !row.next_steps || !row.next_steps.trim(),
+        nsStale:        h.nsDaysSinceUpdate !== null && h.nsDaysSinceUpdate > 14,
+        nsDaysSince:    h.nsDaysSinceUpdate,
+        liarDeal:       h.liarDeal,
+        paddedClose:    h.paddedClose,
+      };
+    });
+
+    // Sort: issues first (score asc), then clean (score desc within clean)
+    deals.sort((a, b) => {
+      const aIssue = a.nsBlank || a.nsStale || a.liarDeal || a.paddedClose;
+      const bIssue = b.nsBlank || b.nsStale || b.liarDeal || b.paddedClose;
+      if (aIssue && !bIssue) return -1;
+      if (!aIssue && bIssue) return  1;
+      return a.hygieneScore - b.hygieneScore; // worst first within each group
+    });
+
+    res.json({ owner, deals });
+  } catch (err) {
+    console.error('GET /api/rep-drill error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.use('/output', express.static(path.join(__dirname, '..', 'output')));
 
 // ---------------------------------------------------------------------------

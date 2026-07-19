@@ -1041,6 +1041,117 @@
     .rep-hygiene-table td:nth-child(1) { font-weight: 600; }
     .rep-hygiene-table tr:last-child td { border-bottom: none; }
     .rep-hygiene-table tr:hover:not(.rep-hygiene-group-header) td { background: var(--cds-layer-01); }
+    /* ── Rep drill-down link in Team Hygiene Owner column ── */
+    .rep-drill-link {
+      color: #0f62fe;
+      text-decoration: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .rep-drill-link:hover { text-decoration: underline; }
+
+    /* ── Rep drill-down modal ── */
+    #rep-drill-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.65);
+      z-index: 10000; /* above health modal (z:9000) */
+      align-items: center;
+      justify-content: center;
+    }
+    #rep-drill-backdrop.open { display: flex; }
+    #rep-drill-dialog {
+      background: #fff;
+      width: min(95vw, 1200px);
+      max-height: calc(100vh - 80px);
+      display: flex;
+      flex-direction: column;
+      border-radius: 0;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    #rep-drill-header {
+      background: #0f62fe;
+      color: #fff;
+      padding: 14px 20px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #rep-drill-title { font-size: 16px; font-weight: 700; }
+    #rep-drill-subtitle { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    #rep-drill-close {
+      background: none; border: none; color: #fff;
+      font-size: 20px; cursor: pointer; padding: 0 4px; line-height: 1;
+      opacity: 0.8; flex-shrink: 0;
+    }
+    #rep-drill-close:hover { opacity: 1; }
+    #rep-drill-body {
+      overflow-x: auto;
+      overflow-y: auto;
+      flex: 1 1 auto;
+      padding: 0;
+    }
+    .rep-drill-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    .rep-drill-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--cds-text-secondary);
+      padding: 7px 10px;
+      background: var(--cds-layer-01);
+      border-bottom: 2px solid var(--cds-border-subtle);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .rep-drill-table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid var(--cds-border-subtle);
+      vertical-align: top;
+    }
+    .rep-drill-table tr:last-child td { border-bottom: none; }
+    .rep-drill-table tr.has-issue { background: #fff8f8; }
+    .rep-drill-table tr.has-issue:hover { background: #fff0f0; }
+    .rep-drill-table tr:not(.has-issue):hover { background: var(--cds-layer-01); }
+    .issue-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 2px;
+      margin: 1px 2px 1px 0;
+      white-space: nowrap;
+    }
+    .issue-badge.blank-ns  { background: #fff1f1; color: #da1e28; }
+    .issue-badge.stale-ns  { background: #fff3cd; color: #9b6900; }
+    .issue-badge.liar-deal { background: #ffecd2; color: #7d4105; }
+    .issue-badge.padded    { background: #e8f0fe; color: #1a56db; }
+    .rep-drill-ns {
+      max-width: 260px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--cds-text-secondary);
+      font-size: 11.5px;
+    }
+    .rep-drill-ns.blank { color: #da1e28; font-style: italic; }
+    .rep-drill-opp-name {
+      max-width: 240px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-weight: 600;
+    }
+
     .coaching-flag {
       font-size: 10px;
       font-weight: 700;
@@ -1724,6 +1835,22 @@
 </div>
 
 <!-- ── Deal Health Card Modal ── -->
+<!-- Rep Drill-Down Modal — opens on Owner name click in Team Hygiene tab -->
+<div id="rep-drill-backdrop" role="dialog" aria-modal="true" aria-labelledby="rep-drill-title">
+  <div id="rep-drill-dialog">
+    <div id="rep-drill-header">
+      <div>
+        <div id="rep-drill-title">Rep Deal Detail</div>
+        <div id="rep-drill-subtitle"></div>
+      </div>
+      <button id="rep-drill-close" aria-label="Close">✕</button>
+    </div>
+    <div id="rep-drill-body">
+      <!-- Populated by JS -->
+    </div>
+  </div>
+</div>
+
 <div class="diff-modal-backdrop" id="health-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="health-modal-title">
   <div class="diff-modal health-modal" id="health-modal-dialog" style="max-width:760px;">
     <div class="diff-modal-header">
@@ -3094,12 +3221,92 @@
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      closeRepDrill();
       closeDiffModal();
       closePptConfirm();
       closeBaselineWarn();
       closeHealthModal();
     }
   });
+
+  // ── Rep Drill-Down Modal ───────────────────────────────────────────────────
+
+  function openRepDrill() { document.getElementById('rep-drill-backdrop').classList.add('open'); }
+  function closeRepDrill() { document.getElementById('rep-drill-backdrop').classList.remove('open'); }
+
+  document.getElementById('rep-drill-close').addEventListener('click', closeRepDrill);
+  document.getElementById('rep-drill-backdrop').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('rep-drill-backdrop')) closeRepDrill();
+  });
+
+  async function loadRepDrill(ownerName) {
+    const body = document.getElementById('rep-drill-body');
+    document.getElementById('rep-drill-title').textContent = ownerName;
+    document.getElementById('rep-drill-subtitle').textContent = 'Loading deal detail…';
+    body.innerHTML = `<div style="padding:24px;color:var(--cds-text-secondary);font-size:13px;">Loading…</div>`;
+    openRepDrill();
+    try {
+      const res  = await fetch('/api/rep-drill?owner=' + encodeURIComponent(ownerName));
+      const data = await res.json();
+      if (!res.ok) { body.innerHTML = `<div style="padding:24px;color:#da1e28;">${esc(data.error||'Error')}</div>`; return; }
+
+      const { deals } = data;
+      const issueCount = deals.filter(d => d.nsBlank || d.nsStale || d.liarDeal || d.paddedClose).length;
+      document.getElementById('rep-drill-subtitle').textContent =
+        `${deals.length} open deal${deals.length !== 1 ? 's' : ''} · ${issueCount} need${issueCount === 1 ? 's' : ''} attention`;
+
+      if (!deals.length) {
+        body.innerHTML = `<div style="padding:24px;color:var(--cds-text-secondary);font-size:13px;">No open deals found for this rep.</div>`;
+        return;
+      }
+
+      const rows = deals.map(d => {
+        const hasIssue = d.nsBlank || d.nsStale || d.liarDeal || d.paddedClose;
+        const badges = [
+          d.nsBlank    ? '<span class="issue-badge blank-ns">Blank NS</span>'  : '',
+          d.nsStale    ? `<span class="issue-badge stale-ns">Stale ${d.nsDaysSince}d</span>` : '',
+          d.liarDeal   ? '<span class="issue-badge liar-deal">Forecast ≠ Stage</span>' : '',
+          d.paddedClose? '<span class="issue-badge padded">QE Close</span>'     : '',
+        ].join('');
+        const nsText = d.nsBlank
+          ? '<span class="rep-drill-ns blank">— no next steps —</span>'
+          : `<span class="rep-drill-ns" title="${esc(d.next_steps || '')}">${esc((d.next_steps||'').slice(0,80))}${(d.next_steps||'').length > 80 ? '…' : ''}</span>`;
+        const ibmAmt = d.filtered_opportunity_amount != null ? fmtAmt(d.filtered_opportunity_amount) : '—';
+        const totAmt = d.total_opportunity_amount    != null ? fmtAmt(d.total_opportunity_amount)    : '—';
+        return `<tr class="${hasIssue ? 'has-issue' : ''}">
+          <td><div class="rep-drill-opp-name" title="${esc(d.opportunity_name||'')}">${esc(d.opportunity_name||'—')}</div>${badges}</td>
+          <td style="white-space:nowrap">${esc(d.account_name||'—')}</td>
+          <td style="text-align:right;white-space:nowrap">${ibmAmt}</td>
+          <td style="text-align:right;white-space:nowrap">${totAmt}</td>
+          <td>${nsText}</td>
+          <td style="white-space:nowrap">${esc(d.close_date||'—')}</td>
+          <td style="white-space:nowrap">${esc(d.close_quarter||'—')}</td>
+          <td style="white-space:nowrap">${esc(d.create_date||'—')}</td>
+          <td style="white-space:nowrap">${esc(d.stage||'—')}</td>
+          <td>${forecastBadge(d.forecast_category)}</td>
+        </tr>`;
+      }).join('');
+
+      body.innerHTML = `
+        <table class="rep-drill-table">
+          <thead><tr>
+            <th>Opportunity</th>
+            <th>Account</th>
+            <th>IBM Tech Amt</th>
+            <th>Total Amt</th>
+            <th>Next Steps</th>
+            <th>Close Date</th>
+            <th>Quarter</th>
+            <th>Create Date</th>
+            <th>Stage</th>
+            <th>Forecast</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+    } catch (err) {
+      body.innerHTML = `<div style="padding:24px;color:#da1e28;">Error: ${esc(err.message)}</div>`;
+    }
+  }
 
   // ── Deal Health Card ───────────────────────────────────────────────────────
 
@@ -3274,7 +3481,7 @@
 
     const dataRow = r => `
       <tr>
-        <td>${esc(r.owner)}</td>
+        <td><a class="rep-drill-link" onclick="event.preventDefault();loadRepDrill(${JSON.stringify(r.owner)})">${esc(r.owner)}</a></td>
         <td>${r.dealCount}</td>
         <td style="${r.blankNs > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.blankNs}</td>
         <td style="${r.staleNs > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.staleNs}</td>
@@ -3591,7 +3798,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.19';
+  const APP_VERSION = '2.5.20';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
