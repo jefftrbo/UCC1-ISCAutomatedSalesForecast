@@ -160,7 +160,7 @@ function parseRecords(payload, scraped_at) {
       ) ?? '',
 
       opportunity_owners_manager: pick(
-        'Opp.FLM.User_Name_mk__c','Opp.Manager.User_Name_mk__c',
+        'Opp.MGR.Mgr.User_Name_mk__c','Opp.FLM.User_Name_mk__c','Opp.Manager.User_Name_mk__c',
         "Opportunity_Owner_s_Manager","Opportunity_Owner's_Manager",
         'OpportunityOwnersManager','OwnersManager','FLM','FLMName','Manager.Name'
       ) ?? '',

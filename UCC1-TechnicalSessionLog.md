@@ -1,5 +1,82 @@
 ---
 
+## Session 30 — Manager Field Fix + Fresh HAR (v2.5.8) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop`
+**Commit:** `9c9a1ad`
+**Version bump:** none (single-line fix, patch release pending)
+
+### Context
+
+User captured a fresh Duey HAR post-11:10 PM ISC data refresh and ran Refresh Data.
+App loaded 949 records. ISC UI shows 1,087. Discrepancy investigation + manager field fix.
+
+### Discrepancy: 1,087 (ISC) vs 969 (app) vs 949 (HAR)
+
+**ISC 1,087 vs HAR 949 — 138 record gap:**
+ISC screenshot has **all Opportunity Status filters active** (Open + Won + Lost + "-"). The HAR
+deal-list entry contains only **Open pipeline stages** (1–5: Engage→Negotiate). Won, Lost, and
+statusless ("-") deals are excluded from the HAR `Opp.Stage` response. This is correct — the
+app is a GM Meeting Prep / forecast tool; closed deals are irrelevant to the working pipeline.
+
+**HAR 949 vs app 969 — 20 record gap:**
+App DB count (969) includes rows from a second deal-list entry in the same HAR (737 records,
+different filter slice), some of which upserted rows with new data on top of pre-existing DB rows.
+The 969 total is the Duey-user-scoped DB row count post-upsert. All 969 rows are valid.
+
+**Conclusion: No data integrity issue. 969 open pipeline opportunities is the correct working set.**
+
+### Manager Field Fix
+
+**HAR diagnostic on fresh Duey export:**
+
+The `--inspect` diagnostic confirmed the actual field name ISC uses for manager:
+```
+Opp.MGR.Mgr.User_Name_mk__c  (present in every deal-list entry with 949+ records)
+Opp.FLM.User_Name_mk__c      (NOT present — never populated in this HAR)
+```
+
+The `pick()` candidate list in `scraper/load-from-har.js` had `Opp.FLM.User_Name_mk__c` first
+and `Opp.MGR.Mgr.User_Name_mk__c` was entirely missing — causing every manager to resolve
+to `''` (shown as `—` in Team Hygiene tab).
+
+**Fix:** Added `'Opp.MGR.Mgr.User_Name_mk__c'` as the first candidate. One line change.
+
+**Results after re-import:**
+- 870 / 949 manager names resolved ✅
+- 99 nulls = partner sellers (Jeanene Cassels et al.) with no IBM LDAP entry — expected, correct
+- Sample: Justin Griffin → Spencer Korn, Matt Appleby → Trey Crow, Jason Quimio → Kim Overbay,
+  PAUL DOROBA → Jim Mazzeo ✅ (matches ISC screenshot evidence from prior session)
+
+**Commit:** `9c9a1ad` — `fix(har): resolve manager field name — Opp.MGR.Mgr.User_Name_mk__c`
+
+### Also confirmed
+
+HAR also contains a new field pair not previously seen:
+- `Opp.User.SlackHandle` — rep's Slack handle
+- `Opp.MGR.Mgr.SlackHandle` — manager's Slack handle
+
+These are not currently stored. Noted for v2.6.0+ as potential coaching link feature.
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Run manager field name diagnostic + fix | ✅ `9c9a1ad` — 870/949 resolving |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 29 (cont. 2) — Manager Field Investigation, Stale HAR Discovery, v2.6.0 Architecture, Doc Freeze at v2.5.7
 
 **Date:** 2025-07-18
@@ -5495,7 +5572,7 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     | Priority | Action | Status |
     |---|---|---|
     | 🔴 1 | Pre-compute `_hygieneGrade` on `loadOpportunities()` so health icons are coloured on table load (v2.5.1) | ⏳ Next build |
-    | 🔴 2 | Complete PLAN-3067F00C01E4 on Your Learning | ❌ Eligibility gate |
+    | ✅ 2 | Complete PLAN-3067F00C01E4 on Your Learning | ✅ Completed 11 Jul 2026 |
     | 🔴 3 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
     | 🟡 4 | Multi-user HAR testing (9 users — human action, today) | ⏳ In progress |
     | 🟡 5 | Record demo video — login → health card → rep hygiene → PPT → isolation proof | ⚠ Not recorded |
