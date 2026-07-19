@@ -1,5 +1,65 @@
 ---
 
+## Session 45 — PTMP Font Polish Pass (v2.6.1) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `525e401` (feat) · `88d6e1d` (release merge)
+**Version bump:** `2.6.0` → `2.6.1`
+
+### User Request
+
+> "You were working on the PPT for Duey's GM meeting" — resume font polish on PTMP slide generator after session 44 context was lost.
+
+### What Changed
+
+Font and layout tightening pass on `generatePtmpSlide()` in `server/generatePpt.js`:
+
+| Element | Before | After |
+|---------|--------|-------|
+| Title | 22pt, wrap:true, h:0.75 | 16pt, wrap:false, h:0.5 — single line guaranteed |
+| Summary table headers | 11pt | 9pt |
+| Summary table values | 13pt | 11pt |
+| Summary table rowH | [0.32, 0.40] | [0.26, 0.34] |
+| Thin rule y | 1.0 | 0.78 |
+| Deal lists | `Courier New` + `.padEnd()` text bullets | `addTable()` helper — true column alignment in PPT |
+| Section headers | 12pt | 11pt |
+| Action Plan bullets | First bullet styled differently (i===0 check) | All bullets uniform 8pt |
+| Call list cap | slice(0,10) | slice(0,12) |
+| Stretch list cap | slice(0,8) | slice(0,10) |
+| Stretch section y | hardcoded 3.55 | dynamic: 1.14 + (gapDeals.length × 0.225) + 0.22 |
+
+### dealTable() Helper
+
+Replaced all three deal text-bullet blocks with a single `dealTable(deals, x, y, w, h, emptyMsg)` function that calls `pres.addTable()` with 4 explicit columns:
+
+```
+0.15"  bullet (•, centered)
+30%    account name (bold, truncated to 18 chars)
+52%    opportunity name (truncated to 28 chars)
+18%    amount (right-aligned, bold)
+```
+
+Zebra rows (white / F7F8FA), 0.225" rowH, no border (looks cleaner than outlines).
+This eliminates the Courier New font dependency and makes amounts column-aligned regardless of how pptxgenjs renders the font.
+
+### Test Output
+
+Generated `duey_ptmp_v261.pptx` from live DB:
+- `dkpatel@us.ibm.com` · 218 Best Case deals / **$146.7M** · 530 Pipeline deals / **$495.2M**
+- Budget: $175M · Gap: $28.3M · File: 221KB ✓
+
+### Checklist Update
+
+`UCC1-ChallengeSubmissionDraft.html` item 1 (PLAN-3067F00C01E4 YourLearning) updated to "✅ Completed 11 Jul 2026 · confirmed by human" after screenshot confirmation.
+
+### Wall Time
+
+~2 hours (sessions 44 overhang + session 45 font polish + commit/tag)
+
+
+---
+
 ## Session 44 — PTMP Slide Generator (v2.6.0) + v2.5.21-rc1 Submission Freeze — July 19, 2026
 
 **Date:** 2026-07-19
