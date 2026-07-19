@@ -1,5 +1,151 @@
 ---
 
+## Session 29 (cont. 2) — Manager Field Investigation, Stale HAR Discovery, v2.6.0 Architecture, Doc Freeze at v2.5.7
+
+**Date:** 2025-07-18
+**Branch:** `main` (all changes committed directly to main after v2.5.7 tag)
+**Focus:** Investigation, architecture design, documentation freeze
+
+---
+
+### Manager Field Investigation
+
+**Observation:** Team Hygiene tab shows `—` for every rep's Manager column despite manager
+names being clearly visible in ISC (screenshot evidence provided by user: Spencer Korn,
+Trey Crow, Kimberly (Kim) Overbay, Kara Quincy, James J (Jim) Mazzeo all visible in ISC UI).
+
+**Initial wrong hypothesis (retracted):** "Manager column is lazy-loaded off-screen — scroll
+to make it visible before exporting HAR." User correctly challenged this — the Manager column
+is the 4th column from the left, fully visible without any horizontal scroll in every screenshot.
+
+**Correct diagnosis after probing the HAR:**
+
+The `scraper/isc-export.har` on disk at time of investigation was **Spencer Korn's HAR with
+only 8 records** (a partial/stale export). The full 8-record payload contains exactly 21 fields:
+
+```
+Account(DB/DC), AcquisitionPipeline2, AcquisitionPipelineIndicator, CreateDate,
+FLMJudgement, Filtered Opportunity Amount, Opp.Acc.Name, Opp.Acc.Technology_Client__c,
+Opp.AccountPlanQuipDocURL, Opp.BP.Name, Opp.CloseDate, Opp.CreatedBy.User_Name_mk__c,
+Opp.ForecastCategoryName, Opp.Id, Opp.Name, Opp.NextStep, Opp.RDC.CUST_NAME,
+Opp.Stage, Opp.User.User_Name_mk__c, OpportunityId, Total Opportunity Amount
+```
+
+**`Opp.FLM.User_Name_mk__c` is not in this payload at all.** The `pick()` candidate list in
+[`scraper/load-from-har.js`](scraper/load-from-har.js:162) already includes it as the first
+candidate for `opportunity_owners_manager` — but the ISC `/wave/query` response for this
+particular data set simply doesn't include the field.
+
+**Root cause:** This HAR is from a partial/stale export and does not represent a full
+pipeline view. The manager name field exists in ISC but is not guaranteed to be in every
+`/wave/query` response — the exact fields returned depend on which ISC dashboard view/query
+is active when the HAR is captured. A fresh full-pipeline HAR from Duey's view is needed
+to confirm the real field name.
+
+**Partner seller clarification (important domain knowledge — document permanently):**
+User confirmed that reps like Jeanene Cassels (Mainline, a partner seller) correctly show
+`—` for Manager in ISC because they are NOT in IBM LDAP. Partner sellers have ISC access to
+enter deals but have no IBM user hierarchy. The `—` in Team Hygiene for these reps is correct
+and expected behavior — do NOT treat as a data quality problem or a scraping failure.
+
+**Resolution path:** Fresh full-pipeline HAR export from Duey's 221-row view. Run:
+```bash
+node -e "
+const fs=require('fs');
+const har=JSON.parse(fs.readFileSync('./scraper/isc-export.har','utf8'));
+for(const e of har?.log?.entries??[]){
+  const text=e?.response?.content?.text??'';
+  if(!text) continue;
+  let p; try{p=JSON.parse(text)}catch{try{p=JSON.parse(Buffer.from(text,'base64').toString('utf8'))}catch{continue}}
+  const r=p?.results?.records??p?.records??[];
+  if(r.length<100) continue;
+  console.log('FULL PIPELINE — all keys:');
+  Object.keys(r[0]).sort().forEach(k=>console.log(k,'=',JSON.stringify(r[0][k])));
+  break;
+}
+"
+```
+This shows the exact field name used by ISC for manager names. If it matches the `pick()`
+candidate list in `load-from-har.js`, it will work automatically on next Refresh Data.
+
+---
+
+### Stale HAR Discovery — All 9 Users
+
+**Event:** ISC operations updated the ISC database at **11:10 PM ET Saturday July 18, 2026**
+(visible in ISC UI as "Data updated: Yesterday at 11:10 PM"). All 9 user HAR exports were
+captured before this update (~before 6:00 PM ET), so all 9 are stale.
+
+**Impact assessment:**
+
+| Item | Status |
+|---|---|
+| All 9 users' HAR data in DB | Stale (pre-11:10 PM ET Jul 18) |
+| Baseline ledger snapshots | ✅ None taken — no harm done |
+| Safe to re-pull HARs | ✅ Yes — upsert will refresh all rows |
+| Duey's real data integrity | ✅ Unaffected |
+
+**Action required (human):** Re-export fresh HARs for all 9 users (or at minimum Duey as the
+primary demo user) after the 11:10 PM data refresh. This is also the opportunity to get the
+full-pipeline HAR needed to diagnose the manager field name.
+
+---
+
+### v2.6.0 Architecture — Per-User HAR Upload (Multi-User Server Deployment)
+
+**Problem identified:** Current design uses a single hardcoded file:
+```js
+const HAR_FILE = path.join(__dirname, 'isc-export.har');
+```
+This is a race condition in any multi-user server deployment. If User A uploads while User B
+uploads, B's file silently overwrites A's before A's import finishes.
+
+**Full architecture design captured in `UCC1-PostSubmissionBacklog.md`.**
+
+Key decisions:
+- HAR files named per-user: `scraper/har/{sanitized-userId}.har`
+- New `POST /api/upload-har` endpoint (authenticated, streams import progress)
+- Fallback chain: per-user HAR → `scraper/isc-export.har` (local dev) → devtools/Playwright
+- File picker `<input type="file" accept=".har">` in UI — mandatory in production, optional local dev
+- `DEV_MODE=true` env var shows local dev helper note in UI
+- `.gitignore` updated: `scraper/isc-export.har` → `scraper/har/`
+
+**Decision:** Deferred to post-July 22 submission. Scope freeze for challenge deadline.
+
+---
+
+### Documentation Freeze at v2.5.7
+
+All documentation updated from v2.5.0 to v2.5.7. Changes applied:
+
+| File | Changes |
+|---|---|
+| `README.md` | Version history v2.5.0–v2.5.7 added; session count 26→29; footer v2.4.0→v2.5.7 |
+| `UCC1-ArchitectureDiagram.html` | Version badge v2.5.0→v2.5.7; deployment table headers updated |
+| `UCC1-ChallengeSubmissionDraft.html` | Version v2.5.0→v2.5.7; session counts 28→29; git pills updated; v2.5.6/v2.5.7 feature rows added |
+| `isc-automated-sales-forecast-project-narrative.html` | Version v2.5.0→v2.5.7; session counts 28→29; git pills updated; v2.5.6/v2.5.7 rows added to build status table |
+| `UCC1-PostSubmissionBacklog.md` | **NEW** — Full v2.6.0+ deferred backlog with complete architecture design |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | Complete `PLAN-3067F00C01E4` on Your Learning | ❌ Eligibility gate |
+| 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 3 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 4 | Re-pull all 9 user HARs (post-11:10 PM ISC update) | ⏳ Needed |
+| 🟡 5 | Run manager field name diagnostic on fresh Duey HAR | ⏳ Pending fresh HAR |
+| 🟡 6 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 7 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 8 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+
+---
+
 ## Session 29 (cont.) — v2.5.7: Team Hygiene UX — Sticky Header + QE Close Column
 
 **Date:** 2025-07-18

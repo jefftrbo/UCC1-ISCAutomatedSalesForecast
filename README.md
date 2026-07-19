@@ -327,6 +327,14 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.2.0 | IBM Carbon Design System · Model 3 action bar · named view presets · per-tile diff modals · GM Ready indicator · timestamp snapshots |
 | v2.3.0 | Permanent quarterly audit ledger · UUID-keyed immutable baselines · 34/34 test harness · three-button confirm modal |
 | v2.4.0 | Simulated IBM SSO · multi-tenant per-user data isolation · login page · header user chip · 9 test users · per-user seed data |
+| v2.5.0 | Pipeline Intelligence Engine · Deal Health Card modal · hygiene scoring · liar-deal detection · rep coaching tab · week-over-week timeline |
+| v2.5.1 | HAR user-tagging guard in TEST MODE · health icon pre-compute |
+| v2.5.2 | Narrative scoped to checked rows in filtered view |
+| v2.5.3 | Live narrative refresh on checkbox selection change (300ms debounce) |
+| v2.5.4 | Narrative refresh on filter/search change |
+| v2.5.5 | PPT uses filtered+checked IDs from frontend (fixes 906-vs-172 bug) |
+| v2.5.6 | Padded-close detection signal · P1/P2/P3 QE-close flag · UTC timezone fix |
+| v2.5.7 | Team Hygiene sticky header · QE Close column per rep · amber highlight |
 
 ---
 
@@ -337,9 +345,9 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 - **Business value:** 90 min → under 5 min weekly GM prep · 94% time reduction
 - **Multi-user:** 9 IBM TSLs/ATLs/GMs with full data isolation, IBM SSO architecture
 - **watsonx.ai models:** `ibm/granite-13b-instruct-v2` (scoring) · `meta-llama/llama-3-70b-instruct` (narrative) · `ibm/granite-3-8b-instruct` (delta summary)
-- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 26 sessions
+- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 29 sessions
 - **Deployment path:** CIO "Build with watsonx" Path to Production
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.4.0*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.5.7*

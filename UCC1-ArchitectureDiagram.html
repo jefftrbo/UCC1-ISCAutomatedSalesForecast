@@ -128,7 +128,7 @@
         <div class="app-subtitle">IBM watsonx Challenge 2026 · Growth Enablers Track · UCC1</div>
       </div>
       <div style="text-align:right; font-size:11px; color:#57606a;">
-        <div style="font-weight:700;">v2.5.0</div>
+        <div style="font-weight:700;">v2.5.7</div>
         <div>July 2026</div>
         <div>System Architecture</div>
       </div>
@@ -200,7 +200,7 @@
           scoreHygiene() · getOppTimeline() · getRepHygieneSummary()<br>
           0–100 hygiene score · liar-deal detection · rep coaching flags<br>
           GET /api/opportunities/:id/health · GET /api/hygiene-summary</div>
-          <div class="box-tag blue">Deal Health Card · Use Cases 1/2/3 · v2.5.0</div>
+          <div class="box-tag blue">Deal Health Card · Use Cases 1/2/3 · v2.5.0–v2.5.7</div>
         </div>
       </div>
     </div>
@@ -322,7 +322,7 @@
 
   <div class="section-label">Deployment Status — Current vs. Target</div>
   <table>
-    <tr><th>Component</th><th>Current (v2.5.0)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
+    <tr><th>Component</th><th>Current (v2.5.7)</th><th>Target (CIO watsonx Platform)</th><th>Status</th></tr>
     <tr><td>App hosting</td><td>localhost:3090 on Sales VP MacBook</td><td>IBM Cloud Code Engine · w3id SSO · internal URL</td><td><span class="warn">⚠</span> Pending ServiceNow AI System approval</td></tr>
     <tr><td>Authentication</td><td>Simulated IBM SSO (bcrypt + express-session) · 9 test users · full OIDC-ready architecture</td><td>Real IBM w3id OIDC (one-file swap in server/auth.js)</td><td><span class="warn">⚠</span> Pending IBM app registration (Client ID + Secret)</td></tr>
     <tr><td>Multi-tenancy</td><td>user_id isolation on all tables · per-user queries · namespaced PPT output</td><td>Same — no schema changes needed for production</td><td><span class="check">✓</span> Production-ready</td></tr>
@@ -337,7 +337,7 @@
   <table>
     <tr><th>Requirement</th><th>Detail</th><th>Owner</th><th>Ready?</th></tr>
     <tr><td>Architecture diagram</td><td>All data sources, integrations, services</td><td>Technical Lead</td><td><span class="check">✓</span> This document</td></tr>
-    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.5.0 live</td></tr>
+    <tr><td>Experiment / PoC</td><td>Working demo with IBM Granite models</td><td>Technical Lead</td><td><span class="check">✓</span> v2.5.7 live</td></tr>
     <tr><td>Business Lead</td><td>User enablement, product functionality, documentation</td><td>Dushyant K. Patel (Sales VP)</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Technical Lead</td><td>Design, feature dev, testing, maintenance</td><td>Jeffrey L. Trbovich</td><td><span class="check">✓</span> Confirmed</td></tr>
     <tr><td>Risk &amp; Compliance Lead</td><td>AI ethics, responsible use, data privacy, GPA/CRB</td><td>TBD</td><td><span class="cross">✗</span> Unassigned</td></tr>
