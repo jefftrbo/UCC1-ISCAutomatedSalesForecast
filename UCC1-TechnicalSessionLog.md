@@ -1,5 +1,94 @@
 ---
 
+## Session 29 (cont.) — v2.5.7: Team Hygiene UX — Sticky Header + QE Close Column
+
+**Date:** 2025-07-18
+**Branch:** `feature/v2.5.7-team-hygiene-ux` → `develop` → `main`
+**Commits:** `95c6478` (feat), `3bc1c42` (develop merge), `a883671` (main release)
+**Tag:** `v2.5.7`
+
+### What Was Built
+
+Two items shipped together:
+
+#### 1. Sticky header row in Team Hygiene table
+
+**Root cause of the bug:** `position: sticky` requires the nearest scrolling ancestor to be the
+direct overflow parent. The scroll was happening on `.diff-modal-backdrop` (`overflow-y: auto`),
+which is the full-page overlay. The `<thead>` was 5 DOM levels deep inside it — `top: 0` meant
+"stick to the top of the page", so the header disappeared immediately on scroll.
+
+**First attempt (wrong):** Added `position: sticky; top: 0` to `.rep-hygiene-table th` and
+switched `border-collapse: collapse` → `separate` (required for sticky on `<th>` cells).
+This was necessary but not sufficient — the scroll container was still wrong.
+
+**Root fix:** Scoped to `.health-modal` only (no other modals affected):
+```css
+.health-modal {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 96px);  /* cap modal so it can't grow taller than viewport */
+}
+.health-modal .diff-modal-body {
+  overflow-y: auto;   /* scroll happens HERE now, not on backdrop */
+  flex: 1 1 auto;
+}
+```
+Now `.diff-modal-body` is the scroll ancestor. `position: sticky; top: 0` on `<th>` works
+correctly — header stays pinned as user scrolls through 76 rep rows.
+
+#### 2. QE Close column in Team Hygiene table
+
+**`server/hygieneScore.js` — `getRepHygieneSummary()`:**
+- Added `paddedDeals` counter to the per-rep aggregation loop
+- `if (h.paddedClose) paddedDeals++` — uses the `paddedClose` field already on every
+  `scoreHygiene()` result (built in v2.5.6), so zero new computation cost
+- `paddedDeals` added to the returned result object per rep
+
+**`public/index.html` — `buildRepHygienePanel()`:**
+- New `<th style="text-align:center" title="Deals closing within 4 days of quarter-end">QE Close</th>`
+  positioned between Forecast Mismatch and Hygiene Score
+- New `<td>` with amber highlight (`color:#f59e0b; font-weight:600`) when `paddedDeals > 0`,
+  neutral when 0 — consistent with Stale NS treatment (informational/watch, not error/red)
+- Tooltip on `<th>` explains the column meaning on hover
+
+**Column colour rationale:** QE Close is amber (not red) because it's a management question,
+not a confirmed failure — same design philosophy as the individual deal action item (no score
+deduction, informational only). A rep with 3 QE-close deals might have 3 legitimate deals.
+
+### Validation
+
+```
+✅ hygieneScore syntax clean
+scoreHygiene paddedClose: ✅ present
+paddedDeals count: 1 (expected 1)
+non-padded paddedClose: ✅ null
+paddedDeals field present: ✅
+All checks passed ✅
+```
+
+### Files Changed
+
+| File | Change |
+|---|---|
+| `server/hygieneScore.js` | `paddedDeals` counter in `getRepHygieneSummary()` |
+| `public/index.html` | QE Close column, sticky header CSS, `APP_VERSION` → `2.5.7` |
+
+### Git State After Session
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `a883671` | v2.5.7 release |
+| `develop` | `3bc1c42` | v2.5.7 merge |
+| `v2.5.7` tag | `a883671` | on main |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+
+---
+
 ## Session 29 — v2.5.6: Padded-Close Detection Signal
 
 **Date:** 2025-07-18
