@@ -449,7 +449,7 @@ function getRepHygieneSummary(db, userId) {
   const results = [];
   for (const { owner, manager, deals } of ownerMap.values()) {
     let totalScore = 0;
-    let blankNs = 0, staleNs = 0, liarDeals = 0, flmOverrides = 0;
+    let blankNs = 0, staleNs = 0, liarDeals = 0, flmOverrides = 0, paddedDeals = 0;
 
     for (const d of deals) {
       const h = scoreHygiene(d);
@@ -458,6 +458,7 @@ function getRepHygieneSummary(db, userId) {
       else if (h.nsDaysSinceUpdate !== null && h.nsDaysSinceUpdate > 14) staleNs++;
       if (h.liarDeal)        liarDeals++;
       if (h.flmDisagreement) flmOverrides++;
+      if (h.paddedClose)     paddedDeals++;
     }
 
     const avg = deals.length > 0 ? Math.round(totalScore / deals.length) : 0;
@@ -475,6 +476,7 @@ function getRepHygieneSummary(db, userId) {
       staleNs,
       liarDeals,
       flmOverrides,
+      paddedDeals,
       avgHygieneScore: avg,
       coachingFlag,
     });
