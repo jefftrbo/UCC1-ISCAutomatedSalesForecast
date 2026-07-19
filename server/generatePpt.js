@@ -455,85 +455,107 @@ async function generatePtmpSlide(opts) {
 
   const slide = pres.addSlide();
 
-  // ── Title (top-left) ──────────────────────────────────────────────────────
+  // ── Title (top-left, single line) ────────────────────────────────────────
   slide.addText(`${lastName} ${teamLabel} PTMP`, {
-    x: 0.3, y: 0.15, w: 4.5, h: 0.75,
-    fontSize: 22, bold: true, color: IBM_DARK, fontFace: 'Calibri',
-    wrap: true, valign: 'top',
+    x: 0.3, y: 0.18, w: 4.5, h: 0.5,
+    fontSize: 16, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+    wrap: false, valign: 'middle',
   });
 
   // ── Summary table (top-right 5-column) ───────────────────────────────────
   const HDR_BLUE = '1A4F8A';
   const summaryHeader = [
-    { text: '3Q Budget',  options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
-    { text: '3Q Call',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
-    { text: 'Gap',        options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
-    { text: 'Upside',     options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
-    { text: 'Stretch',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle' } },
+    { text: '3Q Budget',  options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 9, valign: 'middle' } },
+    { text: '3Q Call',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 9, valign: 'middle' } },
+    { text: 'Gap',        options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 9, valign: 'middle' } },
+    { text: 'Upside',     options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 9, valign: 'middle' } },
+    { text: 'Stretch',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 9, valign: 'middle' } },
   ];
   const summaryData = [
-    { text: fmt(budget),     options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
-    { text: fmt(callTotal),  options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
-    { text: fmt(gap),        options: { align: 'center', fontSize: 13, bold: true, color: gap > 0 ? 'da1e28' : '198038', fill: { color: 'E8ECF4' }, valign: 'middle' } },
-    { text: fmt(upside),     options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
-    { text: fmt(stretch),    options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(budget),     options: { align: 'center', fontSize: 11, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(callTotal),  options: { align: 'center', fontSize: 11, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(gap),        options: { align: 'center', fontSize: 11, bold: true, color: gap > 0 ? 'da1e28' : '198038', fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(upside),     options: { align: 'center', fontSize: 11, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
+    { text: fmt(stretch),    options: { align: 'center', fontSize: 11, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle' } },
   ];
   slide.addTable([summaryHeader, summaryData], {
     x: 4.8, y: 0.12, w: 8.2,
     colW: [1.64, 1.64, 1.64, 1.64, 1.64],
-    rowH: [0.32, 0.40],
+    rowH: [0.26, 0.34],
     border: { pt: 0.5, color: 'AAAAAA' },
   });
 
-  // Thin rule under title block
+  // Thin rule under title / summary block
   slide.addShape(pres.ShapeType.line, {
-    x: 0.3, y: 1.0, w: 12.7, h: 0,
+    x: 0.3, y: 0.78, w: 12.7, h: 0,
     line: { color: 'CCCCCC', width: 0.5 },
   });
+
+  // ── Helper: render a 3-column deal table (bullet / account / opp / amount) ─
+  // Using addTable instead of padded strings so columns align regardless of font.
+  // colW: 0.15 (bullet) | acctW | oppW | 0.8 (amount right-aligned)
+  function dealTable(deals, x, y, w, h, emptyMsg) {
+    if (deals.length === 0) {
+      slide.addText(emptyMsg, { x, y, w, h, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri', valign: 'top' });
+      return;
+    }
+    const acctW = w * 0.30;
+    const oppW  = w * 0.52;
+    const amtW  = w * 0.18;
+    const rows  = deals.map((r, i) => {
+      const acct = (r.account_name || '').replace(/-US$/, '').slice(0, 18);
+      const opp  = (r.opportunity_name || '').slice(0, 28);
+      const amt  = fmt(r.filtered_opportunity_amount);
+      const bg   = i % 2 === 0 ? WHITE : 'F7F8FA';
+      const base = { fill: { color: bg }, fontSize: 9, fontFace: 'Calibri', valign: 'middle' };
+      return [
+        { text: '•', options: { ...base, align: 'center', color: IBM_GRAY } },
+        { text: acct, options: { ...base, align: 'left',  color: IBM_DARK, bold: true } },
+        { text: opp,  options: { ...base, align: 'left',  color: IBM_DARK } },
+        { text: amt,  options: { ...base, align: 'right', color: IBM_DARK, bold: true } },
+      ];
+    });
+    slide.addTable(rows, {
+      x, y, w,
+      colW: [0.15, acctW, oppW, amtW],
+      rowH: Array(deals.length).fill(0.225),
+      border: { pt: 0, color: 'FFFFFF' },
+    });
+  }
 
   // ── LEFT COLUMN: Deals In Call > $500K ───────────────────────────────────
   const callBig = callDeals
     .filter(r => (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 10);
+    .slice(0, 12);
 
   slide.addText('Deals In Call > $500K', {
-    x: 0.3, y: 1.1, w: 6.0, h: 0.3,
-    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+    x: 0.3, y: 0.86, w: 6.0, h: 0.26,
+    fontSize: 11, bold: true, color: IBM_DARK, fontFace: 'Calibri',
   });
-
-  const callBullets = callBig.map(r => {
-    const { acct, opp, amt } = dealLabel(r);
-    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
-  });
-  if (callBullets.length === 0) callBullets.push({ text: 'No deals in Call > $500K', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
-
-  slide.addText(callBullets, {
-    x: 0.3, y: 1.45, w: 6.0, h: 3.2,
-    fontFace: 'Calibri', wrap: true, valign: 'top',
-  });
+  dealTable(callBig, 0.3, 1.14, 6.1, 3.5, 'No deals in Call > $500K');
 
   // ── LEFT BOTTOM: Action Plan ──────────────────────────────────────────────
   slide.addText('Action Plan', {
-    x: 0.3, y: 4.75, w: 6.0, h: 0.28,
+    x: 0.3, y: 4.72, w: 6.0, h: 0.24,
     fontSize: 10, bold: true, color: IBM_DARK, fontFace: 'Calibri',
   });
   const planLines = (actionPlan || '').split('\n').filter(Boolean).slice(0, 8);
-  const planBullets = planLines.map((line, i) => ({
+  const planBullets = planLines.map(line => ({
     text: line,
-    options: { bullet: i > 0, fontSize: 8.5, color: i === 0 ? IBM_DARK : IBM_GRAY, fontFace: 'Calibri' },
+    options: { bullet: { type: 'bullet' }, fontSize: 8, color: IBM_DARK, fontFace: 'Calibri' },
   }));
-  if (planBullets.length === 0) planBullets.push({ text: 'Action plan not provided.', options: { fontSize: 8.5, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
+  if (planBullets.length === 0) planBullets.push({ text: 'Action plan not provided.', options: { fontSize: 8, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
   slide.addText(planBullets, {
-    x: 0.3, y: 5.05, w: 6.0, h: 2.1,
+    x: 0.3, y: 4.98, w: 6.0, h: 2.1,
     fontFace: 'Calibri', wrap: true, valign: 'top',
   });
 
   // ── RIGHT COLUMN: Deals to close Gap ────────────────────────────────────
   const gapLabel = `Deals to close Gap of ${fmt(gap)}`;
   slide.addText(gapLabel, {
-    x: 6.7, y: 1.1, w: 6.3, h: 0.3,
-    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+    x: 6.7, y: 0.86, w: 6.3, h: 0.26,
+    fontSize: 11, bold: true, color: IBM_DARK, fontFace: 'Calibri',
   });
 
   // Select pipeline deals that together sum toward the gap, largest first
@@ -546,43 +568,26 @@ async function generatePtmpSlide(opts) {
     if (gapDeals.length >= 8) break;
     gapDeals.push(r);
     running += r.filtered_opportunity_amount || 0;
-    if (gap > 0 && running >= gap * 1.1) break; // stop once we've covered gap with 10% buffer
+    if (gap > 0 && running >= gap * 1.1) break;
   }
-
-  const gapBullets = gapDeals.map(r => {
-    const { acct, opp, amt } = dealLabel(r);
-    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
-  });
-  if (gapBullets.length === 0) gapBullets.push({ text: budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
-
-  slide.addText(gapBullets, {
-    x: 6.7, y: 1.45, w: 6.3, h: 1.9,
-    fontFace: 'Calibri', wrap: true, valign: 'top',
-  });
+  dealTable(gapDeals, 6.7, 1.14, 6.3, 2.0, budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.');
 
   // ── RIGHT BOTTOM: Other Upside/Stretch > $500K ──────────────────────────
-  // Exclude deals already listed in gap section
   const gapIds = new Set(gapDeals.map(r => r.id));
   const otherStretch = pipeDeals
     .filter(r => !gapIds.has(r.id) && (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 8);
+    .slice(0, 10);
+
+  // Dynamic y: place stretch section below however many gap deals rendered
+  const gapTableH = Math.max(gapDeals.length, 1) * 0.225;
+  const stretchY  = 1.14 + gapTableH + 0.22;
 
   slide.addText('Other Deals in Upside / Stretch > $500K', {
-    x: 6.7, y: 3.55, w: 6.3, h: 0.3,
-    fontSize: 12, bold: true, color: IBM_DARK, fontFace: 'Calibri',
+    x: 6.7, y: stretchY - 0.26, w: 6.3, h: 0.26,
+    fontSize: 11, bold: true, color: IBM_DARK, fontFace: 'Calibri',
   });
-
-  const stretchBullets = otherStretch.map(r => {
-    const { acct, opp, amt } = dealLabel(r);
-    return { text: `${acct.padEnd(18)}  ${opp.padEnd(24)}  ${amt}`, options: { bullet: { type: 'bullet' }, fontSize: 9, color: IBM_DARK, fontFace: 'Courier New' } };
-  });
-  if (stretchBullets.length === 0) stretchBullets.push({ text: 'No additional stretch deals > $500K.', options: { bullet: false, fontSize: 9, color: IBM_GRAY, italic: true, fontFace: 'Calibri' } });
-
-  slide.addText(stretchBullets, {
-    x: 6.7, y: 3.9, w: 6.3, h: 3.2,
-    fontFace: 'Calibri', wrap: true, valign: 'top',
-  });
+  dealTable(otherStretch, 6.7, stretchY, 6.3, BOTTOM_BAR_Y - stretchY - 0.1, 'No additional stretch deals > $500K.');
 
   // ── Bottom bar ────────────────────────────────────────────────────────────
   slide.addShape(pres.ShapeType.rect, {

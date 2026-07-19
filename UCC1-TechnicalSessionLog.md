@@ -1,5 +1,90 @@
 ---
 
+## Session 44 — PTMP Slide Generator (v2.6.0) + v2.5.21-rc1 Submission Freeze — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `f7a0661` (feat) · `f60e409` (release merge)
+**Version bump:** `2.5.21` → `2.6.0`
+**RC1 tag:** `v2.5.21-rc1` — tagged on `main` as clean rollback point before PTMP work
+
+### User Request
+
+> "What are your thoughts on making v2.5.21 our new RC1 ahead of Wednesday 7/22 submission?
+> Then build the PTMP enhancement."
+
+### RC1 Rationale
+
+v2.5.21 is genuinely submission-ready. Tagging RC1 creates a clean rollback point (10-second `git checkout` if v2.6.0 breaks anything), signals professional release discipline to judges, and gives psychological permission to keep iterating without anxiety. PTMP is additive capability, not a rewrite.
+
+### What PTMP Is
+
+PTMP (Plan to Make Plan) is Frank Attaie's weekly GM format. Frank has 16 direct reports (VPs, Managing Directors) — each submits one PTMP slide to the weekly meeting. The slide Frank hands to Adam Lawrence (Americas GM) is an aggregation of all 16 of these. Duey's two screenshots show the exact format:
+
+```
+Title: "Patel HCLS 3Q26 PTMP"
+┌──────────────┬──────────┬────────┬───────────┬────────────┐
+│  3Q Budget   │  3Q Call │  Gap   │  Upside   │  Stretch   │
+│  $175M       │  $146.7M │ $28.3M │  $???     │  $495M     │
+└──────────────┴──────────┴────────┴───────────┴────────────┘
+LEFT: Deals In Call > $500K        RIGHT: Deals to close Gap
+      (Best Case Q3, sorted desc)         (Pipeline, top deals to gap)
+BOTTOM LEFT: Action Plan           RIGHT BOTTOM: Other Upside/Stretch > $500K
+```
+
+### What Was Built
+
+**`server/generatePpt.js` — `generatePtmpSlide(opts)`:**
+- Derives financials from deal arrays: callTotal, gap, upside (pipe > $500K), stretch (all pipe)
+- `fmt()` — smart formatter: $175.0M, $28.3M, $850K
+- Renders title top-left, 5-column summary table top-right (Budget/Call/Gap/Upside/Stretch)
+- Gap cell red when > 0, green when ≤ 0
+- Left column: Deals In Call > $500K (Best Case Q3, sorted desc, top 10)
+- Left bottom: Action Plan (free text, up to 8 lines)
+- Right top: Deals to close Gap (Pipeline, greedy fill to gap × 1.1 buffer, up to 8 deals)
+- Right bottom: Other Upside/Stretch > $500K (Pipeline, excluding gap deals, top 8)
+- IBM Blue bottom bar with generation timestamp
+
+**`server/index.js` — `POST /api/generate-ptmp`:**
+- Accepts `{ budget, teamLabel, actionPlan }` in request body
+- Queries Q3 Best Case (callDeals) and Q3 Pipeline (pipeDeals) for the authenticated user
+- Writes to `output/{userId}/ptmp_{userId}_{timestamp}.pptx`
+- Returns `{ url, callCount, pipeCount, budget, gap }`
+
+**`public/index.html`:**
+- New `🎯 PTMP Slide` action bar button with tooltip
+- `#ptmp-modal-backdrop` — budget input (accepts "175M", "$175,000,000"), team label, action plan textarea with Duey's actual bullets pre-populated as placeholder
+- `parseBudget()` — handles M/K suffix, commas, raw numbers
+- Confirmation status line: "✅ PTMP slide ready — 218 Call deals · 530 Pipeline deals · Gap: $28.3M"
+- Auto-opens .pptx in new tab on success
+- `chip-ptmp` action bar chip; Escape closes modal
+
+**Prototype run result (Duey's live data):**
+```
+✅ PTMP prototype generated: output/dkpatel_us.ibm.com/ptmp_prototype.pptx
+   Call deals: 218 | Pipeline deals: 530
+   Budget: $175M | Call: $146.7M | Gap: $28.3M
+```
+
+### Challenge Submission Argument (multiplied)
+
+The PTMP generator turns a 90-min Duey task into under 2 minutes — but the real story for Frank and Adam Lawrence is that **all 16 of Frank's direct reports** could do the same. One app → 16 VPs → every PTMP slide auto-generated. That is the Growth Enablers multiplier that wins the challenge.
+
+### What's Still "To Be Done by Human" Before July 22
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| 🔴 1 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | ❌ Hard gate |
+| 🔴 2 | **Identify R&C Lead** — one person from Dushyant's org | ❌ Unassigned |
+| 🟡 3 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⚠ Pending |
+| 🟡 5 | Record demo video (3–4 min) | ⚠ Not recorded |
+| ✅ | No IBM Confidential data in repo | ✅ Confirmed |
+
+
+---
+
 ## Session 43 — "N Deals Need Attention" Clickable Badge (v2.5.21) — July 19, 2026
 
 **Date:** 2026-07-19
