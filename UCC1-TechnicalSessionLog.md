@@ -1,5 +1,141 @@
 ---
 
+## Session 29 — v2.5.6: Padded-Close Detection Signal
+
+**Date:** 2025-07-18
+**Branch:** `feature/v2.5.6-padded-close-signal` → `develop` → `main`
+**Commits:** `8da8a2b` (feat), `9e5571e` (develop merge), `17ddfd4` (main release), `d868344` (version bump)
+**Tag:** `v2.5.6`
+
+### Context
+
+Session resumed from the mid-session summary in Session 28. `server/hygieneScore.js` had
+`detectPaddedClose()` written and wired into `scoreHygiene()` but **not yet committed**.
+The task was: validate, fix any bugs, commit, and ship.
+
+### Bug Found and Fixed: UTC/local timezone off-by-one
+
+The original implementation used `new Date(\`\${year}-MM-DD\`)` for quarter-end boundary construction
+and `.toLocaleDateString()` for the display label. ISO date strings are parsed as UTC midnight —
+but `toLocaleDateString()` converts to the local timezone before formatting, causing a one-day
+rollback in any timezone west of UTC (e.g. US/Central, US/Pacific).
+
+**Symptom:** `detectPaddedClose('2026-09-30')` returned `quarterEnd: "Sep 29, 2026"` — one day off.
+All 12 test cases failed.
+
+**Fix:** Replace `new Date(\`...\`)` construction with `Date.UTC(year, month, day)` (returns UTC
+timestamp as number) and use a pre-built label string instead of `.toLocaleDateString()`.
+The input close date is also parsed as UTC midnight via `new Date(closeDateStr)` and `.getTime()`
+used for arithmetic — both sides of the subtraction are now UTC epoch milliseconds.
+
+```js
+// Before (broken):
+const quarterEnds = [
+  new Date(`${year}-09-30`),  // UTC midnight → local: Sep 29
+  ...
+];
+const daysFromEnd = Math.round((qEnd - d) / 86400000);
+quarterEnd: qEnd.toLocaleDateString(...)  // off by 1 in US timezones
+
+// After (fixed):
+const quarterEnds = [
+  { ms: Date.UTC(year, 8, 30), label: `Sep 30, ${year}` },
+  ...
+];
+const daysFromEnd = Math.round((qEnd.ms - d.getTime()) / 86400000);
+quarterEnd: qEnd.label  // pre-built, always correct
+```
+
+### What Was Built
+
+#### `detectPaddedClose(closeDateStr)` in `server/hygieneScore.js`
+
+Detects close dates within the last 4 days of any IBM fiscal quarter-end
+(Sep 30, Dec 31, Mar 31, Jun 30). Returns a three-field result object.
+
+**Threshold mapping:**
+| `daysFromEnd` | Signal Priority | Meaning |
+|---|---|---|
+| 0 | P1 | Exactly on quarter-end — highest management scrutiny |
+| 1–2 | P2 | Penultimate days — high suspicion |
+| 3–4 | P3 | Last week of quarter — watch signal |
+| ≥5 | none | Not padded |
+
+**Action item text is context-aware:**
+- If `forecast_category` ∈ `HIGH_COMMIT_CATEGORIES` (Commit / Best Case / Upside):
+  `"{owner} calls this "{fc}" with a quarter-end close date — ask: is this real or parked? Confirm customer commitment and procurement path."`
+- Otherwise:
+  `"Close date is {dayLabel}. Verify this is a genuine target date and not a placeholder."`
+
+**Informational-only design decision:** `detectPaddedClose()` is Component 0 in `scoreHygiene()`
+with **no score deduction**. Rationale: a padded close date is a management question, not a
+hygiene failure. A deal with a Sep 30 close and perfect Next Steps + strong score should still
+surface the flag at the top of action items — without penalising the rep for what may be a real
+deal with a real close date. The VP decides.
+
+**Return value added to `scoreHygiene()` result:**
+```js
+paddedClose: paddedClose.isPadded ? { isPadded: true, daysFromEnd: N, quarterEnd: "Sep 30, 2026" } : null
+```
+
+**Exported:** `detectPaddedClose` added to `module.exports`.
+
+### Validation Results
+
+```
+detectPaddedClose: 12/12 passed
+
+── scoreHygiene: Sep 30 Commit deal ──
+  hygieneScore: 90 / grade: green
+  paddedClose: {"isPadded":true,"daysFromEnd":0,"quarterEnd":"Sep 30, 2026"}
+  actionItems:
+    P1 | Close date is exactly on quarter-end (Sep 30, 2026). Jane Smith calls this "Commit" with a quarter-end close date...
+    P3 | No close plan in Team Notes. Require Jane Smith to document path-to-close for this deal.
+
+── scoreHygiene: Sep 25 Pipeline deal (NOT padded) ──
+  hygieneScore: 100 / grade: green
+  paddedClose: null
+  actionItems: [ 'clean:clean' ]
+
+✅ node --check server/hygieneScore.js — syntax clean
+```
+
+Test cases covered all 4 quarter-ends, boundary conditions (exactly 0, 1, 2, 3, 4, and 5 days
+from QE), mid-quarter (clean), and null input.
+
+### Other Changes
+
+- `public/index.html`: `APP_VERSION` bumped `2.5.5` → `2.5.6`
+
+### Git State After Session
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `d868344` | v2.5.6 release + version bump |
+| `develop` | `9e5571e` | v2.5.6 merge |
+| `feature/v2.5.6-padded-close-signal` | `8da8a2b` | feature commit |
+| `v2.5.6` tag | `17ddfd4` | release merge on main |
+
+### What's Next (Remaining Before July 22 Deadline)
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | Complete `PLAN-3067F00C01E4` on Your Learning | ❌ Eligibility gate |
+| 🔴 2 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 3 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 4 | Multi-user HAR testing (9 users) — still ongoing | ⏳ In progress |
+| 🟡 5 | Record demo video — login → health card → rep hygiene → PPT → isolation | ⚠ Not recorded |
+| 🟡 6 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 7 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟢 8 | v2.6.0 planning: watsonx.ai Granite upgrade for NS quality scoring | 📋 Backlog |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+
+---
+
 ## Session 8 — Model 3 Action Bar: HTML + JS wiring complete
 
 **Date:** 2025-07-14
