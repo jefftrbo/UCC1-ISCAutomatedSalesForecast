@@ -56,7 +56,7 @@
       <span><b>Submitter:</b> Jeffrey L. Trbovich</span>
       <span><b>Business Owner:</b> Dushyant K. Patel, Sales VP — US Public Sector IBM</span>
       <span><b>Track:</b> Growth Enablers</span>
-      <span><b>Version:</b> v2.5.10</span>
+      <span><b>Version:</b> v2.5.11</span>
       <span><b>Deadline:</b> July 22, 2026 · 10 AM ET</span>
     </div>
   </div>
@@ -125,7 +125,7 @@
         <p><b>Time savings:</b> 90 minutes of manual weekly work reduced to under 5 minutes — a 94% reduction. For one Sales VP, approximately 75 hours saved per year. Multiplied across IBM's US Public Sector sales organization, the impact scales significantly.</p>
         <p><b>Quality improvement:</b> The manual process was error-prone and memory-dependent. The automated process is consistent, reproducible, and AI-augmented — the GM narrative is generated from live pipeline data, not from what the VP remembered to include. The diff engine catches changes the VP would have missed.</p>
         <p><b>Quarterly rep/manager analytics:</b> The permanent audit ledger enables three new analytical capabilities that did not exist before v2.3.0: (1) <b>SR/SM/Customer trajectory</b> — track every deal's stage, amount, and confidence score across all 12–13 weeks of a quarter to surface rep-level pipeline performance patterns. (2) <b>Next Steps hygiene analysis</b> — deals with 3+ consecutive blank Next Steps weeks are statistically more likely to slip or drop; this leading indicator is now queryable in SQL against the full ledger. (3) <b>Coaching signal detection</b> — a sales rep with consistently blank Next Steps is either stalled on the deal or disengaged from the role; the pattern is now visible to the first-line manager before it becomes a performance problem.</p>
-        <p><b>Scale:</b> Every IBM Public Sector Sales VP runs the same weekly GM prep workflow. This application is architected to run as a multi-user cloud service — and as of v2.5.10, it <em>is</em> a multi-user application, with 9 distinct users, IBM SSO architecture, full per-user data isolation, and a Pipeline Intelligence Engine that scores every deal and every rep on real pipeline data. The CIO "Build with watsonx" Path to Production has been identified as the official deployment path; a ServiceNow AI System Demand is being submitted as part of this challenge entry.</p>
+        <p><b>Scale:</b> Every IBM Public Sector Sales VP runs the same weekly GM prep workflow. This application is architected to run as a multi-user cloud service — and as of v2.5.11, it <em>is</em> a multi-user application, with 9 distinct users, IBM SSO architecture, full per-user data isolation, and a Pipeline Intelligence Engine that scores every deal and every rep on real pipeline data. The CIO "Build with watsonx" Path to Production has been identified as the official deployment path; a ServiceNow AI System Demand is being submitted as part of this challenge entry.</p>
         <p><b>Financial forecasting:</b> The week-over-week diff engine surfaces pipeline momentum in real time — deals accelerating toward close, deals slipping, deals at risk — giving GM meeting participants data-driven intelligence about forecast reliability, not just a static snapshot.</p>
       </div>
       <div class="char-count">~1,200 chars</div>
@@ -162,7 +162,7 @@
     <div class="field-block">
       <div class="field-label">Deployment &amp; Path Forward</div>
       <div class="field-content">
-        <p><b>Current state:</b> v2.5.10 tagged and released on GitHub. Runs locally. 9 IBM users (1 GM/VP + 5 TSLs + 3 ATLs) with full per-user data isolation. Simulated IBM SSO login page at <code>/login</code>. 969 live pipeline opportunities (Duey's real Q3 2026 data, open stages only). 8 other users seeded with realistic health system deals. Permanent quarterly audit ledger active. Deal Health Card modal active on every row: 22 urgent / 8 watch / 46 clean rep coaching flags on Duey's real pipeline. Padded-close detection active. Manager names resolving for 870/949 reps (91.7%). HAR export is current data ingestion (~90 seconds/week).</p>
+        <p><b>Current state:</b> v2.5.11 tagged and released on GitHub. Runs locally. 9 IBM users (1 GM/VP + 5 TSLs + 3 ATLs) with full per-user data isolation. Simulated IBM SSO login page at <code>/login</code>. 969 live pipeline opportunities (Duey's real Q3 2026 data, open stages only). 8 other users seeded with realistic health system deals. Permanent quarterly audit ledger active. Deal Health Card modal active on every row: 22 urgent / 8 watch / 46 clean rep coaching flags on Duey's real pipeline. Padded-close detection active. Manager names resolving for 870/949 reps (91.7%). HAR export is current data ingestion (~90 seconds/week).</p>
         <p><b>Official IBM deployment path:</b> The CIO "Build with watsonx" Path to Production has been identified as the appropriate channel. A ServiceNow AI System Demand is being submitted with the architecture diagram attached. Upon Technical Review Board approval, the app will be provisioned on IBM Cloud Code Engine with CIO-managed watsonx.ai credentials and w3id SSO — available to any IBM Sales VP from any browser, no local installation required.</p>
         <p><b>Data ingestion evolution:</b> Approval as an official IBM AI System, with Dushyant K. Patel as Business Process Owner, creates standing to request a Salesforce Connected App with OAuth 2.0. This eliminates the HAR step entirely — automated pipeline pull on demand.</p>
         <p><b>Scale path:</b> The same application, unchanged, serves any IBM Sales VP with a Salesforce-backed pipeline. IBM Public Market is the immediate target; broader IBM Sales organization adoption is the medium-term opportunity.</p>
@@ -183,7 +183,7 @@
     <div class="field-block">
       <div class="field-label">GitHub / Demo</div>
       <div class="field-content">
-        <p><b>GitHub:</b> github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast · stable tag: v2.5.10 on main</p>
+        <p><b>GitHub:</b> github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast · stable tag: v2.5.11 on main</p>
         <p><b>Session log:</b> UCC1-TechnicalSessionLog.md — 29 sessions, complete verbatim development history</p>
         <p><b>Test harness:</b> Run <code>node scripts/test-baseline-ledger.js</code> — 34/34 assertions, 13-week Q3 2026 in-memory simulation, passes in under 5 seconds on any machine with Node.js.</p>
         <p style="color:#d97706;font-size:12.5px;">[REVIEW] Demo video — not yet recorded. Recommended: 3–4 min screen recording of full workflow (HAR upload → scoring → narrative → diff modal → PPT download).</p>
