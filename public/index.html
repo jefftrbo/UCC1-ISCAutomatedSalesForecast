@@ -89,7 +89,8 @@
       transition: all 0.2s;
     }
     .gm-ready.ready    { background: rgba(25,128,56,0.25); color: #6fdc8c; }
-    .gm-ready.needs-action { background: rgba(241,194,27,0.25); color: #f1c21b; }
+    .gm-ready.needs-action { background: rgba(241,194,27,0.25); color: #f1c21b; cursor: pointer; }
+    .gm-ready.needs-action:hover { background: rgba(241,194,27,0.4); }
     .gm-ready.no-data  { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); }
     .gm-ready-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
     .gm-ready.ready .gm-ready-dot    { background: #6fdc8c; }
@@ -3718,6 +3719,21 @@
     }
   }
 
+  // Click "N deals need attention" → open health modal on Team Hygiene tab
+  document.getElementById('gm-ready').addEventListener('click', () => {
+    if (!document.getElementById('gm-ready').classList.contains('needs-action')) return;
+    // Switch modal to Team Hygiene tab
+    document.querySelectorAll('.health-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('health-tab-team').classList.add('active');
+    document.getElementById('health-panel-deal').style.display = 'none';
+    document.getElementById('health-panel-team').style.display = '';
+    document.getElementById('health-modal-subtitle').textContent = '';
+    const dialog = document.getElementById('health-modal-dialog');
+    dialog.style.maxWidth = 'min(95vw, 1100px)';
+    openHealthModal();
+    loadTeamHygiene();
+  });
+
   // ── Pipeline status line ───────────────────────────────────────────────────
   function setPipelineStatus(icon, msg, showDetails) {
     const ps = document.getElementById('pipeline-status');
@@ -3807,7 +3823,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.20';
+  const APP_VERSION = '2.5.21';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
