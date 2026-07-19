@@ -1052,20 +1052,25 @@
       cursor: pointer;
       user-select: none;
       border-right: 1px solid #c6c6c6;
-      z-index: 10;
+      z-index: 10; /* sticky-top header: above body cells (z:0), below frozen corners */
     }
     thead th:hover { background: #c6c6c6; }
     thead th.sort-asc::after  { content: " ▲"; font-size: 10px; }
     thead th.sort-desc::after { content: " ▼"; font-size: 10px; }
 
     /* Sticky columns — checkbox (col 1), ♥ (col 2), Confidence (col 3) */
-    thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 12; }
-    thead th:nth-child(2), tbody td:nth-child(2) { position: sticky; left: 36px; z-index: 12; }
-    thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 68px; z-index: 12; }
+    /* z-index ladder: body frozen=2, scrolling header=10, corner header=20 */
+    thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 2; }
+    thead th:nth-child(2), tbody td:nth-child(2) { position: sticky; left: 36px; z-index: 2; }
+    thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 68px; z-index: 2; }
+    /* Corner cells: sticky top AND left — must beat both body frozen (z:2) and header row (z:10) */
+    thead th:nth-child(1) { z-index: 20; }
+    thead th:nth-child(2) { z-index: 20; }
+    thead th:nth-child(3) { z-index: 20; }
 
-    thead th:nth-child(1) { background: #e0e0e0; width: 36px; text-align: center; border-right: 1px solid #c6c6c6; }
-    thead th:nth-child(2) { background: #e0e0e0; width: 32px; }
-    thead th:nth-child(3) { background: #e0e0e0; width: 120px; min-width: 120px; border-right: 2px solid #a8a8a8; }
+    thead th:nth-child(1) { background: #e0e0e0; width: 36px; text-align: center; border-right: 1px solid #c6c6c6; top: 0; }
+    thead th:nth-child(2) { background: #e0e0e0; width: 32px; top: 0; }
+    thead th:nth-child(3) { background: #e0e0e0; width: 120px; min-width: 120px; border-right: 2px solid #a8a8a8; top: 0; }
 
     tbody td:nth-child(1) { background: #fff; width: 36px; text-align: center; border-right: 1px solid #e0e0e0; }
     tbody td:nth-child(2) { background: #fff; width: 32px; }
@@ -1079,7 +1084,7 @@
     tbody tr:hover td:nth-child(3) { background: #edf5ff; }
 
     /* ── Column resize handles ── */
-    thead th { position: sticky; } /* keeps sticky; resizer handles use absolute within */
+    thead th { position: sticky; top: 0; } /* explicit top:0 ensures all th stick to header row */
     .col-resizer {
       position: absolute;
       right: 0; top: 0; bottom: 0;
@@ -3506,7 +3511,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.11';
+  const APP_VERSION = '2.5.12';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
