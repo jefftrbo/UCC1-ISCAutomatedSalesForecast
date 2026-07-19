@@ -3720,6 +3720,41 @@
     }
   }
 
+  // Tooltip + click on GM Ready badge
+  // Direct listeners on the element — bypasses any stacking-context event routing issues
+  // that can prevent the global tooltip engine from seeing mouseover on a sticky z:100 header.
+  (function wireGmReady() {
+    const el  = document.getElementById('gm-ready');
+    const tip = document.getElementById('global-tooltip');
+
+    el.addEventListener('mouseenter', (e) => {
+      tip.textContent = el.dataset.tip || '';
+      tip.style.display = 'block';
+      const margin = 12;
+      let x = e.clientX + margin;
+      let y = e.clientY + margin;
+      const tw = tip.offsetWidth  || 260;
+      const th = tip.offsetHeight || 40;
+      if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - margin;
+      if (y + th > window.innerHeight - 8) y = e.clientY - th - margin;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    });
+    el.addEventListener('mousemove', (e) => {
+      if (tip.style.display === 'none') return;
+      const margin = 12;
+      let x = e.clientX + margin;
+      let y = e.clientY + margin;
+      const tw = tip.offsetWidth  || 260;
+      const th = tip.offsetHeight || 40;
+      if (x + tw > window.innerWidth  - 8) x = e.clientX - tw - margin;
+      if (y + th > window.innerHeight - 8) y = e.clientY - th - margin;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    });
+    el.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  })();
+
   // Click "N deals need attention" → open health modal on Team Hygiene tab
   document.getElementById('gm-ready').addEventListener('click', () => {
     if (!document.getElementById('gm-ready').classList.contains('needs-action')) return;
