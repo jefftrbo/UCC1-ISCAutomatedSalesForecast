@@ -1065,7 +1065,7 @@
     #rep-drill-dialog {
       background: #fff;
       width: min(95vw, 1200px);
-      max-height: calc(100vh - 80px);
+      max-height: calc(100vh - 32px);
       display: flex;
       flex-direction: column;
       border-radius: 0;
@@ -1480,7 +1480,8 @@
   </div>
   <div class="header-right">
     <span class="header-meta" id="header-meta"></span>
-    <div class="gm-ready no-data" id="gm-ready">
+    <div class="gm-ready no-data has-tip" id="gm-ready"
+         data-tip="Click to open Team Hygiene — shows every rep's deals that need a Next Step update before the GM call.">
       <span class="gm-ready-dot"></span>
       <span id="gm-ready-text">No data loaded</span>
     </div>
