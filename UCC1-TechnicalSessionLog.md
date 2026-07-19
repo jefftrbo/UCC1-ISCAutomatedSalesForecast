@@ -1,5 +1,82 @@
 ---
 
+## Session 39 — Team Hygiene Grouped Manager Display (v2.5.17) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `9414d37` (feat) · `8903795` (release merge)
+**Version bump:** `2.5.16` → `2.5.17`
+
+### User Feedback
+
+> "Manager names should be displayed ONCE. Each rep who reports to that manager
+> listed underneath, sorted ascending. William Kroh, Spencer Korn, and Adrian
+> Telling were scattered throughout the list — that is the problem."
+
+### What Was Delivered
+
+**Manager is now a group header row, not a column.**
+
+The table goes from this:
+
+```
+| William Krohn | Joseph Mullen  | 13 | ... |
+| William Krohn | Bruno Regio    | 19 | ... |
+| William Krohn | Phoebe Nichols | 12 | ... |
+| William Krohn | Grace Casey    | 13 | ... |
+```
+
+To this:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  William Krohn — 4 direct reports                   │  ← blue group header
+├──────────────────┬───────┬─────────────────────────┤
+│  Bruno Regio     │  19   │  ...                    │
+│  Grace Casey     │  13   │  ...                    │
+│  Joseph Mullen   │  13   │  ...                    │
+│  Phoebe Nichols  │  12   │  ...                    │
+```
+
+**`buildRepHygienePanel` (JS):**
+- Groups the server-sorted array by manager key (`null` for blanks)
+- Renders one `<tr class="rep-hygiene-group-header">` per manager, `colspan="8"`
+- Header label: `"Spencer Korn — 5 direct reports"` (or `"1 direct report"`)
+- Partner seller group header: `"Partner Sellers / No IBM Manager (N)"` — muted style
+- All rep data rows follow under their group, no Manager column
+
+**CSS:**
+- `.rep-hygiene-group-header td` — `background: #e8f0fe`, `color: #1a56db`, bold uppercase, top border separator
+- `.rep-hygiene-group-header.no-manager td` — muted grey variant
+- Table drops from 9 columns to 8 (Manager column removed)
+- Owner col expands to 200px; col positions shift by 1
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `8903795` | v2.5.17 release merge |
+| `develop` | `9414d37` | v2.5.17 feature commit |
+| `v2.5.17` tag | `8903795` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full UX overhaul (v2.5.8–v2.5.17) | ✅ Both tables polished, hygiene properly grouped |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 38 — Team Hygiene Manager-First Grouping (v2.5.16) — July 19, 2026
 
 **Date:** 2026-07-19
