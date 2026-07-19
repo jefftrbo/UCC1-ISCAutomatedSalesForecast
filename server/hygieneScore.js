@@ -58,6 +58,50 @@ const FLM_DOWNGRADE_VALUES = new Set([
   'Pipeline', 'Omitted', 'No Call', 'No Decision', 'Exclude',
 ]);
 
+/**
+ * "Padded close" detection — days from the quarter-end boundary.
+ *
+ * A close date of Sep 28–30 is the classic sign that a rep parked the deal
+ * at the last safe moment before quarter-end to avoid scrutiny.
+ * It doesn't mean the deal is bad — but it does mean the VP should ask.
+ *
+ * Thresholds:
+ *   0 days  = exactly quarter-end (e.g. Sep 30, Dec 31) — highest suspicion
+ *   1–2 days = penultimate days                           — high suspicion
+ *   3–4 days = last week of quarter                       — watch signal
+ *
+ * @param {string|null} closeDateStr  YYYY-MM-DD
+ * @returns {{ isPadded: boolean, daysFromEnd: number|null, quarterEnd: string|null }}
+ */
+function detectPaddedClose(closeDateStr) {
+  if (!closeDateStr) return { isPadded: false, daysFromEnd: null, quarterEnd: null };
+
+  const d = new Date(closeDateStr);
+  if (isNaN(d.getTime())) return { isPadded: false, daysFromEnd: null, quarterEnd: null };
+
+  const year = d.getUTCFullYear();
+  // Quarter-end dates as UTC day numbers for offset-safe comparison
+  // All dates are YYYY-MM-DD strings → parsed as UTC midnight → compare in UTC days.
+  const quarterEnds = [
+    { ms: Date.UTC(year, 2, 31), label: `Mar 31, ${year}` },   // Mar 31
+    { ms: Date.UTC(year, 5, 30), label: `Jun 30, ${year}` },   // Jun 30
+    { ms: Date.UTC(year, 8, 30), label: `Sep 30, ${year}` },   // Sep 30
+    { ms: Date.UTC(year, 11, 31), label: `Dec 31, ${year}` },  // Dec 31
+  ];
+
+  for (const qEnd of quarterEnds) {
+    const daysFromEnd = Math.round((qEnd.ms - d.getTime()) / 86400000);
+    if (daysFromEnd >= 0 && daysFromEnd <= 4) {
+      return {
+        isPadded:    true,
+        daysFromEnd,
+        quarterEnd:  qEnd.label,
+      };
+    }
+  }
+  return { isPadded: false, daysFromEnd: null, quarterEnd: null };
+}
+
 // ---------------------------------------------------------------------------
 // Next Steps date parsing
 // ---------------------------------------------------------------------------
@@ -161,6 +205,27 @@ function scoreHygiene(opp) {
   const oppScore   = opp.score ?? opp.ai_score ?? null;
   const owner      = opp.opportunity_owner || 'Unknown owner';
   const closeDateStr = opp.close_date || '';
+
+  // ── Component 0: Padded close date (informational — no score deduction) ──────
+  // Detected separately so it appears at the TOP of action items regardless
+  // of other scores. A deal on Sep 30 with a great hygiene score still needs
+  // this flag visible because it's a management question, not a hygiene failure.
+  const paddedClose = detectPaddedClose(closeDateStr);
+  if (paddedClose.isPadded) {
+    const { daysFromEnd, quarterEnd } = paddedClose;
+    const urgency  = daysFromEnd === 0 ? 'P1' : daysFromEnd <= 2 ? 'P2' : 'P3';
+    const dayLabel = daysFromEnd === 0
+      ? `exactly on quarter-end (${quarterEnd})`
+      : `${daysFromEnd} day${daysFromEnd !== 1 ? 's' : ''} before quarter-end (${quarterEnd})`;
+    const advice = HIGH_COMMIT_CATEGORIES.has(fc)
+      ? `${owner} calls this "${fc}" with a quarter-end close date — ask: is this real or parked? Confirm customer commitment and procurement path.`
+      : `Close date is ${dayLabel}. Verify this is a genuine target date and not a placeholder.`;
+    actionItems.push({
+      priority: urgency,
+      type: 'padded-close',
+      text: `Close date is ${dayLabel}. ${advice}`,
+    });
+  }
 
   // ── Component 1: Next Steps presence (+35) ────────────────────────────────
   const nsBlank = !ns.trim();
@@ -298,6 +363,7 @@ function scoreHygiene(opp) {
     nsDateFound,
     liarDeal,
     flmDisagreement,
+    paddedClose:       paddedClose.isPadded ? paddedClose : null,
   };
 }
 
@@ -433,4 +499,5 @@ module.exports = {
   getRepHygieneSummary,
   parseNsDate,
   daysSinceNsUpdate,
+  detectPaddedClose,
 };
