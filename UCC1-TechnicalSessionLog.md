@@ -67,6 +67,55 @@ HAR also contains a new field pair not previously seen:
 
 These are not currently stored. Noted for v2.6.0+ as potential coaching link feature.
 
+### What Was Delivered
+
+Column width overhaul — `public/index.html` (`feat(v2.5.9)`):
+
+**All 25 columns now have explicit `width` + `min-width`** — `initColResize` no longer
+snapshots browser-inflated auto widths. Every column is now capped at a sensible default;
+user can still drag-resize any column wider manually.
+
+| Column | Width | Truncation |
+|---|---|---|
+| ☐ checkbox | 36px | — |
+| ♥ health | 32px | — |
+| Confidence | 120px | — (badge) |
+| Opportunity | 220px | 40 chars |
+| Account Detail | 160px | 30 chars |
+| IBM Tech Amt | 100px | — (number) |
+| Total Amt | 100px | — (number) |
+| Next Steps | 200px | 60 chars (was 250) |
+| Close Date | 90px | — (date) |
+| Quarter | 68px | — |
+| Create Date | 90px | — (date) |
+| Stage | 105px | — |
+| Forecast | 90px | — (badge) |
+| Owner | 140px | 25 chars (new) |
+| Owner's Manager | 140px | 25 chars (new) |
+| Created By | 140px | 25 chars (new) |
+| FLM Judgement | 80px | — |
+| Account (Company) | 140px | 25 chars (new) |
+| Account (DB/DC) | 80px | — |
+| Team Notes | 180px | 50 chars (was 250) |
+| Business Partner | 130px | 22 chars (new) |
+| Technology Client | 110px | 18 chars (new) |
+| Acquisition Pipeline | 110px | 18 chars (new) |
+| IBM Tech Plan | 80px | — (Quip link) |
+| Opportunity ID | 80px | — |
+
+**Sticky column offset corrected:** col 3 (Confidence) `left` was `136px` (based on old
+`min-width:100px` for ♥ col). Corrected to `68px` (36px checkbox + 32px ♥).
+
+**Version bump:** `2.5.8` → `2.5.9`
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `01a101b` | v2.5.9 release merge |
+| `develop` | `34c037d` | v2.5.9 feature commit |
+| `v2.5.9` tag | `01a101b` | tagged on main |
+
 ### Remaining Before July 22 Deadline
 
 | Priority | Action | Status |
