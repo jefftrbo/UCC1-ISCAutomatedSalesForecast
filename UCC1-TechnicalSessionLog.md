@@ -1,5 +1,55 @@
 ---
 
+## Session 41 — Team Hygiene Column Tooltips (v2.5.19) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `8669e7d` (feat) · `0a9ea5a` (release merge)
+**Version bump:** `2.5.18` → `2.5.19`
+
+### User Request
+
+> "Is it possible to put tooltips on each column in the Team Hygiene window? What that
+> does is allow the user to know exactly what each column means. In practical terms,
+> Spencer could reach out to his 4 reps via phone, Slack, or email and let them know
+> that they have 'n' number of opps that need updated for the following reasons."
+
+### What Was Delivered
+
+**All 8 Team Hygiene column headers now carry actionable coaching tooltips.**
+
+Each tooltip is framed in two parts:
+1. What the metric measures (technical definition)
+2. **"What to tell your rep"** — a ready-to-send Slack/email phrase for the manager
+
+| Column | Tooltip content |
+|--------|-----------------|
+| Owner | Rep name in Salesforce ISC |
+| Deals | Total open opps (stages 1–5) |
+| Blank NS | No Next Steps at all → "Add at least one action before our next call" |
+| Stale NS | NS unchanged 14+ days → "These deals look frozen — update next steps" |
+| Forecast Mismatch | Forecast ≠ stage → "Your forecast call doesn't match where the deal is" |
+| QE Close | Close date within 4 days of quarter-end → "Push for a real date" |
+| Hygiene Score | Average 0–100 with 🟢/🟡/🔴 thresholds explained |
+| Flag | 🔴 Urgent / 🟡 Watch / ✓ Clean — thresholds defined |
+
+Uses the existing `has-tip` / `data-tip` / `#global-tooltip` engine (fixed-position, never clipped by modal overflow). Added `cursor: help` to `.rep-hygiene-table th` so the hover hint is visible.
+
+### Remaining Before July 22 Deadline
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| 🔴 1 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | ❌ Must complete |
+| 🔴 2 | **Identify R&C Lead** — one person from Dushyant's org | ❌ Unassigned |
+| 🟡 3 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⚠ Pending |
+| 🟡 5 | Record demo video (3–4 min) | ⚠ Not recorded |
+| ✅ | No IBM Confidential data in repo | ✅ Confirmed |
+
+
+---
+
 ## Session 40 — Team Hygiene Cache Bust (v2.5.18) — July 19, 2026
 
 **Date:** 2026-07-19
