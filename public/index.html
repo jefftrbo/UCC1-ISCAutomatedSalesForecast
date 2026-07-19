@@ -1076,7 +1076,7 @@
     tbody tr:hover td:nth-child(3) { background: #edf5ff; }
 
     /* ── Column resize handles ── */
-    thead th { position: relative; overflow: hidden; }
+    thead th { position: sticky; } /* keeps sticky; resizer handles use absolute within */
     .col-resizer {
       position: absolute;
       right: 0; top: 0; bottom: 0;
@@ -3501,7 +3501,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.9';
+  const APP_VERSION = '2.5.10';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
