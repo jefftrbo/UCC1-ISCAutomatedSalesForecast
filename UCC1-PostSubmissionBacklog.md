@@ -180,6 +180,124 @@ Deploy the app to IBM Cloud (Code Engine or Kubernetes) with:
 
 ---
 
+## v2.7.1 — User-Uploaded PTMP Templates (Per-User Format Customization)
+
+### Problem Statement
+
+The current `generatePtmpSlide()` builds a slide from scratch using hardcoded coordinates designed for Frank Attaie's PTMP format. Every IBM VP has a different leadership upline with a different PTMP format. A TSL reporting to a VP in a different org may use a 6-column summary table, different section order, different branding — the app can't burn one hardcoded layout into the binary and serve all users.
+
+### Two Modes
+
+**Mode A — Build from scratch (current):** `pptxgenjs` draws the slide using our coordinate system. Works for users whose VP uses Frank Attaie's format.
+
+**Mode B — Populate a user-supplied template (new):** User uploads their org's actual PTMP `.pptx` file. The app finds `{{token}}` placeholders the user has placed in their template and replaces them with live deal data. This is how Clari, Gong, and Salesforce CRM Analytics handle customer-supplied report formats.
+
+### Token Convention
+
+The user places these tokens as text in any text box or table cell in their `.pptx` template:
+
+```
+{{LAST_NAME}}           → "Patel"
+{{TEAM_LABEL}}          → "3Q26"
+{{BUDGET}}              → "$175.0M"
+{{CALL_TOTAL}}          → "$146.7M"
+{{GAP}}                 → "$28.3M"
+{{UPSIDE}}              → "$495.2M"
+{{STRETCH}}             → "$495.2M"
+{{CALL_DEAL_1}} … {{CALL_DEAL_12}}   → "State Farm   Hybrid Cloud ELA   $12.5M"
+{{GAP_DEAL_1}}  … {{GAP_DEAL_8}}    → "AT&T   watsonx.data ELA   $8.2M"
+{{ACTION_1}}    … {{ACTION_8}}       → "Push Maersk renewal to commit"
+{{GENERATED_DATE}}      → "Jul 19, 2026"
+```
+
+### Technical Approach
+
+The PPTX format is a ZIP archive containing XML. After upload, the server:
+1. Unzips the file in memory
+2. For each slide XML (`ppt/slides/slide*.xml`), runs a regex replace on all `{{TOKEN}}` patterns
+3. Re-zips the modified XML back into a new PPTX
+4. Returns the populated file to the browser
+
+No `pptxgenjs` needed for template-fill mode — pure XML string replacement. Library candidate: `pizzip` + `docxtemplater` (already used in similar PPT templating tools), or a hand-rolled `JSZip` + regex pass (fewer dependencies).
+
+### Template Validation on Upload
+
+After upload, the server does a dry-run scan of the XML and reports which tokens were found vs. missing:
+
+```json
+{
+  "found": ["BUDGET", "CALL_TOTAL", "GAP", "CALL_DEAL_1", "ACTION_1"],
+  "missing": ["UPSIDE", "STRETCH", "CALL_DEAL_2"],
+  "warning": "Tokens GAP_DEAL_1…8 not found — gap deal list will not populate"
+}
+```
+
+This gives the user confidence their template is wired correctly before their next GM meeting.
+
+### New DB Table
+
+```sql
+CREATE TABLE ptmp_templates (
+  id          TEXT PRIMARY KEY,       -- UUID
+  user_id     TEXT NOT NULL,           -- tenant isolation
+  label       TEXT NOT NULL,           -- e.g. "Frank Attaie Q3 Format"
+  filename    TEXT NOT NULL,           -- original filename
+  uploaded_at TEXT NOT NULL,
+  is_default  INTEGER DEFAULT 1        -- 1 = active, 0 = superseded
+)
+```
+
+### File Storage
+
+`templates/{sanitized_user_id}/{uuid}.pptx` — directory is already gitignored (confirmed: `templates/` present in untracked files as of v2.6.1). Keep last 2 uploads per user; auto-retire older ones (set `is_default = 0`).
+
+### New Endpoints
+
+| Endpoint | Description |
+|---|---|
+| `POST /api/ptmp-template/upload` | multipart, stores file + DB row, returns `{ id, label, tokensFound, tokensMissing }` |
+| `GET /api/ptmp-template` | returns user's active template metadata |
+| `DELETE /api/ptmp-template/:id` | removes template + file from disk |
+
+### Modified Endpoint
+
+`POST /api/generate-ptmp` — updated logic:
+1. Check if user has an active template in `ptmp_templates`
+2. If yes → template-fill mode (XML replacement)
+3. If no → build-from-scratch mode (current `pptxgenjs` path)
+4. If template mode fails → fall back to build-from-scratch + `warning` field in response JSON
+
+### UX Changes in PTMP Modal
+
+Add a "Template" section above the budget input:
+- **No template uploaded:** grey dashed upload zone — "Upload your org's PTMP .pptx to use your exact format (one-time setup)"
+- **Template active:** show filename + upload date + "✓ Active" badge + small "Replace" link
+- Upload is a one-time setup — persists across sessions
+
+### Constraints
+
+1. `multer` 10MB file size cap
+2. No WYSIWYG template editor (scope explosion)
+3. No auto-detection of layout regions (too fragile — PPT XML structure varies per org)
+4. No server-side preview/rendering (requires LibreOffice — not available here)
+5. Token convention is intentional: forces user to be explicit, which makes generation reliable
+
+### Prerequisite
+
+Per-user HAR upload (v2.6.0 in this backlog) should land first — it establishes the `multer` multipart upload pattern and the `templates/` directory convention. PTMP template upload reuses both.
+
+### Files That Change
+
+| File | Change |
+|---|---|
+| `server/db.js` | New `ptmp_templates` table + migration |
+| `server/index.js` | `POST /api/ptmp-template/upload`, `GET`, `DELETE`; modified `POST /api/generate-ptmp` with fallback logic |
+| `server/generatePpt.js` | New `fillPtmpTemplate(templatePath, data)` function — JSZip + regex replacement |
+| `public/index.html` | Template upload zone in PTMP modal |
+| `.gitignore` | `templates/` (already present as untracked — add explicit entry) |
+
+---
+
 ## Deferred UX Items
 
 | Item | Description | Effort |
@@ -190,5 +308,5 @@ Deploy the app to IBM Cloud (Code Engine or Kubernetes) with:
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · Post-submission backlog · Captured July 18, 2026*
+*UCC1 — ISC Automated Sales Forecast · Post-submission backlog · Captured July 18–19, 2026*
 *Built with IBM Bob · IBM watsonx Challenge 2026 · Growth Enablers Track*
