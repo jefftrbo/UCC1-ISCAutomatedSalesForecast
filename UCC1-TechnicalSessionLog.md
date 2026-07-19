@@ -1,5 +1,71 @@
 ---
 
+## Session 31 — Column Width Overhaul Validated (v2.5.9) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `34c037d` (feat) · `01a101b` (release merge)
+**Version bump:** `2.5.8` → `2.5.9` (completed in Session 30 continuation)
+
+### Context
+
+User confirmed v2.5.9 column width overhaul in the browser. Screenshot captured at
+9:48 AM July 19, 2026 showing the fully operational app at v2.5.9 with 969/969 opportunities
+scored, filtered to Best Case / Q3 2026 / High+Medium confidence / 218 of 969 shown.
+
+### Validation — Screenshot Confirmed
+
+Every column is compact and readable without horizontal scrolling to reach key data:
+
+| What we see in screenshot | Status |
+|---|---|
+| ☐ + ♥ + Confidence columns pinned sticky on left | ✅ Correct |
+| Opportunity column shows deal names cleanly at 220px | ✅ Correct |
+| Account Detail at 160px — "CLEVELAND CLINIC-US", "ABBOTT LABORATORIES-US" | ✅ Correct |
+| IBM Tech Amt + Total Amt right-aligned, compact 100px | ✅ Correct |
+| Next Steps at 200px — date-prefixed notes with "more" toggle visible | ✅ Correct |
+| Close Date / Quarter / Create Date / Stage all compact | ✅ Correct |
+| Forecast shows badge ("Best Case") at 90px | ✅ Correct |
+| Owner at 140px — "Rick Picozzi", "Naveen Hiremath", "Lauren Monahan" | ✅ Correct |
+| Owner's Manager at 140px — "Rick B Newman", "Jenn Booth", "David Young" | ✅ **Manager names now showing — v2.5.8 fix confirmed working** |
+| "more" toggles visible on truncated Next Steps cells | ✅ Correct |
+| Pipeline status bar: "Pipeline loaded & scored — 969 opportunities … (Open pipeline only — lower than ISC total is normal.)" | ✅ Correct |
+| v2.5.9 shown in header | ✅ Correct |
+
+### User Feedback
+
+> "wow! a MILLION times better UI/UX ... very worthy upgrade!"
+
+### What Was Delivered (Sessions 30–31 combined)
+
+Three fixes shipped in rapid succession:
+
+| Version | Fix | Impact |
+|---|---|---|
+| v2.5.8 | `Opp.MGR.Mgr.User_Name_mk__c` — manager field resolved | 870/949 reps now show manager name (was 0) |
+| v2.5.8 | ISC vs app count mismatch explained in all 4 user docs | Users won't doubt data accuracy |
+| v2.5.9 | All 25 columns explicit widths + truncation | No more uncontrolled browser-inflated column widths |
+| v2.5.9 | Sticky col 3 offset corrected (136px → 68px) | Confidence badge no longer overlaps content on scroll |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Run manager field name diagnostic + fix | ✅ v2.5.8 — 870/949 resolving |
+| ✅ | Column width overhaul | ✅ v2.5.9 — validated in browser |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 30 — Manager Field Fix + Fresh HAR (v2.5.8) — July 19, 2026
 
 **Date:** 2026-07-19
