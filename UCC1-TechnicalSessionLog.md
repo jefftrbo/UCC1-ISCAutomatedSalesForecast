@@ -1,5 +1,80 @@
 ---
 
+## Session 36 — Team Hygiene Frozen Columns Fix (v2.5.14) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `f68c9a1` (fix) · `2b0f520` (release merge)
+**Version bump:** `2.5.13` → `2.5.14`
+
+### Bug Report (4 screenshots)
+
+Horizontal scroll in Team Hygiene tab progressively destroys column layout:
+- Screenshot 1: All columns visible, Owner+Manager correct
+- Screenshot 2: Scroll right — Owner truncated to first letters ("Pra", "G", "Si"), Manager shifts left
+- Screenshot 3: More scroll — Owner/Manager frozen cells disappear entirely
+- Screenshot 4: Far right — Owner/Manager gone, data columns misaligned with headers
+
+### Root Cause — Two competing scroll ancestors
+
+v2.5.13 introduced `.rep-hygiene-wrap` with `overflow-x: auto` as a child of
+`.health-modal .diff-modal-body` which had `overflow-y: auto`. **Two nested elements
+each owning one scroll axis** is the root cause of sticky failure.
+
+`position: sticky` works relative to the **nearest scrolling ancestor**. With two
+scroll parents:
+- Vertical sticky (`top: 0`) anchored to `.diff-modal-body`
+- Horizontal sticky (`left: Npx`) anchored to `.rep-hygiene-wrap`
+
+These are two different elements. As the user scrolled horizontally inside the inner
+wrapper, the frozen cells tried to stay anchored to the *outer* element's left edge —
+which was already scrolled — producing the clipped/destroyed appearance.
+
+### Fix — Single scroll ancestor
+
+Remove `.rep-hygiene-wrap` entirely. Add `overflow-x: auto` directly to
+`.health-modal .diff-modal-body` so it owns **both** H and V scroll:
+
+```css
+/* Before */
+.health-modal .diff-modal-body { overflow-y: auto; flex: 1 1 auto; }
+.rep-hygiene-wrap              { overflow-x: auto; overflow-y: auto; max-height: ... }
+
+/* After */
+.health-modal .diff-modal-body { overflow-x: auto; overflow-y: auto; flex: 1 1 auto; }
+/* .rep-hygiene-wrap removed */
+```
+
+With one scroll ancestor, `sticky top + sticky left` on the corner header cells
+resolve to the same element — Owner and Manager columns now freeze correctly on
+both scroll axes simultaneously.
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `2b0f520` | v2.5.14 release merge |
+| `develop` | `f68c9a1` | v2.5.14 fix commit |
+| `v2.5.14` tag | `2b0f520` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full table UX overhaul (v2.5.8–v2.5.14) | ✅ Both tables fully frozen + scrollable |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 35 — Team Hygiene Frozen Columns (v2.5.13) — July 19, 2026
 
 **Date:** 2026-07-19
