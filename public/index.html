@@ -1055,17 +1055,17 @@
     thead th.sort-asc::after  { content: " ▲"; font-size: 10px; }
     thead th.sort-desc::after { content: " ▼"; font-size: 10px; }
 
-    /* Sticky columns — checkbox (col 1), Confidence (col 2), Opportunity (col 3) */
+    /* Sticky columns — checkbox (col 1), ♥ (col 2), Confidence (col 3) */
     thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 12; }
     thead th:nth-child(2), tbody td:nth-child(2) { position: sticky; left: 36px; z-index: 12; }
-    thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 136px; z-index: 12; }
+    thead th:nth-child(3), tbody td:nth-child(3) { position: sticky; left: 68px; z-index: 12; }
 
     thead th:nth-child(1) { background: #e0e0e0; width: 36px; text-align: center; border-right: 1px solid #c6c6c6; }
-    thead th:nth-child(2) { background: #e0e0e0; min-width: 100px; }
-    thead th:nth-child(3) { background: #e0e0e0; min-width: 200px; border-right: 2px solid #a8a8a8; }
+    thead th:nth-child(2) { background: #e0e0e0; width: 32px; }
+    thead th:nth-child(3) { background: #e0e0e0; width: 120px; min-width: 120px; border-right: 2px solid #a8a8a8; }
 
     tbody td:nth-child(1) { background: #fff; width: 36px; text-align: center; border-right: 1px solid #e0e0e0; }
-    tbody td:nth-child(2) { background: #fff; }
+    tbody td:nth-child(2) { background: #fff; width: 32px; }
     tbody td:nth-child(3) { background: #fff; border-right: 2px solid #d0d0d0; }
 
     tbody tr.selected-row td:nth-child(1),
@@ -1547,28 +1547,28 @@
           <th style="width:36px;text-align:center"><input type="checkbox" id="th-select-all" title="Select / deselect all visible rows" /></th>
           <th style="width:32px;text-align:center" title="Deal Health Card — hygiene score &amp; action items">&#x2665;</th>
           <th data-col="score" class="score-cell">Confidence</th>
-          <th data-col="opportunity_name" style="width:220px;min-width:220px;max-width:220px;">Opportunity</th>
-          <th data-col="account_name">Account Detail</th>
-          <th data-col="filtered_opportunity_amount" style="text-align:right">IBM Tech Amt</th>
-          <th data-col="total_opportunity_amount"    style="text-align:right">Total Amt</th>
-          <th data-col="next_steps" style="max-width:220px;min-width:220px;width:220px;">Next Steps</th>
-          <th data-col="close_date">Close Date</th>
-          <th data-col="closeQuarter">Quarter</th>
-          <th data-col="create_date">Create Date</th>
-          <th data-col="stage">Stage</th>
-          <th data-col="forecast_category">Forecast</th>
-          <th data-col="opportunity_owner">Owner</th>
-          <th data-col="opportunity_owners_manager">Owner's Manager</th>
-          <th data-col="opportunity_created_by">Created By</th>
-          <th data-col="flm_judgement">FLM Judgement</th>
-          <th data-col="account_company">Account (Company)</th>
-          <th data-col="account_db_dc">Account (DB/DC)</th>
-          <th data-col="team_notes">Team Notes</th>
-          <th data-col="business_partner">Business Partner</th>
-          <th data-col="technology_client">Technology Client</th>
-          <th data-col="acquisition_pipeline">Acquisition Pipeline</th>
-          <th data-col="ibm_technology_plan">IBM Technology Plan</th>
-          <th data-col="id">Opportunity ID</th>
+          <th data-col="opportunity_name"           style="width:220px;min-width:220px;">Opportunity</th>
+          <th data-col="account_name"               style="width:160px;min-width:160px;">Account Detail</th>
+          <th data-col="filtered_opportunity_amount" style="width:100px;min-width:100px;text-align:right">IBM Tech Amt</th>
+          <th data-col="total_opportunity_amount"    style="width:100px;min-width:100px;text-align:right">Total Amt</th>
+          <th data-col="next_steps"                 style="width:200px;min-width:200px;">Next Steps</th>
+          <th data-col="close_date"                 style="width:90px;min-width:90px;">Close Date</th>
+          <th data-col="closeQuarter"               style="width:68px;min-width:68px;">Quarter</th>
+          <th data-col="create_date"                style="width:90px;min-width:90px;">Create Date</th>
+          <th data-col="stage"                      style="width:105px;min-width:105px;">Stage</th>
+          <th data-col="forecast_category"          style="width:90px;min-width:90px;">Forecast</th>
+          <th data-col="opportunity_owner"          style="width:140px;min-width:140px;">Owner</th>
+          <th data-col="opportunity_owners_manager" style="width:140px;min-width:140px;">Owner's Manager</th>
+          <th data-col="opportunity_created_by"     style="width:140px;min-width:140px;">Created By</th>
+          <th data-col="flm_judgement"              style="width:80px;min-width:80px;">FLM Judgement</th>
+          <th data-col="account_company"            style="width:140px;min-width:140px;">Account (Company)</th>
+          <th data-col="account_db_dc"              style="width:80px;min-width:80px;">Account (DB/DC)</th>
+          <th data-col="team_notes"                 style="width:180px;min-width:180px;">Team Notes</th>
+          <th data-col="business_partner"           style="width:130px;min-width:130px;">Business Partner</th>
+          <th data-col="technology_client"          style="width:110px;min-width:110px;">Technology Client</th>
+          <th data-col="acquisition_pipeline"       style="width:110px;min-width:110px;">Acquisition Pipeline</th>
+          <th data-col="ibm_technology_plan"        style="width:80px;min-width:80px;">IBM Tech Plan</th>
+          <th data-col="id"                         style="width:80px;min-width:80px;">Opportunity ID</th>
         </tr>
       </thead>
       <tbody id="opp-tbody">
@@ -2271,25 +2271,25 @@
         </td>
         <td class="score-cell">${scoreBadge(opp)}</td>
         <td class="wrap">${truncCell(opp.opportunity_name, 40)}</td>
-        <td class="wrap">${truncCell(opp.account_name, 40)}</td>
+        <td class="wrap">${truncCell(opp.account_name, 30)}</td>
         <td class="revenue">${fmt$(opp.filtered_opportunity_amount)}</td>
         <td class="revenue">${fmt$(opp.total_opportunity_amount)}</td>
-        <td class="wrap">${truncCell(opp.next_steps)}</td>
+        <td class="wrap">${truncCell(opp.next_steps, 60)}</td>
         <td>${cell(opp.close_date)}</td>
         <td>${cell(opp.closeQuarter)}</td>
         <td>${cell(opp.create_date)}</td>
         <td>${cell(opp.stage)}</td>
         <td>${forecastBadge(opp.forecast_category)}</td>
-        <td>${cell(opp.opportunity_owner)}</td>
-        <td>${cell(opp.opportunity_owners_manager)}</td>
-        <td>${cell(opp.opportunity_created_by)}</td>
+        <td class="wrap">${truncCell(opp.opportunity_owner, 25)}</td>
+        <td class="wrap">${truncCell(opp.opportunity_owners_manager, 25)}</td>
+        <td class="wrap">${truncCell(opp.opportunity_created_by, 25)}</td>
         <td>${flmHtml(opp.flm_judgement)}</td>
-        <td>${cell(opp.account_company)}</td>
+        <td class="wrap">${truncCell(opp.account_company, 25)}</td>
         <td>${cell(opp.account_db_dc)}</td>
-        <td class="wrap">${truncCell(opp.team_notes)}</td>
-        <td>${cell(opp.business_partner)}</td>
-        <td>${cell(opp.technology_client)}</td>
-        <td>${cell(opp.acquisition_pipeline)}</td>
+        <td class="wrap">${truncCell(opp.team_notes, 50)}</td>
+        <td class="wrap">${truncCell(opp.business_partner, 22)}</td>
+        <td class="wrap">${truncCell(opp.technology_client, 18)}</td>
+        <td class="wrap">${truncCell(opp.acquisition_pipeline, 18)}</td>
         <td>${opp.ibm_technology_plan
               ? `<a href="${esc(opp.ibm_technology_plan)}" target="_blank" rel="noopener">Quip ↗</a>`
               : '—'}</td>
@@ -3501,7 +3501,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.8';
+  const APP_VERSION = '2.5.9';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
