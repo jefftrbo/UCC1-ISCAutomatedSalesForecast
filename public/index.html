@@ -1547,6 +1547,14 @@
   </button>
   <span class="action-status-chip" id="chip-ppt">Not run</span>
 
+  <div class="action-sep"></div>
+
+  <button class="action-btn has-tip" id="ab-ptmp"
+    data-tip="Generate a PTMP (Plan to Make Plan) one-pager slide — Frank Attaie's format. Enter your 3Q budget and an action plan, then download the slide ready to drop into the GM deck.">
+    &#x1F3AF; PTMP Slide
+  </button>
+  <span class="action-status-chip" id="chip-ptmp">Not run</span>
+
   <!-- Right-side utilities -->
   <div class="action-utilities">
     <button class="btn-secondary has-tip" id="btn-snapshot-util"
@@ -1778,6 +1786,47 @@
         <button class="btn-secondary" id="ppt-confirm-cancel" style="padding:8px 20px;">Cancel</button>
         <button class="btn-secondary" id="ppt-confirm-generate-only" style="padding:8px 20px;">Generate Only</button>
         <button class="btn-success" id="ppt-confirm-ok" style="padding:8px 20px;font-weight:600;">✅ Confirm &amp; Generate</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PTMP Modal ── -->
+<div class="diff-modal-backdrop" id="ptmp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ptmp-modal-title">
+  <div class="diff-modal" style="max-width:600px;">
+    <div class="diff-modal-header" style="background:#0043ce;">
+      <div>
+        <div class="diff-modal-title" id="ptmp-modal-title">🎯 Generate PTMP Slide</div>
+        <div class="diff-modal-subtitle">Plan to Make Plan — one-pager for Frank Attaie's GM review</div>
+      </div>
+      <button class="diff-modal-close" id="ptmp-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div class="diff-modal-body" style="padding:20px;display:flex;flex-direction:column;gap:16px;">
+      <div style="font-size:13px;color:var(--cds-text-secondary);line-height:1.5;">
+        The PTMP slide matches Frank's weekly GM format:<br>
+        <strong>Title · Summary table (Budget / Call / Gap / Upside / Stretch) · Deals In Call · Deals to close Gap · Action Plan</strong>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">3Q Budget (your quota target)</label>
+          <input type="text" id="ptmp-budget" placeholder="e.g. 175000000 or 175M"
+            style="width:100%;padding:7px 10px;border:1px solid var(--cds-border-subtle);font-size:13px;font-family:inherit;background:var(--cds-layer-01);">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Team / Quarter Label</label>
+          <input type="text" id="ptmp-team" placeholder="e.g. HCLS 3Q26" value="HCLS 3Q26"
+            style="width:100%;padding:7px 10px;border:1px solid var(--cds-border-subtle);font-size:13px;font-family:inherit;background:var(--cds-layer-01);">
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;">Action Plan <span style="font-weight:400;color:var(--cds-text-secondary)">(one item per line — paste Duey's bullets directly)</span></label>
+        <textarea id="ptmp-action-plan" rows="6" placeholder="2H Planning sessions (resets by account)&#10;Q3 QBRs in Mid July (remote)&#10;Tech Days for each client&#10;Continue work with Deloitte and Accenture teams&#10;Activation of co-selling with Microsoft&#10;Focus on Bob-a-thons by account"
+          style="width:100%;padding:7px 10px;border:1px solid var(--cds-border-subtle);font-size:13px;font-family:inherit;background:var(--cds-layer-01);resize:vertical;"></textarea>
+      </div>
+      <div id="ptmp-status" style="font-size:12px;color:var(--cds-text-secondary);min-height:18px;"></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn-secondary" id="ptmp-modal-cancel" style="padding:8px 20px;">Cancel</button>
+        <button class="btn-success" id="ptmp-modal-generate" style="padding:8px 20px;font-weight:600;">🎯 Generate PTMP Slide</button>
       </div>
     </div>
   </div>
@@ -3224,6 +3273,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeRepDrill();
+      document.getElementById('ptmp-modal-backdrop').classList.remove('open');
       closeDiffModal();
       closePptConfirm();
       closeBaselineWarn();
@@ -3815,6 +3865,62 @@
   document.getElementById('ab-ppt').addEventListener('click', () =>
     openPptConfirm());
 
+  // ── PTMP Modal ────────────────────────────────────────────────────────────
+  (function wirePtmp() {
+    const backdrop = document.getElementById('ptmp-modal-backdrop');
+    const openPtmp  = () => { backdrop.classList.add('open');    document.getElementById('ptmp-modal-generate').focus(); };
+    const closePtmp = () => { backdrop.classList.remove('open'); document.getElementById('ptmp-status').textContent = ''; };
+
+    document.getElementById('ab-ptmp').addEventListener('click', openPtmp);
+    document.getElementById('ptmp-modal-close').addEventListener('click', closePtmp);
+    document.getElementById('ptmp-modal-cancel').addEventListener('click', closePtmp);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closePtmp(); });
+
+    // Parse budget string — accepts "175M", "175,000,000", or raw number
+    function parseBudget(s) {
+      if (!s) return 0;
+      s = s.trim().toUpperCase();
+      if (s.endsWith('M')) return parseFloat(s) * 1e6;
+      if (s.endsWith('K')) return parseFloat(s) * 1e3;
+      return parseFloat(s.replace(/[,$]/g, '')) || 0;
+    }
+
+    document.getElementById('ptmp-modal-generate').addEventListener('click', async () => {
+      const btn    = document.getElementById('ptmp-modal-generate');
+      const status = document.getElementById('ptmp-status');
+      const budget = parseBudget(document.getElementById('ptmp-budget').value);
+      const team   = document.getElementById('ptmp-team').value.trim() || 'HCLS 3Q26';
+      const plan   = document.getElementById('ptmp-action-plan').value.trim();
+
+      btn.disabled = true;
+      status.style.color = 'var(--cds-text-secondary)';
+      status.textContent = '⏳ Generating PTMP slide…';
+      try {
+        const res  = await fetch('/api/generate-ptmp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ budget, teamLabel: team, actionPlan: plan }),
+        });
+        const data = await res.json();
+        if (!res.ok) { status.style.color = '#da1e28'; status.textContent = 'Error: ' + (data.error || res.statusText); return; }
+
+        const gap = data.gap || 0;
+        status.style.color = '#198038';
+        status.textContent = `✅ PTMP slide ready — ${data.callCount} Call deals · ${data.pipeCount} Pipeline deals · Gap: $${Math.round(gap/1e6*10)/10}M`;
+
+        // Open download in new tab
+        window.open(data.url, '_blank');
+        updateActionBar('ptmp', 'fresh');
+        setTimeout(closePtmp, 1800);
+      } catch (err) {
+        status.style.color = '#da1e28';
+        status.textContent = 'Error: ' + err.message;
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  })();
+
   // ── Patch loadOpportunities — auto-score after every refresh ──────────────
   // After data loads, silently trigger POST /api/score-opportunities in the
   // background so confidence scores always reflect the current field values
@@ -3859,7 +3965,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.21';
+  const APP_VERSION = '2.6.0';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });

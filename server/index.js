@@ -29,7 +29,7 @@ const { spawn }    = require('child_process');
 const db           = require('./db');
 const authRouter   = require('./auth');
 const requireAuth  = require('./middleware/requireAuth');
-const generatePpt  = require('./generatePpt');
+const { generatePpt, generatePtmpSlide } = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
 const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
 const { saveSnapshot, computeDiff, getLedgerHistory } = require('./diffEngine');
@@ -622,6 +622,64 @@ app.get('/api/rep-drill', (req, res) => {
     res.json({ owner, deals });
   } catch (err) {
     console.error('GET /api/rep-drill error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/generate-ptmp
+// Generates a PTMP (Plan to Make Plan) one-pager slide for the current user.
+// Body: { budget: number, teamLabel: string, actionPlan: string }
+//   budget     — 3Q quota target in dollars (user-entered)
+//   teamLabel  — e.g. "HCLS 3Q26" (defaults to quarter from data)
+//   actionPlan — free-text action plan (newline-separated bullets)
+// ---------------------------------------------------------------------------
+app.post('/api/generate-ptmp', async (req, res) => {
+  const userId = req.session.user.ibm_id;
+  const displayName = req.session.user.display_name || userId;
+  try {
+    const budget     = parseFloat(req.body.budget)     || 0;
+    const teamLabel  = (req.body.teamLabel  || '').trim() || '3Q26';
+    const actionPlan = (req.body.actionPlan || '').trim();
+
+    // Pull all Q3 Best Case deals (Call) for this user
+    const { scoreOpportunity: so } = require('./scoreOpportunity');
+    const allRows = db.prepare('SELECT * FROM opportunities WHERE user_id = ? ORDER BY filtered_opportunity_amount DESC').all(userId);
+
+    const callDeals = allRows.filter(r => {
+      try {
+        const { closeQuarter } = so(r);
+        return r.forecast_category === 'Best Case' && closeQuarter && closeQuarter.includes('Q3');
+      } catch { return false; }
+    });
+
+    const pipeDeals = allRows.filter(r => {
+      try {
+        const { closeQuarter } = so(r);
+        return r.forecast_category === 'Pipeline' && closeQuarter && closeQuarter.includes('Q3');
+      } catch { return false; }
+    });
+
+    const sanitizedId = userId.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const outputDir   = path.join(__dirname, '..', 'output', sanitizedId);
+    const { mkdirSync } = require('fs');
+    mkdirSync(outputDir, { recursive: true });
+    const outputPath  = path.join(outputDir, `ptmp_${sanitizedId}_${Date.now()}.pptx`);
+
+    await generatePtmpSlide({
+      ownerName:  displayName,
+      teamLabel,
+      budget,
+      callDeals,
+      pipeDeals,
+      actionPlan,
+      outputPath,
+    });
+
+    const relPath = path.relative(path.join(__dirname, '..'), outputPath).replace(/\\/g, '/');
+    res.json({ url: '/' + relPath, callCount: callDeals.length, pipeCount: pipeDeals.length, budget, gap: Math.max(0, budget - callDeals.reduce((s, r) => s + (r.filtered_opportunity_amount || 0), 0)) });
+  } catch (err) {
+    console.error('POST /api/generate-ptmp error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
