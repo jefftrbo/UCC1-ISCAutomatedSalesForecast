@@ -482,11 +482,20 @@ function getRepHygieneSummary(db, userId) {
     });
   }
 
-  // Sort: urgent first, then by avgHygieneScore ASC
+  // Sort: Manager (blanks last) → Owner ascending within each manager group
   results.sort((a, b) => {
-    const order = { urgent: 0, watch: 1, clean: 2 };
-    const od = order[a.coachingFlag] - order[b.coachingFlag];
-    return od !== 0 ? od : a.avgHygieneScore - b.avgHygieneScore;
+    const aHasMgr = a.manager && a.manager.trim().length > 0;
+    const bHasMgr = b.manager && b.manager.trim().length > 0;
+    // Blanks (partner sellers, no LDAP manager) sort to the bottom
+    if (aHasMgr && !bHasMgr) return -1;
+    if (!aHasMgr && bHasMgr) return  1;
+    // Both have manager — sort by manager name, then owner name
+    if (aHasMgr && bHasMgr) {
+      const mCmp = a.manager.localeCompare(b.manager);
+      if (mCmp !== 0) return mCmp;
+    }
+    // Same manager (or both blank) — sort by owner name ascending
+    return (a.owner || '').localeCompare(b.owner || '');
   });
 
   return results;
