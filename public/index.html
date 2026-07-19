@@ -975,15 +975,15 @@
     .btn-health.amber  { color: #f59e0b; opacity: 1; }
     .btn-health.green  { color: #198038; opacity: 0.75; }
 
-    /* Rep hygiene summary table — no wrapper needed; scroll is on .diff-modal-body */
+    /* Rep hygiene summary table — modal widens to 1100px on Team Hygiene tab */
     .rep-hygiene-table {
-      width: max-content;
-      min-width: 100%;
-      border-collapse: separate;   /* required: border-collapse:collapse kills position:sticky on td/th */
+      width: 100%;
+      table-layout: fixed;          /* fixed layout: widths below are enforced */
+      border-collapse: separate;
       border-spacing: 0;
       font-size: 12.5px;
     }
-    /* Sticky header row — z:10 (above body frozen cells) */
+    /* Sticky header row */
     .rep-hygiene-table th {
       text-align: left;
       font-size: 10px;
@@ -997,29 +997,29 @@
       white-space: nowrap;
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 2;
+      overflow: hidden;
     }
     .rep-hygiene-table td {
       padding: 7px 8px;
       border-bottom: 1px solid var(--cds-border-subtle);
-      vertical-align: top;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
       white-space: nowrap;
     }
-    /* Frozen cols: Owner (1) + Manager (2) — sticky left, z:2 for body cells */
-    .rep-hygiene-table th:nth-child(1),
-    .rep-hygiene-table td:nth-child(1) { position: sticky; left: 0;   z-index: 2; min-width: 140px; }
-    .rep-hygiene-table th:nth-child(2),
-    .rep-hygiene-table td:nth-child(2) { position: sticky; left: 140px; z-index: 2; min-width: 120px; border-right: 2px solid var(--cds-border-subtle); }
-    /* Corner header cells: sticky top+left — must beat body frozen (z:2) and header row (z:10) */
-    .rep-hygiene-table th:nth-child(1) { z-index: 20; top: 0; }
-    .rep-hygiene-table th:nth-child(2) { z-index: 20; top: 0; }
-    /* Opaque backgrounds so frozen cells don't show through scrolled content */
-    .rep-hygiene-table th:nth-child(1),
-    .rep-hygiene-table th:nth-child(2) { background: var(--cds-layer-01); }
-    .rep-hygiene-table td:nth-child(1),
-    .rep-hygiene-table td:nth-child(2) { background: #fff; }
-    .rep-hygiene-table tr:hover td:nth-child(1),
-    .rep-hygiene-table tr:hover td:nth-child(2) { background: var(--cds-layer-01); }
+    /* Column widths — fixed layout enforces these */
+    .rep-hygiene-table th:nth-child(1), .rep-hygiene-table td:nth-child(1) { width: 160px; } /* Owner */
+    .rep-hygiene-table th:nth-child(2), .rep-hygiene-table td:nth-child(2) { width: 150px; } /* Manager */
+    .rep-hygiene-table th:nth-child(3), .rep-hygiene-table td:nth-child(3) { width: 55px;  text-align: center; } /* Deals */
+    .rep-hygiene-table th:nth-child(4), .rep-hygiene-table td:nth-child(4) { width: 72px;  text-align: center; } /* Blank NS */
+    .rep-hygiene-table th:nth-child(5), .rep-hygiene-table td:nth-child(5) { width: 68px;  text-align: center; } /* Stale NS */
+    .rep-hygiene-table th:nth-child(6), .rep-hygiene-table td:nth-child(6) { width: 120px; text-align: center; } /* Forecast Mismatch */
+    .rep-hygiene-table th:nth-child(7), .rep-hygiene-table td:nth-child(7) { width: 72px;  text-align: center; } /* QE Close */
+    .rep-hygiene-table th:nth-child(8), .rep-hygiene-table td:nth-child(8) { width: 100px; text-align: center; } /* Hygiene Score */
+    .rep-hygiene-table th:nth-child(9), .rep-hygiene-table td:nth-child(9) { width: 80px;  } /* Flag */
+    /* Owner col bold */
+    .rep-hygiene-table td:nth-child(1) { font-weight: 600; }
     .rep-hygiene-table tr:last-child td { border-bottom: none; }
     .rep-hygiene-table tr:hover td { background: var(--cds-layer-01); }
     .coaching-flag {
@@ -1706,7 +1706,7 @@
 
 <!-- ── Deal Health Card Modal ── -->
 <div class="diff-modal-backdrop" id="health-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="health-modal-title">
-  <div class="diff-modal health-modal" style="max-width:760px;">
+  <div class="diff-modal health-modal" id="health-modal-dialog" style="max-width:760px;">
     <div class="diff-modal-header">
       <div>
         <div class="diff-modal-title" id="health-modal-title">&#x2665; Deal Health Card</div>
@@ -3232,14 +3232,14 @@
     }
     const rows = repData.map(r => `
       <tr>
-        <td style="font-weight:600">${esc(r.owner)}</td>
+        <td>${esc(r.owner)}</td>
         <td>${esc(r.manager || '—')}</td>
-        <td style="text-align:center">${r.dealCount}</td>
-        <td style="text-align:center;${r.blankNs > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.blankNs}</td>
-        <td style="text-align:center;${r.staleNs > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.staleNs}</td>
-        <td style="text-align:center;${r.liarDeals > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.liarDeals}</td>
-        <td style="text-align:center;${r.paddedDeals > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.paddedDeals}</td>
-        <td style="text-align:center;${r.avgHygieneScore < 45 ? 'color:#da1e28;font-weight:600' : r.avgHygieneScore < 75 ? 'color:#f59e0b;font-weight:600' : ''}">${r.avgHygieneScore}</td>
+        <td>${r.dealCount}</td>
+        <td style="${r.blankNs > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.blankNs}</td>
+        <td style="${r.staleNs > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.staleNs}</td>
+        <td style="${r.liarDeals > 0 ? 'color:#da1e28;font-weight:600' : ''}">${r.liarDeals}</td>
+        <td style="${r.paddedDeals > 0 ? 'color:#f59e0b;font-weight:600' : ''}">${r.paddedDeals}</td>
+        <td style="${r.avgHygieneScore < 45 ? 'color:#da1e28;font-weight:600' : r.avgHygieneScore < 75 ? 'color:#f59e0b;font-weight:600' : ''}">${r.avgHygieneScore}</td>
         <td><span class="coaching-flag ${r.coachingFlag}">${r.coachingFlag === 'urgent' ? '🔴 Urgent' : r.coachingFlag === 'watch' ? '🟡 Watch' : '✓ Clean'}</span></td>
       </tr>`).join('');
 
@@ -3248,11 +3248,11 @@
         <div class="health-section-title" style="padding:0 16px 8px">Rep Hygiene Summary — ${repData.length} owners · sorted by coaching priority</div>
         <table class="rep-hygiene-table">
           <thead><tr>
-            <th>Owner</th><th>Manager</th><th style="text-align:center">Deals</th>
-            <th style="text-align:center">Blank NS</th><th style="text-align:center">Stale NS</th>
-            <th style="text-align:center">Forecast Mismatch</th>
-            <th style="text-align:center" title="Deals closing within 4 days of quarter-end">QE Close</th>
-            <th style="text-align:center">Hygiene Score</th>
+            <th>Owner</th><th>Manager</th><th>Deals</th>
+            <th>Blank NS</th><th>Stale NS</th>
+            <th>Forecast Mismatch</th>
+            <th title="Deals closing within 4 days of quarter-end">QE Close</th>
+            <th>Hygiene Score</th>
             <th>Flag</th>
           </tr></thead>
           <tbody>${rows}</tbody>
@@ -3315,18 +3315,23 @@
     if (e.target === document.getElementById('health-modal-backdrop')) closeHealthModal();
   });
 
-  // Tab switching
+  // Tab switching — widen modal for Team Hygiene (9-col table needs room)
+  const MODAL_DEAL_WIDTH  = '760px';
+  const MODAL_TEAM_WIDTH  = 'min(95vw, 1100px)';
   document.querySelectorAll('.health-tab').forEach(tab => {
     tab.addEventListener('click', async () => {
       const which = tab.dataset.tab;
       document.querySelectorAll('.health-tab').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
+      const dialog = document.getElementById('health-modal-dialog');
       if (which === 'deal') {
         document.getElementById('health-panel-deal').style.display = '';
         document.getElementById('health-panel-team').style.display = 'none';
+        dialog.style.maxWidth = MODAL_DEAL_WIDTH;
       } else {
         document.getElementById('health-panel-deal').style.display = 'none';
         document.getElementById('health-panel-team').style.display = '';
+        dialog.style.maxWidth = MODAL_TEAM_WIDTH;
         await loadTeamHygiene();
       }
     });
@@ -3530,7 +3535,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.14';
+  const APP_VERSION = '2.5.15';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
