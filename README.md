@@ -355,6 +355,7 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.5.21 | "N deals need attention" badge clickable — opens Deal Health Card directly on Team Hygiene tab; tooltip on hover; `cursor:pointer` + hover brighten on `needs-action` state only |
 | **v2.5.21-rc1** | **Submission freeze point — tagged on main before PTMP work** |
 | v2.6.0 | PTMP slide generator — "🎯 PTMP Slide" button opens budget/action-plan modal; `POST /api/generate-ptmp` builds one-pager in Frank Attaie's format (Budget/Call/Gap/Upside/Stretch table · Deals In Call · Gap deals · Action Plan); `generatePtmpSlide()` in generatePpt.js |
+| v2.6.1 | PTMP font polish — title 22pt→16pt no-wrap; summary table headers 11pt→9pt / values 13pt→11pt / tighter row heights; deal lists replaced Courier+padEnd with `addTable()` helper (true column alignment); section headers 12pt→11pt; action plan bullets uniform 8pt; dynamic stretchY positioning; call slice 10→12, stretch slice 8→10 |
 
 ---
 
@@ -370,4 +371,4 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.6.0*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.6.1*
