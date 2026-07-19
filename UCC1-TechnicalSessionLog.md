@@ -1,5 +1,77 @@
 ---
 
+## Session 35 — Team Hygiene Frozen Columns (v2.5.13) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `71816b1` (feat) · `769db3b` (release merge)
+**Version bump:** `2.5.12` → `2.5.13`
+
+### Context
+
+User confirmed v2.5.12 fixed the main pipeline table (☐/♥/Confidence frozen on both
+axes). Requested the same treatment applied to the Team Hygiene tab in the Deal Health
+Card modal — Owner and Manager columns should freeze on H/V scroll.
+
+### What Was Delivered
+
+Applied the identical fix pattern to [`public/index.html`](public/index.html):
+
+**1. New `.rep-hygiene-wrap` scrollable container (CSS)**
+```css
+.rep-hygiene-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+```
+Wraps the table in the JS builder. The `health-modal .diff-modal-body` already had
+`overflow-y: auto` but no `overflow-x` — horizontal scrolling was silently suppressed,
+so extra columns just clipped at the modal edge. Now both axes scroll within the wrapper.
+
+**2. Table width: max-content** — enables horizontal overflow so the wrapper can scroll.
+
+**3. z-index ladder** — same as main table:
+- All `th`: `z-index: 10` (was `1`)
+- `th:nth-child(1/2)` corner cells: `z-index: 20`
+- `td:nth-child(1/2)` body frozen: `z-index: 2`
+
+**4. Sticky left positions**
+- Owner (col 1): `left: 0`, `min-width: 140px`
+- Manager (col 2): `left: 140px`, `min-width: 120px`, `border-right` separator
+
+**5. Opaque backgrounds** on frozen `th` and `td` cells so scrolled content doesn't
+bleed through. Hover state extended to frozen cells.
+
+**6. `white-space: nowrap` on `td`** — prevents cells wrapping prematurely before
+horizontal scroll activates.
+
+### Current Git State
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `769db3b` | v2.5.13 release merge |
+| `develop` | `71816b1` | v2.5.13 feature commit |
+| `v2.5.13` tag | `769db3b` | tagged on main |
+
+### Remaining Before July 22 Deadline
+
+| Priority | Action | Status |
+|---|---|---|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| ✅ | Full table UX overhaul (v2.5.8–v2.5.13) | ✅ Both tables fully frozen + scrollable |
+| 🔴 1 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
+| 🔴 2 | Identify Risk & Compliance Lead for ServiceNow submission | ❌ Unassigned |
+| 🟡 3 | Re-pull HARs for remaining 8 users (post-ISC refresh) | ⏳ Needed |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
+| 🟡 5 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 6 | Record demo video | ⚠ Not recorded |
+
+### How to Resume
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 34 — Frozen Column z-index Fix (v2.5.12) — July 19, 2026
 
 **Date:** 2026-07-19

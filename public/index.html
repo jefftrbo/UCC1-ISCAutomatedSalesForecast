@@ -775,14 +775,15 @@
     /* ── Deal Health Card modal ── */
     /* Re-uses .diff-modal-backdrop / .diff-modal skeleton for consistency */
     .health-modal .diff-modal-header { background: #0f62fe; }
-    /* Fix sticky thead: scroll must happen on the panel, not the backdrop.
-       Cap the modal at viewport height so the panel becomes the scroll ancestor. */
+    /* Cap modal at viewport so the panel body is the scroll ancestor for both axes */
     .health-modal {
       display: flex;
       flex-direction: column;
       max-height: calc(100vh - 96px);
     }
+    /* Both axes scroll on the panel body — single scroll ancestor required for sticky */
     .health-modal .diff-modal-body {
+      overflow-x: auto;
       overflow-y: auto;
       flex: 1 1 auto;
     }
@@ -974,13 +975,7 @@
     .btn-health.amber  { color: #f59e0b; opacity: 1; }
     .btn-health.green  { color: #198038; opacity: 0.75; }
 
-    /* Rep hygiene summary table wrapper — enables H+V scroll inside modal */
-    .rep-hygiene-wrap {
-      overflow-x: auto;
-      overflow-y: auto;
-      max-height: calc(100vh - 220px);
-    }
-    /* Rep hygiene summary table */
+    /* Rep hygiene summary table — no wrapper needed; scroll is on .diff-modal-body */
     .rep-hygiene-table {
       width: max-content;
       min-width: 100%;
@@ -3251,19 +3246,17 @@
     return `
       <div class="health-section" style="padding-top:14px">
         <div class="health-section-title" style="padding:0 16px 8px">Rep Hygiene Summary — ${repData.length} owners · sorted by coaching priority</div>
-        <div class="rep-hygiene-wrap">
-          <table class="rep-hygiene-table">
-            <thead><tr>
-              <th>Owner</th><th>Manager</th><th style="text-align:center">Deals</th>
-              <th style="text-align:center">Blank NS</th><th style="text-align:center">Stale NS</th>
-              <th style="text-align:center">Forecast Mismatch</th>
-              <th style="text-align:center" title="Deals closing within 4 days of quarter-end">QE Close</th>
-              <th style="text-align:center">Hygiene Score</th>
-              <th>Flag</th>
-            </tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
+        <table class="rep-hygiene-table">
+          <thead><tr>
+            <th>Owner</th><th>Manager</th><th style="text-align:center">Deals</th>
+            <th style="text-align:center">Blank NS</th><th style="text-align:center">Stale NS</th>
+            <th style="text-align:center">Forecast Mismatch</th>
+            <th style="text-align:center" title="Deals closing within 4 days of quarter-end">QE Close</th>
+            <th style="text-align:center">Hygiene Score</th>
+            <th>Flag</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
       </div>`;
   }
 
@@ -3537,7 +3530,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.5.13';
+  const APP_VERSION = '2.5.14';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
