@@ -1,5 +1,50 @@
 ---
 
+## Session 43 — "N Deals Need Attention" Clickable Badge (v2.5.21) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `f017ab7` (feat) · `cc0d613` (release merge)
+**Version bump:** `2.5.20` → `2.5.21`
+
+### User Request
+
+> "Should we automatically popup the Deal Health Card, defaulting to Team Hygiene where
+> all of those 123 deals reside? Additionally, if the user hovers over the '123 deals need
+> attention' callout, display a meaningful popup telling the user that it'll open the
+> Team Hygiene window when clicked."
+
+### What Was Delivered
+
+**Three targeted changes in `public/index.html`:**
+
+1. **[CSS](public/index.html:92)** — `cursor: pointer` + `:hover` brightness boost added to `.gm-ready.needs-action` only. The green "GM Prep Ready" and grey "No data" states are intentionally non-interactive and unchanged.
+
+2. **[HTML tooltip](public/index.html:1483)** — `has-tip` + `data-tip` added to `#gm-ready`: *"Click to open Team Hygiene — shows every rep's deals that need a Next Step update before the GM call."* Uses the existing fixed-position global tooltip engine.
+
+3. **[Click listener](public/index.html:3720)** — When `#gm-ready` has class `needs-action`, clicking it:
+   - Switches modal tab to Team Hygiene (marks `health-tab-team` active, hides deal panel, shows team panel)
+   - Widens the dialog to `min(95vw, 1100px)` matching the tab-click behavior
+   - Clears the subtitle
+   - Calls `openHealthModal()` then `loadTeamHygiene()`
+
+**Duey's workflow now:** Loads app → sees "123 deals need attention" in amber in the header → hovers (tooltip appears) → clicks → Team Hygiene opens immediately, 217 reps grouped by manager. Spencer clicks "Jayant K Joshi" → drill-down shows his 4 deals.
+
+### Remaining Before July 22 Deadline
+
+| Priority | Item | Status |
+|----------|------|--------|
+| ✅ | Complete `PLAN-3067F00C01E4` on Your Learning | ✅ Completed 11 Jul 2026 |
+| 🔴 1 | **Register at challenge portal** — w3.ibm.com/w3publisher/challenge | ❌ Must complete |
+| 🔴 2 | **Identify R&C Lead** — one person from Dushyant's org | ❌ Unassigned |
+| 🟡 3 | Submit ServiceNow AI System Demand | ⚠ Not submitted |
+| 🟡 4 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⚠ Pending |
+| 🟡 5 | Record demo video (3–4 min) | ⚠ Not recorded |
+| ✅ | No IBM Confidential data in repo | ✅ Confirmed |
+
+
+---
+
 ## Session 42 — Rep Drill-Down Modal (v2.5.20) — July 19, 2026
 
 **Date:** 2026-07-19
