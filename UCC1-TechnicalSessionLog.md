@@ -1,5 +1,48 @@
 ---
 
+## Session 47 — Narrative Fetch Hotfix + v2.6.2-rc2 Tag — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `d64f41b` (fix) · `5390cac` (release merge) · `9710995` (rc2 chore)
+**Tag:** `v2.6.2-rc2` on main at `5390cac`
+
+### User Request
+
+User tested sort modal + PTMP after v2.6.2 delivery, encountered "Unexpected token '<', `<!DOCTYPE`... is not valid JSON" on Narrative button. Then confirmed both features working and requested RC2 tag.
+
+### Narrative Hotfix
+
+**Root cause:** `res.json()` was called before `res.ok` check in the manual Narrative click path. When the server returns an HTML error page (Express default 500/crash), `JSON.parse()` throws a `SyntaxError` surfaced verbatim as the error message.
+
+**Fix in `public/index.html`:** Both the manual click path and `refreshNarrativeIfOpen()` auto-refresh path now:
+1. Check `res.ok` before `res.json()`
+2. Check `Content-Type: application/json` header — if HTML is returned, shows `"Server error 500"` instead of raw parse exception
+3. Auto-refresh path: silently swallows + restores opacity (stale narrative stays visible)
+
+### RC2 Tag
+
+`v2.6.2-rc2` tagged on main at `5390cac`. Replaces `v2.5.21-rc1` as the submission candidate.
+
+**RC2 scope vs RC1:**
+- `v2.6.0` — PTMP slide generator
+- `v2.6.1` — PTMP font polish (addTable deal lists)
+- `v2.6.2` — Multi-column sort modal + group-by dividers + pill bar
+- Hotfix — narrative fetch content-type guard
+
+**Submission target:** July 22, 2026 · 10 AM ET
+
+### Stage Dropdown Discovery
+
+User noticed Stage filter shows both `1 - Engage`, `2 - Qualify` style (Duey's real ISC data) and plain `Design`, `Engage`, `Negotiate` (seed user test data). Root cause confirmed: seed script used plain stage names. Not a bug — expected behavior with mixed seed + real data. Judges testing as `dkpatel@us.ibm.com` will only see the numbered ISC stages.
+
+### Wall Time
+
+~1 hour (hotfix investigation + fix + RC2 tag + doc updates)
+
+
+---
+
 ## Session 46 — Multi-Column Sort Modal (v2.6.2) — July 19, 2026
 
 **Date:** 2026-07-19
