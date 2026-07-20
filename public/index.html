@@ -1208,6 +1208,146 @@
     thead th.sort-asc::after  { content: " ▲"; font-size: 10px; }
     thead th.sort-desc::after { content: " ▼"; font-size: 10px; }
 
+    /* ── Sort pill bar ── */
+    #sort-pill-bar {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 16px;
+      background: #edf4ff;
+      border-bottom: 1px solid #c9d9f5;
+      font-size: 12px;
+      color: #0043ce;
+      flex-wrap: wrap;
+    }
+    #sort-pill-bar.visible { display: flex; }
+    .sort-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: #fff;
+      border: 1px solid #c9d9f5;
+      border-radius: 12px;
+      padding: 2px 8px 2px 8px;
+      font-size: 11px;
+      color: #0043ce;
+      white-space: nowrap;
+    }
+    .sort-pill-label { font-weight: 600; }
+    .sort-pill-dir   { color: #6f6f6f; }
+    .sort-pill-arrow { color: #a8a8a8; font-size: 10px; }
+    #sort-pill-clear {
+      margin-left: 4px;
+      background: none;
+      border: none;
+      color: #da1e28;
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0 4px;
+      font-family: inherit;
+    }
+    #sort-pill-clear:hover { text-decoration: underline; }
+
+    /* ── Sort modal ── */
+    #sort-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1200;
+      align-items: center;
+      justify-content: center;
+    }
+    #sort-modal-backdrop.open { display: flex; }
+    #sort-modal {
+      background: #fff;
+      border-radius: 2px;
+      width: 520px;
+      max-width: 95vw;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+      display: flex;
+      flex-direction: column;
+    }
+    #sort-modal-header {
+      background: #0043ce;
+      color: #fff;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #sort-modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    #sort-modal-close {
+      background: none; border: none; color: #fff;
+      font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    #sort-modal-body { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+    .sort-row {
+      display: grid;
+      grid-template-columns: 1fr 72px 28px;
+      gap: 6px;
+      align-items: center;
+    }
+    .sort-row-num {
+      grid-column: 1 / -1;
+      font-size: 11px;
+      color: #6f6f6f;
+      margin-bottom: -6px;
+      padding-left: 2px;
+    }
+    .sort-row select {
+      padding: 6px 8px;
+      border: 1px solid #c6c6c6;
+      font-size: 13px;
+      font-family: inherit;
+      background: #f4f4f4;
+      color: #161616;
+      border-radius: 2px;
+    }
+    .sort-row-dir {
+      padding: 6px 0;
+      border: 1px solid #c6c6c6;
+      background: #f4f4f4;
+      font-size: 12px;
+      cursor: pointer;
+      text-align: center;
+      border-radius: 2px;
+      user-select: none;
+    }
+    .sort-row-dir:hover { background: #e0e0e0; }
+    .sort-row-del {
+      background: none; border: none;
+      color: #da1e28; font-size: 16px;
+      cursor: pointer; padding: 0;
+      line-height: 1; text-align: center;
+    }
+    .sort-row-del:hover { color: #a51920; }
+    #sort-add-btn {
+      align-self: flex-start;
+      background: none;
+      border: 1px dashed #c6c6c6;
+      color: #0043ce;
+      font-size: 12px;
+      font-family: inherit;
+      padding: 6px 14px;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    #sort-add-btn:hover { background: #edf4ff; }
+    #sort-add-btn:disabled { color: #a8a8a8; border-color: #e0e0e0; cursor: default; background: none; }
+    #sort-modal-footer {
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 18px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .sort-modal-hint {
+      font-size: 11px;
+      color: #6f6f6f;
+      padding: 0 2px;
+    }
+
     /* Sticky columns — checkbox (col 1), ♥ (col 2), Confidence (col 3) */
     /* z-index ladder: body frozen=2, scrolling header=10, corner header=20 */
     thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 2; }
@@ -1555,6 +1695,14 @@
   </button>
   <span class="action-status-chip" id="chip-ptmp">Not run</span>
 
+  <div class="action-sep"></div>
+
+  <!-- ⇅ Sort -->
+  <button class="action-btn has-tip" id="ab-sort"
+    data-tip="Choose up to 6 sort keys in any order — Quarter, Account, Stage, Amount, or any column. Stacks multiple sort levels so you can group deals exactly how you need them.">
+    &#x21C5; Sort
+  </button>
+
   <!-- Right-side utilities -->
   <div class="action-utilities">
     <button class="btn-secondary has-tip" id="btn-snapshot-util"
@@ -1665,6 +1813,13 @@
   <span class="totals-label">Total Amt</span>
   <span class="totals-value total" id="totals-total">—</span>
   <span class="totals-note" id="totals-note"></span>
+</div>
+
+<!-- Sort pill bar — shows active sort stack; hidden when default sort -->
+<div id="sort-pill-bar">
+  <span style="font-size:11px;color:#6f6f6f;margin-right:2px;">Sorted by:</span>
+  <span id="sort-pills"></span>
+  <button id="sort-pill-clear" title="Clear custom sort — return to default Confidence ↓">✕ Clear sort</button>
 </div>
 
 <div id="global-tooltip"></div>
@@ -1792,6 +1947,26 @@
 </div>
 
 <!-- ── PTMP Modal ── -->
+<!-- ── Sort Modal ── -->
+<div id="sort-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="sort-modal-title">
+  <div id="sort-modal">
+    <div id="sort-modal-header">
+      <h3 id="sort-modal-title">⇅ Sort Pipeline</h3>
+      <button id="sort-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div id="sort-modal-body">
+      <p class="sort-modal-hint">Build a sort order using up to 6 columns. The first key groups the table; each additional key breaks ties. Click a direction button to toggle ↑ ascending / ↓ descending.</p>
+      <div id="sort-rows"></div>
+      <button id="sort-add-btn">+ Add sort level</button>
+    </div>
+    <div id="sort-modal-footer">
+      <button class="btn-secondary" id="sort-modal-cancel" style="padding:7px 18px;">Cancel</button>
+      <button class="btn-secondary" id="sort-modal-clear"  style="padding:7px 18px;color:#da1e28;border-color:#da1e28;">Clear Sort</button>
+      <button class="btn-success"   id="sort-modal-apply"  style="padding:7px 18px;font-weight:600;">Apply Sort</button>
+    </div>
+  </div>
+</div>
+
 <div class="diff-modal-backdrop" id="ptmp-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="ptmp-modal-title">
   <div class="diff-modal" style="max-width:600px;">
     <div class="diff-modal-header" style="background:#0043ce;">
@@ -1934,8 +2109,30 @@
   // ── State ──────────────────────────────────────────────────────────────────
   let allOpportunities = [];   // full dataset from API (with scores)
   let filtered = [];           // current filtered view
-  let sortCol = 'score';
-  let sortDir = 'desc';        // default: highest confidence first
+  // sortStack: array of { col, dir } — multi-level sort, first key wins, ties broken by next
+  // Default: confidence score descending (same as original single-sort behaviour)
+  let sortStack = [{ col: 'score', dir: 'desc' }];
+
+  // Human-readable column labels used by the sort modal pick list
+  const COL_LABELS = {
+    score:                        'Confidence Score',
+    closeQuarter:                 'Quarter',
+    account_name:                 'Account Detail',
+    stage:                        'Stage',
+    close_date:                   'Close Date',
+    filtered_opportunity_amount:  'IBM Tech Amt',
+    total_opportunity_amount:     'Total Amt',
+    forecast_category:            'Forecast',
+    opportunity_owner:            'Owner',
+    opportunity_owners_manager:   "Owner's Manager",
+    flm_judgement:                'FLM Judgement',
+    opportunity_name:             'Opportunity',
+    create_date:                  'Create Date',
+    next_steps:                   'Next Steps',
+    account_company:              'Account (Company)',
+    business_partner:             'Business Partner',
+  };
+  const DEFAULT_SORT = [{ col: 'score', dir: 'desc' }];
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function fmt$(val) {
@@ -2451,23 +2648,48 @@
     refreshNarrativeIfOpen(); // re-scope narrative whenever filter/search changes
   }
 
+  // ── Sort pill bar update ──────────────────────────────────────────────────
+  function updateSortPillBar() {
+    const bar   = document.getElementById('sort-pill-bar');
+    const pills = document.getElementById('sort-pills');
+    const isDefault = sortStack.length === 1 && sortStack[0].col === 'score' && sortStack[0].dir === 'desc';
+    if (isDefault) {
+      bar.classList.remove('visible');
+      return;
+    }
+    bar.classList.add('visible');
+    pills.innerHTML = sortStack.map((s, i) => {
+      const label = COL_LABELS[s.col] || s.col;
+      const dir   = s.dir === 'asc' ? '↑' : '↓';
+      const arrow = i < sortStack.length - 1 ? '<span class="sort-pill-arrow"> → </span>' : '';
+      return `<span class="sort-pill"><span class="sort-pill-label">${label}</span> <span class="sort-pill-dir">${dir}</span></span>${arrow}`;
+    }).join('');
+  }
+
   // ── Render table ────────────────────────────────────────────────────────────
   function renderTable() {
+    // Multi-level sort: walk stack until non-zero comparison found
     const sorted = [...filtered].sort((a, b) => {
-      let va = a[sortCol], vb = b[sortCol];
-      if (sortCol === 'score') { va = va ?? 0; vb = vb ?? 0; }
-      if (typeof va === 'string') va = va.toLowerCase();
-      if (typeof vb === 'string') vb = vb.toLowerCase();
-      if (va < vb) return sortDir === 'asc' ? -1 : 1;
-      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      for (const { col, dir } of sortStack) {
+        let va = a[col], vb = b[col];
+        if (col === 'score' || col.includes('amount')) { va = va ?? 0; vb = vb ?? 0; }
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return dir === 'asc' ? -1 : 1;
+        if (va > vb) return dir === 'asc' ? 1 : -1;
+      }
       return 0;
     });
 
+    // Update column header sort indicators (reflect first key only)
+    const primary = sortStack[0] || {};
     document.querySelectorAll('thead th[data-col]').forEach(th => {
       th.classList.remove('sort-asc', 'sort-desc');
-      if (th.dataset.col === sortCol)
-        th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+      if (th.dataset.col === primary.col)
+        th.classList.add(primary.dir === 'asc' ? 'sort-asc' : 'sort-desc');
     });
+
+    updateSortPillBar();
 
     const tbody = document.getElementById('opp-tbody');
 
@@ -2482,10 +2704,22 @@
       return;
     }
 
+    // Phase 2: group-by divider rows for the first sort key when it's categorical
+    const GROUP_COLS = new Set(['closeQuarter','stage','forecast_category','opportunity_owner','flm_judgement','account_company']);
+    const firstKey = sortStack[0] ? sortStack[0].col : null;
+    const doGroup  = firstKey && GROUP_COLS.has(firstKey);
+    let lastGroupVal = Symbol(); // unique sentinel
+
     tbody.innerHTML = sorted.map(opp => {
+      const groupVal = doGroup ? (opp[firstKey] || '—') : null;
+      let groupRow = '';
+      if (doGroup && groupVal !== lastGroupVal) {
+        lastGroupVal = groupVal;
+        const label = COL_LABELS[firstKey] || firstKey;
+        groupRow = `<tr class="group-header-row"><td colspan="25" style="padding:5px 16px 4px;font-size:11px;font-weight:700;color:#525252;background:#f4f4f4;border-top:2px solid #c6c6c6;border-bottom:1px solid #e0e0e0;letter-spacing:.04em;">── ${label}: ${esc(groupVal)} ──</td></tr>`;
+      }
       const hs = opp._hygieneGrade || '';
-      const hIcon = hs === 'red' ? '&#x2665;' : hs === 'amber' ? '&#x2665;' : '&#x2665;';
-      return `
+      const rowHtml = `
       <tr class="${opp.selected ? 'selected-row' : ''}" data-id="${esc(opp.id)}">
         <td>
           <input type="checkbox" ${opp.selected ? 'checked' : ''}
@@ -2521,7 +2755,9 @@
               : '—'}</td>
         <td style="font-size:10px;color:#6f6f6f">${cell(opp.id)}</td>
       </tr>
-    `}).join('');
+    `;
+      return groupRow + rowHtml;
+    }).join('');
 
     updateSelectionSummary();
   }
@@ -2654,14 +2890,17 @@
   document.getElementById('btn-select-high').addEventListener('click', () =>
     setSelected(filtered.filter(o => o.tier === 'High'), true));
 
-  // ── Sort by column header ──────────────────────────────────────────────────
+  // ── Sort by column header (single-click → collapses stack to one key) ──────
   document.querySelectorAll('thead th[data-col]').forEach(th => {
     th.addEventListener('click', () => {
-      if (sortCol === th.dataset.col) {
-        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      const col = th.dataset.col;
+      const cur = sortStack[0];
+      if (sortStack.length === 1 && cur.col === col) {
+        // Toggle direction on same primary key
+        sortStack = [{ col, dir: cur.dir === 'asc' ? 'desc' : 'asc' }];
       } else {
-        sortCol = th.dataset.col;
-        sortDir = sortCol === 'score' ? 'desc' : 'asc';
+        // New primary key — collapse stack to one key with sensible default dir
+        sortStack = [{ col, dir: col === 'score' || col.includes('amount') ? 'desc' : 'asc' }];
       }
       renderTable();
     });
@@ -3865,6 +4104,92 @@
   document.getElementById('ab-ppt').addEventListener('click', () =>
     openPptConfirm());
 
+  // ── Sort Modal ────────────────────────────────────────────────────────────
+  (function wireSort() {
+    const backdrop = document.getElementById('sort-modal-backdrop');
+    const rowsEl   = document.getElementById('sort-rows');
+    const addBtn   = document.getElementById('sort-add-btn');
+
+    // Working copy — populated when modal opens, applied on "Apply Sort"
+    let draft = [];
+
+    function colOptions(selected) {
+      return Object.entries(COL_LABELS).map(([col, label]) =>
+        `<option value="${col}"${col === selected ? ' selected' : ''}>${label}</option>`
+      ).join('');
+    }
+
+    function renderRows() {
+      rowsEl.innerHTML = draft.map((s, i) => {
+        const ordinal = i === 0 ? '1st sort key (primary)' : i === 1 ? '2nd sort key (tie-breaker)' : `${i+1}th sort key`;
+        return `
+          <div class="sort-row" data-idx="${i}">
+            <div class="sort-row-num">${ordinal}</div>
+            <select class="sr-col">${colOptions(s.col)}</select>
+            <div class="sort-row-dir sr-dir" title="Click to toggle direction">${s.dir === 'asc' ? '↑ A→Z' : '↓ Z→A'}</div>
+            <button class="sort-row-del sr-del" title="Remove this sort level" aria-label="Remove">✕</button>
+          </div>`;
+      }).join('');
+      addBtn.disabled = draft.length >= 6;
+
+      // Wire row controls
+      rowsEl.querySelectorAll('.sr-col').forEach((sel, i) => {
+        sel.addEventListener('change', () => { draft[i].col = sel.value; renderRows(); });
+      });
+      rowsEl.querySelectorAll('.sr-dir').forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          draft[i].dir = draft[i].dir === 'asc' ? 'desc' : 'asc';
+          btn.textContent = draft[i].dir === 'asc' ? '↑ A→Z' : '↓ Z→A';
+        });
+      });
+      rowsEl.querySelectorAll('.sr-del').forEach((btn, i) => {
+        btn.addEventListener('click', () => { draft.splice(i, 1); renderRows(); });
+      });
+    }
+
+    function openSort() {
+      // Clone current stack into draft so modal edits don't affect live sort until Apply
+      draft = sortStack.map(s => ({ ...s }));
+      if (draft.length === 0) draft = [{ col: 'closeQuarter', dir: 'asc' }];
+      renderRows();
+      backdrop.classList.add('open');
+    }
+    function closeSort() { backdrop.classList.remove('open'); }
+
+    document.getElementById('ab-sort').addEventListener('click', openSort);
+    document.getElementById('sort-modal-close').addEventListener('click', closeSort);
+    document.getElementById('sort-modal-cancel').addEventListener('click', closeSort);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeSort(); });
+
+    addBtn.addEventListener('click', () => {
+      if (draft.length < 6) {
+        // Pick a column not already in the draft
+        const used = new Set(draft.map(s => s.col));
+        const next = Object.keys(COL_LABELS).find(c => !used.has(c)) || 'account_name';
+        draft.push({ col: next, dir: 'asc' });
+        renderRows();
+      }
+    });
+
+    document.getElementById('sort-modal-apply').addEventListener('click', () => {
+      sortStack = draft.length > 0 ? draft.map(s => ({ ...s })) : DEFAULT_SORT.map(s => ({ ...s }));
+      closeSort();
+      renderTable();
+    });
+
+    document.getElementById('sort-modal-clear').addEventListener('click', () => {
+      sortStack = DEFAULT_SORT.map(s => ({ ...s }));
+      closeSort();
+      renderTable();
+    });
+
+    // Pill bar "✕ Clear sort" button
+    document.getElementById('sort-pill-clear').addEventListener('click', () => {
+      sortStack = DEFAULT_SORT.map(s => ({ ...s }));
+      renderTable();
+    });
+  })();
+
   // ── PTMP Modal ────────────────────────────────────────────────────────────
   (function wirePtmp() {
     const backdrop = document.getElementById('ptmp-modal-backdrop');
@@ -3965,7 +4290,7 @@
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
-  const APP_VERSION = '2.6.1';
+  const APP_VERSION = '2.6.2';
   const weekOf = 'Week of ' + new Date().toLocaleDateString('en-US', {
     month: 'long', day: 'numeric', year: 'numeric'
   });
