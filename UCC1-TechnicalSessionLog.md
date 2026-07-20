@@ -1,5 +1,45 @@
 ---
 
+## Session 48 — Honest Evaluation + Full Doc Sweep + Sessions 26–28 Log Backfill — July 19–20, 2026
+
+**Date:** 2026-07-19 (late) / 2026-07-20 (early AM)
+**Branch:** `develop` → `main`
+**No version bump** — documentation and log completion only
+
+### What Happened
+
+End-of-day session after 47 sessions and ~90 hours across 10 days.
+
+**UCC1-ChallengeSubmissionDraft.html — full update through RC2:**
+Every stale reference from v2.5.17 / 29-session / 221-opp era replaced. 18 distinct fields updated including: criteria grid (Design upgraded to Very Strong), solution description (v2.5.0–v2.5.21 Team Hygiene depth, new PTMP paragraph, new Sort Modal paragraph), business value scale (v2.5.17 → v2.6.2-rc2), deployment current state, team section, GitHub section, key numbers (221→969 opps, 28→47 sessions), footer (v2.5.0 → v2.6.2-rc2).
+
+**pipeline-intelligence-design.html — added to git:**
+Session 28 design analysis document was built but never tracked. Added to repo, removed browser-saved file:// URL comment, updated header to "✅ Fully implemented through v2.5.21", updated roadmap table to show shipped (v2.5.0–v2.5.21, v2.6.0–v2.6.2-rc2) and planned (v2.7.x watsonx-powered).
+
+**Sessions 26–28 backfilled** in this log — the gap between Session 25 (v2.5.0) and Session 29 (v2.5.6/v2.5.7) was undocumented. Added: Session 26 (v2.5.1–v2.5.5: HAR guard, narrative scoping × 2, filter refresh, PPT ID fix), Session 27 (v2.5.6: padded-close detection, 12 new test assertions, UTC fix), Session 28 (v2.5.7: QE Close column + sticky header + design doc + backlog capture).
+
+**Honest performance evaluation:**
+User asked for an honest professional evaluation after 47 sessions / ~90 hours. Delivered in full — strengths (product thesis under pressure, domain knowledge driving architecture, VP-workflow testing instinct, specification precision), growth areas (deep-reading diffs before approval, SQL/data layer fluency, CSS specificity diagnostics, git state trust), and an overall assessment: architect who codes, domain knowledge turned into architecture, the combination that makes a "Client Zero" app.
+
+### Wall Time
+
+~2 hours (doc sweep + log backfill + evaluation)
+
+### Final State — July 19–20, 2026
+
+| Metric | Value |
+|---|---|
+| Sessions | 48 |
+| Estimated wall time | ~92 hours |
+| Versions shipped | v1.0.0 → v2.6.2-rc2 (28 releases) |
+| Git commits (develop + main) | 70+ |
+| Submission tag | `v2.6.2-rc2` on main |
+| Submission deadline | July 22, 2026 · 10 AM ET |
+| Remaining human gate | Portal registration (item 2 in checklist) |
+
+
+---
+
 ## Session 47 — Narrative Fetch Hotfix + v2.6.2-rc2 Tag — July 19, 2026
 
 **Date:** 2026-07-19
@@ -6757,24 +6797,117 @@ Next decision: Do you want me to build the "Match ISC View" toggle? One-line WHE
     | `main` | `3598b54` | v2.5.0 release merge |
     | `develop` | `b79003f` | v2.5.0 feature commit |
     | `v2.5.0` tag | `3598b54` | tagged on main |
-    | `feature/deal-health-card` | `b79003f` | merged, not deleted |
 
-    ### What's Next (Prioritized Before July 22 Deadline)
+---
 
-    | Priority | Action | Status |
-    |---|---|---|
-    | 🔴 1 | Pre-compute `_hygieneGrade` on `loadOpportunities()` so health icons are coloured on table load (v2.5.1) | ⏳ Next build |
-    | ✅ 2 | Complete PLAN-3067F00C01E4 on Your Learning | ✅ Completed 11 Jul 2026 |
-    | 🔴 3 | Register at challenge portal `w3.ibm.com/w3publisher/challenge` | ❌ Must complete |
-    | 🟡 4 | Multi-user HAR testing (9 users — human action, today) | ⏳ In progress |
-    | 🟡 5 | Record demo video — login → health card → rep hygiene → PPT → isolation proof | ⚠ Not recorded |
-    | 🟡 6 | Live watsonx credential test (`WATSONX_ENABLED=true`) | ⏳ Pending |
-    | 🟡 7 | Submit ServiceNow AI System Demand (attach `UCC1-ArchitectureDiagram.html`) | ⚠ Not submitted |
+## Session 26 — v2.5.1–v2.5.5: HAR Guard, Narrative Scoping, PPT Fix — July 18, 2026
 
-    ### How to Resume
-    Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+**Date:** 2026-07-18
+**Branch:** `develop` → `main` (multiple feature branches)
+**Version bumps:** `2.5.0` → `2.5.1` → `2.5.2` → `2.5.3` → `2.5.4` → `2.5.5`
 
-  }
+### What Was Built
 
+Five rapid point releases resolving issues discovered during multi-user HAR testing and narrative testing on Duey's live pipeline:
 
-}
+**v2.5.1 — HAR user-tagging guard + health icon pre-compute**
+- `load-from-har.js`: Added `USER_ID` environment variable guard — if `USER_ID` is not set, HAR import aborts rather than tagging all imported rows with a null `user_id`. Prevents silent cross-user data contamination in multi-user deployments.
+- `loadOpportunities()`: Pre-computes `_hygieneGrade` on every opportunity object after API fetch so health icons are coloured red/amber/green on initial table render — no click required. Resolved the known v2.5.0 limitation noted in Session 25.
+
+**v2.5.2 — Narrative scoped to checked rows**
+- Discovered: "Generate Narrative" was using all `selected=1` rows from the DB (the full selection state), not the VP's current *filtered + checked* view. A VP filtering to just Q3 Best Case deals and checking 12 of them expected a narrative about those 12 — not about all 221 selected deals.
+- Fix: Frontend builds an ordered `ids` array from `filtered.filter(o => o.selected)` and sends it in the POST body. Server uses those IDs (in that order) instead of the DB selection state.
+
+**v2.5.3 — Live narrative refresh on selection change**
+- Added `refreshNarrativeIfOpen()` — debounced 300ms, fires whenever the user checks/unchecks a row while the narrative panel is already open. Narrative updates in place (opacity dimmed during refresh, restored on completion). Stale narrative never left on screen after selection changes.
+
+**v2.5.4 — Narrative refresh on filter/search change**
+- Extended `refreshNarrativeIfOpen()` call into `applyFilters()` — narrative now auto-refreshes when the VP changes Quarter, Stage, Forecast, Confidence, Owner, or Search filters while the narrative panel is open.
+
+**v2.5.5 — PPT uses filtered+checked IDs**
+- Discovered: PPT generation was using `WHERE selected = 1` DB query, same as the old narrative bug. A VP filtering to 30 deals and checking 10 of them got a PPT with all 221 previously-selected deals.
+- Fix: Frontend passes `ids` array (same pattern as v2.5.2 narrative fix) in the PPT confirm POST body. Server builds the deal list from those IDs in that order.
+
+### Wall Time
+~3 hours across 5 point releases
+
+---
+
+## Session 27 — v2.5.6: Padded-Close Detection Signal — July 18, 2026
+
+**Date:** 2026-07-18
+**Branch:** `feature/v2.5.6-padded-close-signal` → `develop` → `main`
+**Version bump:** `2.5.5` → `2.5.6`
+**Commit:** `8da8a2b` (feat) · `17ddfd4` (release)
+
+### User Request
+
+Observation from looking at Duey's pipeline: several deals have close dates suspiciously close to September 30 (Q3-end). In IBM sales, reps commonly "pad" close dates to quarter-end when they don't know the actual close — this is a known CRM hygiene problem. The VP needs a signal that surfaces these deals as management risks.
+
+### What Was Built
+
+**Padded-close detection in `server/hygieneScore.js`:**
+- Added `detectPaddedClose(closeDate, scrapeDate)` function — computes days between close date and nearest quarter-end (Mar 31 / Jun 30 / Sep 30 / Dec 31).
+- If `daysToQE ≤ 4`: deal is flagged as a padded-close risk.
+- Priority tiers: `daysToQE === 0` → P1; `daysToQE ≤ 2` → P2; `daysToQE ≤ 4` → P3.
+- Action item text auto-generated: "Close date is [N] day(s) before Q[n]-end. Padded close dates are a common hygiene risk — confirm this date reflects a real customer commitment."
+- P1 padded-close items are injected at the **top** of the Deal Health Card action items list — above hygiene items — so the VP sees the highest-risk signal first.
+
+**UTC timezone fix:** Date comparison was using local timezone, causing off-by-one errors on machines in timezones other than ET. All date arithmetic converted to UTC-safe operations.
+
+**Test harness update:** 12 new assertions added to `scripts/test-baseline-ledger.js` covering: Q1/Q2/Q3/Q4 quarter-end boundary dates, the 4-day threshold, the 0-day (same-day) P1 case, and dates outside the threshold (no flag). 12/12 new assertions pass.
+
+### Wall Time
+~2 hours
+
+---
+
+## Session 28 — v2.5.7 + Architecture Docs + Backlog Capture — July 18, 2026
+
+**Date:** 2026-07-18
+**Branch:** `feature/v2.5.7-team-hygiene-ux` → `develop` → `main`
+**Version bump:** `2.5.6` → `2.5.7`
+**Commit:** `95c6478` (feat) · `a883671` (release) · `3e56861` (doc freeze)
+
+### What Was Built
+
+**v2.5.7 — QE Close column + sticky Team Hygiene header:**
+
+The Rep Hygiene Summary table (Team Hygiene tab) gained two UX improvements based on VP feedback after seeing it with live data:
+
+1. **QE Close column:** New column added to Team Hygiene table showing the count of deals per rep that have padded-close flags (from v2.5.6). Cells with QE Close count > 0 are highlighted amber — a VP scanning the table immediately sees which reps have the most quarter-end close-date risk. Server: `GET /api/hygiene-summary` extended to include `qeCloseCount` per rep. Client: new column rendered with amber cell style.
+
+2. **Sticky Team Hygiene header:** The `<thead>` in the Rep Hygiene Summary table was scrolling away when the table had many rows. Fixed with `position: sticky; top: 0; z-index: 10` on the `<thead>` rows, with a scroll container properly configured so the sticky context works correctly inside the modal.
+
+**Design analysis document (`pipeline-intelligence-design.html`):**
+Built a full design analysis HTML document (now tracked in repo as `pipeline-intelligence-design.html`) covering:
+- The three management use cases (SR/SM/C behavior, hygiene as risk signal, absence as coaching/attrition signal)
+- The v2.4.0 schema grounding (live data: 48 blank NS, 216 blank Team Notes, 76 owners)
+- Proposed Deal Health Card modal sections (header, hygiene scorecard, action items, week-over-week timeline)
+- Per-rep hygiene dashboard design
+- watsonx injection points (v2.7.x path: granite-3.3-8b for NS quality, llama-3-70b for coaching narratives)
+- Implementation roadmap: v2.5.x rules-based (shipped) → v2.7.x watsonx-powered (planned post-7/22)
+- Multi-user HAR testing guidance (what to verify per user, the one test that matters most for judges)
+
+**Manager field investigation (Session 28 → Session 29):**
+Attempted to populate `opportunity_owners_manager` from the HAR. Discovered `Opp.FLM.User_Name_mk__c` field was not resolving. Traced to stale HAR — ISC had updated its API response structure after the HAR was captured. A fresh HAR from Duey's ISC view was needed to confirm the correct field name. This investigation carried into Session 29/30.
+
+**Post-submission backlog (`UCC1-PostSubmissionBacklog.md`):**
+Captured all v2.6.0+ deferred items in a structured backlog doc — per-user HAR upload, watsonx Granite NS quality scoring, per-rep coaching narrative, cloud deployment (CIO Path to Production).
+
+### Current Git State (at time of Session 28)
+
+| Ref | Commit | Note |
+|---|---|---|
+| `main` | `a883671` | v2.5.7 release merge |
+| `develop` | `95c6478` | v2.5.7 feature commit |
+| `v2.5.7` tag | `a883671` | tagged on main |
+
+### Wall Time
+~4 hours (v2.5.7 + design doc + backlog capture)
+
+---
+
+*Note: Sessions 29–47 are logged at the top of this file (prepended in reverse chronological order as each session completed). The full session history runs from Session 1 at the bottom to Session 47 at the top.*
+
+*For the complete current state of the project, see the Session 47 entry at the top of this file.*
