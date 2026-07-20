@@ -1,0 +1,426 @@
+
+<!-- pipeline-intelligence-design.html — design analysis document, Session 28, July 18 2026 -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Intelligence Modal — Design Analysis</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.65;
+    color: #1f2328;
+    background: #ffffff;
+    padding: 32px 16px 64px;
+  }
+  .page { max-width: 760px; margin: 0 auto; }
+
+  .page-header {
+    border-bottom: 2px solid #1f2328;
+    padding-bottom: 16px;
+    margin-bottom: 32px;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #57606a; margin-bottom: 6px;
+  }
+  h1 { font-size: 22px; font-weight: 700; line-height: 1.25; margin-bottom: 6px; }
+  .subtitle { font-size: 13px; color: #57606a; }
+
+  section { margin-bottom: 36px; }
+  h2 {
+    font-size: 12px; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; color: #57606a;
+    border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 14px;
+  }
+  h3 { font-size: 14px; font-weight: 700; color: #1f2328; margin: 18px 0 8px; }
+  h4 { font-size: 13px; font-weight: 600; color: #3b82d4; margin: 14px 0 6px; }
+  p { margin-bottom: 10px; }
+  p:last-child { margin-bottom: 0; }
+  ul, ol { padding-left: 20px; margin-bottom: 10px; }
+  li { margin-bottom: 5px; font-size: 13.5px; }
+  strong { font-weight: 600; }
+  em { color: #57606a; font-style: normal; font-size: 12.5px; }
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 12px;
+    background: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: #1f2328;
+  }
+
+  .callout {
+    background: #f7f8fa; border-left: 3px solid #3b82d4;
+    padding: 12px 16px; margin: 12px 0; font-size: 13px;
+  }
+  .callout.amber { border-left-color: #f59e0b; background: #fffbf0; }
+  .callout.green { border-left-color: #198038; background: #f0faf3; }
+  .callout.red   { border-left-color: #b91c1c; background: #fff1f1; }
+  .callout.purple{ border-left-color: #7c5cd8; background: #f8f4ff; }
+
+  table {
+    width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0 14px;
+  }
+  th {
+    text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.05em;
+    text-transform: uppercase; color: #57606a; padding: 6px 10px;
+    background: #f7f8fa; border-bottom: 1px solid #e5e7eb;
+  }
+  td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .badge {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 2px 8px; border-radius: 2px; white-space: nowrap;
+  }
+  .badge.done     { background: #defbe6; color: #198038; }
+  .badge.exists   { background: #dde5ff; color: #1f4dd8; }
+  .badge.new      { background: #fff3cd; color: #9b6900; }
+  .badge.wx       { background: #f8f4ff; color: #7c5cd8; }
+  .badge.red      { background: #fff1f1; color: #b91c1c; }
+  .badge.gray     { background: #f0f0f0; color: #57606a; }
+
+  .signal-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
+  .signal-row:last-child { border-bottom: none; }
+  .signal-icon { flex-shrink: 0; width: 24px; text-align: center; font-size: 15px; margin-top: 1px; }
+  .signal-body { flex: 1; }
+  .signal-name { font-weight: 600; font-size: 13.5px; }
+  .signal-desc { font-size: 12.5px; color: #57606a; margin-top: 2px; }
+  .signal-col  { font-size: 12px; color: #3b82d4; font-family: "SF Mono","Menlo",monospace; margin-top: 3px; }
+  .signal-wx   { font-size: 11.5px; color: #7c5cd8; margin-top: 3px; font-weight: 600; }
+
+  .sep { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+
+  .number-fact {
+    display: inline-block; background: #f7f8fa; border: 1px solid #e5e7eb;
+    padding: 3px 10px; border-radius: 2px; font-size: 12px;
+    font-family: "SF Mono","Menlo",monospace; margin: 2px 3px;
+  }
+  .number-fact b { color: #b91c1c; }
+
+  footer {
+    margin-top: 56px; padding-top: 12px; border-top: 1px solid #e5e7eb;
+    text-align: center; font-size: 12px; color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <div class="eyebrow">ISC Automated Sales Forecast · v2.5.0 Design Analysis · Session 28 · <strong style="color:#198038">✅ Fully implemented through v2.5.21</strong></div>
+    <h1>Pipeline Intelligence Modal</h1>
+    <div class="subtitle">SR/SM/C behavior tracking · Next Steps hygiene · Coaching signals · watsonx injection — grounded in v2.4.0 live schema · July 18, 2026 · Current release: v2.6.2-rc2</div>
+  </div>
+
+  
+  <section>
+    <h2>What you actually said (the three use cases, reframed)</h2>
+
+    <p>The three statements from Session 25 are not feature requests. They are a <strong>management thesis</strong> — a theory about how pipeline data reveals human behavior. Let me restate each precisely:</p>
+
+    <div class="signal-row" style="border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:6px">
+      <div class="signal-icon">1.</div>
+      <div class="signal-body">
+        <div class="signal-name">SR-SM-C Behavior Over Time</div>
+        <div class="signal-desc">"Track the historical performance of the Sales Rep, Sales Manager, and possibly the Customer's responses/actions/behaviors during the quarterly sales cycle."<br><br>
+        <strong>Translation:</strong> The pipeline isn't just data about deals — it's a behavioral record of the people working those deals. Stage progression, amount changes, close date slippage, Next Steps cadence — these are <em>human behavioral fingerprints</em> encoded in CRM fields. The VP wants to read those fingerprints across a full quarter, not just this week.</div>
+      </div>
+    </div>
+
+    <div class="signal-row" style="border-bottom:1px solid #e5e7eb;padding-bottom:14px;margin-bottom:6px">
+      <div class="signal-icon">2.</div>
+      <div class="signal-body">
+        <div class="signal-name">Communications Hygiene as a Predictive Signal</div>
+        <div class="signal-desc">"Poor opportunity communications hygiene is an indicator of a sales opp that is not as good as it sounds."<br><br>
+        <strong>Translation:</strong> A deal that sounds great in a forecast call but has stale or absent Next Steps is a <em>liar deal</em>. The hygiene is the tell. You don't need to catch the rep lying — the CRM data does it automatically if you look at the right columns with the right time window.</div>
+      </div>
+    </div>
+
+    <div class="signal-row" style="padding-bottom:4px">
+      <div class="signal-icon">3.</div>
+      <div class="signal-body">
+        <div class="signal-name">Absence of Activity as a Coaching / Attrition Signal</div>
+        <div class="signal-desc">"The absence of Next Steps and/or Team Notes is more than likely a symptom of a sales rep that needs coaching, or is possibly in the process of leaving IBM."<br><br>
+        <strong>Translation:</strong> A rep who stops updating the CRM is either checked out mentally or physically leaving. This is a people management signal, not just a data quality problem. The VP needs to act on it — not just see it.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>What the v2.4.0 schema already gives us (grounded in live data)</h2>
+
+    <p>This is not a theoretical design. We already have the columns. Here is what exists <em>today</em> in Duey's live pipeline:</p>
+
+    <div class="callout amber">
+      <strong>Live data reality check (221 real opportunities, dkpatel@us.ibm.com, July 17 2026):</strong><br>
+      <span class="number-fact"><b>48</b> / 221 opps have blank Next Steps (22%)</span>
+      <span class="number-fact"><b>216</b> / 221 opps have blank Team Notes (98%)</span>
+      <span class="number-fact"><b>76</b> distinct opportunity owners</span>
+      <span class="number-fact"><b>3</b> baseline snapshots saved so far (2 distinct week labels)</span>
+    </div>
+
+    <p>The Next Steps field contains <strong>human-authored, date-prefixed updates</strong> — e.g. <code>"7/9: Next steps is for Michael Marsalis and Jay Stubbs..."</code>, <code>"7/13. Jean Gerald, VP (SP)..."</code>. The SR is self-dating their own entries. That date string is parseable. It tells us when the rep last touched this deal — even without a system-managed timestamp.</p>
+
+    <table>
+      <thead><tr><th>Column (opportunities)</th><th>What it tells us</th><th>Signal type</th></tr></thead>
+      <tbody>
+        <tr><td><code>next_steps</code></td><td>Free text — SR's own words. Self-dated entries like "7/9: ..." give us last-update timestamp inference</td><td><span class="badge exists">Hygiene</span></td></tr>
+        <tr><td><code>team_notes</code></td><td>Structured close plan field — absence in 98% of opps is itself a signal</td><td><span class="badge exists">Hygiene</span></td></tr>
+        <tr><td><code>stage</code></td><td>11 distinct values in Duey's pipeline. Week-over-week stage movement (or non-movement) is a progress signal</td><td><span class="badge exists">Behavior</span></td></tr>
+        <tr><td><code>close_date</code></td><td>Slip frequency — how many times has this deal's close date moved right?</td><td><span class="badge exists">Behavior</span></td></tr>
+        <tr><td><code>forecast_category</code></td><td>Call/Upside/Pipeline/Commit/Best Case — rep's own forecast call. Misalignment with score = risk</td><td><span class="badge exists">Behavior</span></td></tr>
+        <tr><td><code>flm_judgement</code></td><td>First-Line Manager override — if FLM disagrees with rep's forecast category, that's a management signal</td><td><span class="badge exists">Coaching</span></td></tr>
+        <tr><td><code>opportunity_owner</code></td><td>76 distinct owners in Duey's pipeline — group by this to get per-rep hygiene scores</td><td><span class="badge exists">People</span></td></tr>
+        <tr><td><code>opportunity_owners_manager</code></td><td>Manager responsible for the rep — coaching escalation target</td><td><span class="badge exists">People</span></td></tr>
+        <tr><td><code>score</code> / <code>tier</code></td><td>AI confidence score already computed — compare against forecast_category for "liar deal" detection</td><td><span class="badge exists">Risk</span></td></tr>
+        <tr><td><code>filtered_opportunity_amount</code></td><td>Amount changes week-over-week = rep repositioning the deal up or down</td><td><span class="badge exists">Behavior</span></td></tr>
+      </tbody>
+    </table>
+
+    <p>And in <code>baseline_ledger</code>, <strong>all of these columns are captured per snapshot</strong> — meaning we can compute trends across every week of the quarter once more baselines accumulate.</p>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>The feature: "Deal Health Card" — a per-opportunity intelligence modal</h2>
+
+    <p>The concept is a new button in the opportunity table — a small <strong>Health</strong> icon next to each row — that opens a modal with a full intelligence profile on that deal. Not a diff. Not a score. A <em>managed deal review card</em> that answers: <strong>"Should I be worried about this deal, and what action do I need to take right now?"</strong></p>
+
+    <h3>Modal sections (proposed layout)</h3>
+
+    <h4>Section 1: Deal Header (always visible)</h4>
+    <p>Opportunity name, owner, manager, account, stage, forecast category, close date, amount, AI score/tier. All from the current <code>opportunities</code> row — no new data needed.</p>
+
+    <h4>Section 2: Hygiene Score Card</h4>
+    <p>A computed 0–100 hygiene score based purely on existing fields — no watsonx required at first. Rules (all buildable today):</p>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Next Steps recency <span class="badge exists">exists</span></div>
+      <div class="signal-desc">Parse the date prefix in <code>next_steps</code> text (e.g. "7/9:", "7/13."). Days since last update → score penalty. Blank = max penalty. &gt;14 days stale = amber. &gt;21 days = red.</div>
+      <div class="signal-col">columns: next_steps, scraped_at</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Team Notes presence <span class="badge exists">exists</span></div>
+      <div class="signal-desc">Binary — does a close plan exist? 98% of Duey's pipeline has blank team notes. This alone is a systemic signal. Presence = +10 pts.</div>
+      <div class="signal-col">columns: team_notes</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Forecast call vs AI score alignment <span class="badge exists">exists</span></div>
+      <div class="signal-desc">If rep calls it "Commit" (implying high confidence) but AI score is Low (&lt;40), that's a "liar deal" flag. If FLM Judgement also disagrees with forecast_category, double flag.</div>
+      <div class="signal-col">columns: forecast_category, flm_judgement, score, tier</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Close date slip count <span class="badge new">requires ledger history</span></div>
+      <div class="signal-desc">Query <code>baseline_ledger</code> for this opp's historical close dates. Count how many times it moved right. Each slip = hygiene penalty. "This deal has slipped 3 times in Q3" is a coaching talking point.</div>
+      <div class="signal-col">table: baseline_ledger (already captured)</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Stage velocity <span class="badge new">requires ledger history</span></div>
+      <div class="signal-desc">Weeks since last stage advancement. A deal sitting at "3 - Design" for 6 consecutive weeks is stuck — that's different from a deal at "3 - Design" for 1 week. Stagnation is a risk signal.</div>
+      <div class="signal-col">table: baseline_ledger (already captured)</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">●</div><div class="signal-body">
+      <div class="signal-name">Amount stability <span class="badge new">requires ledger history</span></div>
+      <div class="signal-desc">Has the deal amount grown (good), shrunk (concerning), or oscillated up/down (very concerning — rep is guessing)? Amount volatility is a CRM hygiene problem and a deal quality problem.</div>
+      <div class="signal-col">table: baseline_ledger (already captured)</div>
+    </div></div>
+
+    <h4>Section 3: Action Items List (the coaching engine)</h4>
+    <p>Auto-generated, deterministic (no AI required at first). Each action item is a sentence, not a category. It reads like a manager's notes before a 1:1:</p>
+
+    <table>
+      <thead><tr><th>Condition detected</th><th>Action item text (auto-generated)</th><th>Priority</th></tr></thead>
+      <tbody>
+        <tr><td>Next Steps blank</td><td>"No Next Steps recorded for this deal. Ask [owner] to update before the next forecast call."</td><td><span class="badge red">P1</span></td></tr>
+        <tr><td>Next Steps &gt;14 days stale</td><td>"Next Steps last updated [N] days ago. Confirm this deal is still active — it may be stalled."</td><td><span class="badge red">P1</span></td></tr>
+        <tr><td>Commit/Best Case but score &lt; 40</td><td>"[Owner] calls this [forecast_category] but confidence score is [score]/100 (Low). Needs interrogation in forecast call."</td><td><span class="badge red">P1</span></td></tr>
+        <tr><td>FLM overrides rep forecast down</td><td>"FLM Judgement ([flm_judgement]) is lower than rep's forecast call ([forecast_category]). Manager disagrees — resolve before GM meeting."</td><td><span class="badge red">P1</span></td></tr>
+        <tr><td>Close date slipped 2+ times</td><td>"Close date has slipped [N] times this quarter. Pattern of slippage suggests deal timeline is not controlled."</td><td><span class="badge amber">P2</span></td></tr>
+        <tr><td>Stage unchanged 3+ weeks</td><td>"Deal has been in [stage] for [N] consecutive weeks. What is blocking advancement?"</td><td><span class="badge amber">P2</span></td></tr>
+        <tr><td>Amount dropped &gt;10%</td><td>"Deal amount decreased from $[prev] to $[curr] since last baseline. Understand scope change."</td><td><span class="badge amber">P2</span></td></tr>
+        <tr><td>Team Notes blank</td><td>"No close plan documented. Require [owner] to document a path-to-close for any deal &gt;$[threshold]."</td><td><span class="badge gray">P3</span></td></tr>
+        <tr><td>All signals clean</td><td>"No action items. Deal hygiene is clean." (shown in green)</td><td><span class="badge done">Clean</span></td></tr>
+      </tbody>
+    </table>
+
+    <h4>Section 4: Week-Over-Week Timeline (the SR/SM/C behavior tracker)</h4>
+    <p>A compact chronological table showing this deal's history across all saved baselines — the direct answer to Use Case 1. One row per saved baseline snapshot:</p>
+
+    <table>
+      <thead><tr><th>Week</th><th>Stage</th><th>Forecast Call</th><th>Close Date</th><th>Amount</th><th>Score</th><th>Next Steps</th></tr></thead>
+      <tbody>
+        <tr><td>Wk 1 · Jul 12</td><td>2 - Qualify</td><td>Pipeline</td><td>Sep 30</td><td>$240K</td><td>28</td><td>Blank</td></tr>
+        <tr><td>Wk 2 · Jul 17</td><td>2 - Qualify</td><td>Pipeline</td><td>Sep 25</td><td>$240K</td><td>28</td><td>Blank</td></tr>
+        <tr><td style="color:#57606a;font-style:italic" colspan="7">(additional weeks accumulate as the quarter progresses)</td></tr>
+      </tbody>
+    </table>
+
+    <p>This section directly answers: <em>"Show me the stage progression of every opportunity owned by Rep X across all 13 weeks of Q3."</em> It requires no new data — only querying what <code>baseline_ledger</code> already stores.</p>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>Per-rep hygiene dashboard (VP-level view)</h2>
+
+    <p>Beyond the per-deal modal, there's a companion <strong>Rep Hygiene Summary</strong> that gives the VP the team-level coaching view — the answer to Use Case 3.</p>
+
+    <p>This is a sortable table of all 76 opportunity owners in Duey's pipeline, ranked by hygiene score:</p>
+
+    <table>
+      <thead><tr><th>Owner</th><th>Manager</th><th># Deals</th><th>Blank NS</th><th>Stale NS (&gt;14d)</th><th>Hygiene Score</th><th>Risk Flag</th></tr></thead>
+      <tbody>
+        <tr><td>[Owner A]</td><td>[Manager]</td><td>8</td><td>6</td><td>7</td><td>22</td><td><span class="badge red">Coaching Needed</span></td></tr>
+        <tr><td>[Owner B]</td><td>[Manager]</td><td>4</td><td>0</td><td>1</td><td>87</td><td><span class="badge done">Clean</span></td></tr>
+        <tr><td>[Owner C]</td><td>[Manager]</td><td>12</td><td>12</td><td>12</td><td>0</td><td><span class="badge red">Check Status</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout red">
+      <strong>Owner C above is Use Case 3 in action:</strong> 12 deals, 12 blank Next Steps, hygiene score 0. That rep has not updated a single deal in the CRM. Per your statement: "a sales rep that needs coaching, or is possibly in the process of leaving IBM." The VP sees this in one row — no digging required.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>watsonx injection points (future-proof from day one)</h2>
+
+    <div class="callout purple">
+      <strong>The rules-based version is v2.5.0. The watsonx version is v2.6.0.</strong> The architecture is identical — only the action item <em>text generation</em> swaps from deterministic strings to watsonx.ai LLM output. Every other signal detection, scoring, and UI is unchanged.
+    </div>
+
+    <div class="signal-row"><div class="signal-icon">△</div><div class="signal-body">
+      <div class="signal-name">Next Steps quality analysis <span class="badge wx">watsonx.ai · granite-3.3-8b</span></div>
+      <div class="signal-desc">Today we detect <em>blank</em> and <em>stale</em>. watsonx can read the actual Next Steps text and assess quality: Is it specific or vague? Does it name a person, a date, a deliverable? "Will follow up soon" scores 10/100. "7/9: Pricing deck delivered to CIO; follow-up call scheduled 7/16 with Wendy Zhao" scores 90/100. <strong>Ambiguous language detection</strong> — this is exactly what you asked for.</div>
+      <div class="signal-wx">Prompt pattern: "Rate the specificity and actionability of this Next Steps entry (0-100). Flag vague phrases. Extract: named person, date, deliverable. Text: [next_steps]"</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">△</div><div class="signal-body">
+      <div class="signal-name">Close plan completeness <span class="badge wx">watsonx.ai · granite-3.3-8b</span></div>
+      <div class="signal-desc">Team Notes as a close plan document. watsonx evaluates: Does it have a sponsor? Decision maker? Procurement path? Competitive displacement strategy? IBM value proposition stated? Scores each dimension. A close plan that names a sponsor and a timeline but has no competitive reference is scored "Incomplete - 3 of 5 criteria met."</div>
+      <div class="signal-wx">Prompt pattern: "Evaluate this close plan against 5 criteria: [1] named executive sponsor [2] timeline [3] competitive awareness [4] IBM value prop [5] procurement path. Score each 0-1. Text: [team_notes]"</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">△</div><div class="signal-body">
+      <div class="signal-name">SR behavioral pattern narrative <span class="badge wx">watsonx.ai · llama-3-70b</span></div>
+      <div class="signal-desc">For the per-rep hygiene view, watsonx generates a <em>coaching narrative paragraph</em> based on the rep's data pattern across the quarter: "Rep X has 8 active deals, of which 6 show no Next Steps activity in the past 3 weeks. Stage progression on 5 deals has stalled at 2-Qualify for 4+ weeks. This pattern is consistent with disengagement. Recommend 1:1 this week." This is the exact kind of signal you described for Use Case 3.</div>
+      <div class="signal-wx">Prompt: feed the rep's deal summary + hygiene stats + week-over-week history into llama-3-70b and ask for a management narrative</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">△</div><div class="signal-body">
+      <div class="signal-name">Deal-level risk narrative for GM slide <span class="badge wx">watsonx.ai · llama-3-70b</span></div>
+      <div class="signal-desc">Today the GM PPT has bullet points for each deal. watsonx replaces those with a one-sentence risk-adjusted narrative per deal: "Labcorp renewal — rep calls Best Case but score is 28/100, Next Steps are 18 days stale, and close date has slipped twice. Recommend VP call with customer before EOQ."</div>
+      <div class="signal-wx">Already wired in generatePpt.js — swap in the hygiene signals as additional context fields alongside the existing scoring prompt</div>
+    </div></div>
+
+    <div class="signal-row"><div class="signal-icon">△</div><div class="signal-body">
+      <div class="signal-name">Quarterly trend summary for GM meeting <span class="badge wx">watsonx.ai · llama-3-70b</span></div>
+      <div class="signal-desc">At Q-end: feed all 13 weeks of baseline_ledger data into watsonx and generate a full quarterly narrative: team performance, individual rep trajectories, deals that moved from Pipeline to Won vs those that slipped out, and a recommended focus list for Q4 pipeline build. This is the SR-SM-C tracking Use Case 1 in its full form.</div>
+      <div class="signal-wx">New endpoint: POST /api/quarterly-summary — aggregates 13 weeks of baseline_ledger, calls watsonx llama-3-70b, returns narrative</div>
+    </div></div>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>Implementation roadmap (two-version plan)</h2>
+
+    <table>
+      <thead><tr><th>Version</th><th>What's built</th><th>Effort</th><th>watsonx?</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>v2.5.0–v2.5.21</strong><br><em>Rules-based</em> <span class="badge done">✅ Shipped</span></td>
+          <td>Deal Health Card modal, hygiene scoring engine (<code>server/hygieneScore.js</code>), action items list, week-over-week timeline from baseline_ledger, Rep Hygiene Summary with manager grouping, column tooltips, rep drill-down modal, "N deals need attention" clickable badge. 34/34 tests passing. 22 urgent / 8 watch / 46 clean on Duey's live pipeline.</td>
+          <td>Sessions 18–43 (~16 h)</td>
+          <td><span class="badge gray">No — rules only</span></td>
+        </tr>
+        <tr>
+          <td><strong>v2.6.0–v2.6.2-rc2</strong><br><em>PTMP + Sort</em> <span class="badge done">✅ Shipped</span></td>
+          <td>PTMP slide generator (Frank Attaie's format — Budget/Call/Gap/Upside/Stretch · Deals In Call · Gap deals · Action Plan). PTMP font polish (addTable deal lists, 16pt title). Multi-column sort modal (6-level stack, group-by dividers, pill bar). Narrative fetch guard hotfix. RC2 tagged July 19 2026.</td>
+          <td>Sessions 44–47 (~9 h)</td>
+          <td><span class="badge gray">No — rules + pptxgenjs</span></td>
+        </tr>
+        <tr>
+          <td><strong>v2.7.x</strong><br><em>watsonx-powered</em> <span class="badge new">Planned post-7/22</span></td>
+          <td>Next Steps quality scoring (ambiguous language), close plan evaluation, per-rep coaching narrative, deal-level risk narrative for PPT, quarterly trend summary. See <code>UCC1-PostSubmissionBacklog.md</code>.</td>
+          <td>1–2 sessions (after live creds)</td>
+          <td><span class="badge wx">Yes — granite-3.3-8b + llama-3-70b</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout green">
+      <strong>✅ v2.5.0–v2.5.21 shipped and user-tested.</strong> The 48 blank Next Steps and 216 blank Team Notes in Duey's real pipeline are not a data problem. They are demo content. A VP looking at "Rep X: 12 deals, hygiene score 0, no Next Steps updates in any deal" is a powerful, concrete demonstration of the tool's value — confirmed in live data. Current submission candidate: <strong>v2.6.2-rc2</strong> tagged July 19, 2026.
+    </div>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>Thoughts on the multi-user test approach</h2>
+
+    <p>You mentioned you'll test each of the 9 users today by setting the ISC filters to their name, pulling a HAR, running Refresh Data, and working the UI. Here's how to maximize the value of that testing session:</p>
+
+    <h4>What to verify per user</h4>
+    <ul>
+      <li><strong>HAR load isolation:</strong> After loading Jeff's HAR, confirm <code>GET /api/opportunities</code> returns only Jeff's rows — and Duey's 221 are untouched. Use the browser dev tools Network tab while logged in as Jeff.</li>
+      <li><strong>Score action:</strong> Run Score for each user. Verify scores are written to <em>that user's</em> rows only — not cross-contaminated. Check <code>ai_scored_at</code> timestamps.</li>
+      <li><strong>Baseline &amp; GM Report:</strong> Run the confirm modal for each user. Verify the PPT lands in <code>output/{safeId}/forecast-YYYY-MM-DD.pptx</code> — not in the root output folder.</li>
+      <li><strong>What Changed diff:</strong> Each user's diff compares against <em>their own</em> prior baseline — not Duey's. If a user has no prior baseline, diff should return "No previous baseline found" (not an error, not Duey's data).</li>
+    </ul>
+
+    <h4>The one test that matters most for the challenge demo</h4>
+    <div class="callout amber">
+      Log in as Duey. Score. Generate PPT. Logout. Log in as Jeff. Score. Confirm that Jeff sees 0 of Duey's 221 deals. Generate Jeff's PPT. Open both PPTs. They should be completely independent reports — different deal sets, different narratives, different file paths. That is the multi-tenant isolation proof for the judges.
+    </div>
+
+    <h4>What to watch for (things that could break)</h4>
+    <ul>
+      <li><strong>HAR filter miss:</strong> If the ISC filter wasn't correctly set to each user's name before pulling the HAR, the HAR may contain Duey's full pipeline. The <code>opportunity_owner</code> column will expose this — check that owners match the logged-in user's territory.</li>
+      <li><strong>Session bleed:</strong> After logout, clear cookies completely before logging in as the next user. The TEST MODE banner shows the active <code>ibm_id</code> — confirm it changes.</li>
+      <li><strong>Seed data vs HAR data:</strong> Users 2–9 currently have 6 seed deals each. Loading a real HAR will add/replace those. The <code>COALESCE</code> logic in <code>load-from-har.js</code> preserves existing <code>user_id</code> on conflict — but new rows from the HAR will be tagged with the <code>USER_ID</code> env var. Make sure that's set correctly before each HAR load.</li>
+    </ul>
+  </section>
+
+  <hr class="sep">
+
+  
+  <section>
+    <h2>Recommendation: what to build next (before July 22)</h2>
+
+    <p>You have 4 days. Here is the priority order I'd recommend:</p>
+
+    <ol>
+      <li><strong>v2.5.0 — Deal Health Card modal (rules-based).</strong> This directly demonstrates all three use cases to the judges using real data. It is buildable in one session. It is the highest-value thing we can add before the deadline. The 48 blank Next Steps in Duey's live pipeline are the demo.</li>
+      <li><strong>Multi-user HAR test (today — human action).</strong> Validate the 9-user workflow before recording the demo video.</li>
+      <li><strong>Demo video.</strong> Record after v2.5.0 is built and HAR tests pass. Show: login → refresh → hygiene modal on a "liar deal" → PPT → logout → login as different user → isolated pipeline.</li>
+      <li><strong>Challenge submission.</strong> Portal registration + ServiceNow AI Demand. Non-negotiable before July 22.</li>
+    </ol>
+  </section>
+
+</div>
+
+<footer>Made with IBM Bob &nbsp;·&nbsp; ISC Automated Sales Forecast · Session 28 design doc · v2.6.2-rc2 current · July 18–19, 2026</footer>
+
+
+</body></html>
