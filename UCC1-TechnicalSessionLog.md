@@ -1,5 +1,86 @@
 ---
 
+## Session 46 — Multi-Column Sort Modal (v2.6.2) — July 19, 2026
+
+**Date:** 2026-07-19
+**Branch:** `develop` → `main`
+**Commit:** `52e4319` (feat) · `eaadfe8` (release merge)
+**Version bump:** `2.6.1` → `2.6.2`
+
+### User Request
+
+> "Build it now!" — implement the multi-column sort modal discussed in the prior turn (v2.6.2 backlog item).
+
+### What Changed
+
+All changes are client-side only (`public/index.html`). Zero server changes, zero DB changes, zero new dependencies.
+
+#### State
+
+Replaced `sortCol` / `sortDir` (single-column) with:
+```js
+let sortStack = [{ col: 'score', dir: 'desc' }]; // default unchanged
+const COL_LABELS = { score: 'Confidence Score', closeQuarter: 'Quarter', ... }; // 16 columns
+const DEFAULT_SORT = [{ col: 'score', dir: 'desc' }];
+```
+
+#### renderTable() — multi-key comparator
+
+```js
+const sorted = [...filtered].sort((a, b) => {
+  for (const { col, dir } of sortStack) {
+    let va = a[col], vb = b[col];
+    if (col === 'score' || col.includes('amount')) { va = va ?? 0; vb = vb ?? 0; }
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+  }
+  return 0;
+});
+```
+
+#### Phase 2: Group-by divider rows
+
+When first sort key is categorical (Quarter, Stage, Forecast, Owner, FLM, Company), a `<tr class="group-header-row">` divider is injected between value changes — table reads as a structured report.
+
+#### Sort pill bar
+
+Blue pill bar below totals bar shows active stack as `Quarter ↑ → Account ↑ → Total Amt ↓`. Hidden when default sort is active. "✕ Clear sort" restores default.
+
+#### Sort modal
+
+"⇅ Sort" button in action bar opens 520px modal. Up to 6 levels:
+- Column dropdown (from COL_LABELS)
+- ↑ A→Z / ↓ Z→A toggle button
+- ✕ Remove row button
+- "+ Add sort level" (disabled at 6)
+- Apply Sort / Clear Sort / Cancel footer
+
+Draft pattern: modal edits a working copy; nothing changes until Apply is clicked.
+
+#### Column header single-click
+
+Still works — collapses stack to one key. Direction defaults to `desc` for score/amount, `asc` for everything else.
+
+### Example Sort Outcome (User's Request)
+
+```
+Quarter ↑  →  Account Detail ↑  →  Stage ↑  →  Close Date ↑  →  Total Amt ↓  →  Forecast ↑
+```
+
+### Validation
+
+- `node --check` on extracted script: JS syntax OK
+- 15/15 structural checks passed (sortStack, COL_LABELS, modal elements, wiring, group-by, pill bar)
+
+### Wall Time
+
+~1.5 hours
+
+
+---
+
 ## Session 45 — PTMP Font Polish Pass (v2.6.1) — July 19, 2026
 
 **Date:** 2026-07-19
