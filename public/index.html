@@ -3082,8 +3082,15 @@
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ ids: narrativeIds }),
       });
+      const contentType = res.headers.get('content-type') || '';
+      if (!res.ok || !contentType.includes('application/json')) {
+        // Non-JSON response means server returned HTML error page (e.g. 500, session expiry, crash)
+        let errMsg = `Server error ${res.status}`;
+        try { const e = await res.json(); errMsg = e.error || errMsg; } catch (_) {}
+        setStatus('Narrative failed: ' + errMsg, 'error');
+        return;
+      }
       const data = await res.json();
-      if (!res.ok) { setStatus(data.error || 'Narrative generation failed.', 'error'); return; }
 
       document.getElementById('narrative-paragraph').textContent = data.paragraph;
 
@@ -3145,7 +3152,8 @@
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ ids: narrativeIds }),
         });
-        if (!res.ok) { para.style.opacity = '1'; ul.style.opacity = '1'; return; }
+        const ct = res.headers.get('content-type') || '';
+        if (!res.ok || !ct.includes('application/json')) { para.style.opacity = '1'; ul.style.opacity = '1'; return; }
         const data = await res.json();
 
         para.textContent = data.paragraph;
