@@ -357,6 +357,8 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.6.0 | PTMP slide generator — "🎯 PTMP Slide" button opens budget/action-plan modal; `POST /api/generate-ptmp` builds one-pager in Frank Attaie's format (Budget/Call/Gap/Upside/Stretch table · Deals In Call · Gap deals · Action Plan); `generatePtmpSlide()` in generatePpt.js |
 | v2.6.1 | PTMP font polish — title 22pt→16pt no-wrap; summary table headers 11pt→9pt / values 13pt→11pt / tighter row heights; deal lists replaced Courier+padEnd with `addTable()` helper (true column alignment); section headers 12pt→11pt; action plan bullets uniform 8pt; dynamic stretchY positioning; call slice 10→12, stretch slice 8→10 |
 | v2.6.2 | Multi-column sort modal — "⇅ Sort" action bar button opens modal with up to 6 stacked sort keys; COL_LABELS map; sort pill bar shows active sort stack; group-by divider rows for categorical first key (Quarter/Stage/Forecast/Owner); single-click column header still works (collapses stack to one key); "✕ Clear sort" resets to default |
+| hotfix | Narrative fetch guard — `res.ok` + `Content-Type` check before `res.json()` in both click and auto-refresh paths; prevents HTML error page surfacing as raw SyntaxError |
+| **v2.6.2-rc2** | **Submission candidate — user-tested PTMP + sort modal + narrative fix · tagged on main · July 19, 2026** |
 
 ---
 
@@ -367,7 +369,7 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 - **Business value:** 90 min → under 5 min weekly GM prep · 94% time reduction
 - **Multi-user:** 9 IBM TSLs/ATLs/GMs with full data isolation, IBM SSO architecture
 - **watsonx.ai models:** `ibm/granite-13b-instruct-v2` (scoring) · `meta-llama/llama-3-70b-instruct` (narrative) · `ibm/granite-3-8b-instruct` (delta summary)
-- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 30 sessions
+- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 47 sessions
 - **Deployment path:** CIO "Build with watsonx" Path to Production
 
 ---
