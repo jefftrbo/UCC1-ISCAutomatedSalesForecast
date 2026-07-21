@@ -465,10 +465,10 @@ async function generatePtmpSlide(opts) {
 
   const slide = pres.addSlide();
 
-  // ── Title — Aptos Display 24pt Bold, full-width, wraps to 2 lines ─────────
-  // Format Shape: x=0.39", y=0.34", w=11.5" (full width), h=0.44" per visible line
+  // ── Title — Aptos Display 24pt Bold, left of summary table ───────────────
+  // Width stops at x=3.93 (summary table left edge) minus margin = 3.44"
   slide.addText(`${lastName} ${teamLabel}\nPTMP`, {
-    x: TITLE_X, y: TITLE_Y, w: 11.5, h: 0.88,
+    x: TITLE_X, y: TITLE_Y, w: 3.44, h: 0.88,
     fontSize: 24, bold: true, color: IBM_DARK, fontFace: FONT_HDG,
     wrap: true, valign: 'top',
   });
@@ -529,10 +529,12 @@ async function generatePtmpSlide(opts) {
   }
 
   // ── LEFT: "Deals In Call > $500K" — x=0.38", y=1.11", w=5.25" ───────────
+  // Max rows = floor((ACT_Y - CALL_Y - 0.34 - 0.10) / ROW_H) = floor(2.80 / 0.32) = 8
+  const MAX_CALL_ROWS = Math.floor((ACT_Y - CALL_Y - 0.34 - 0.10) / ROW_H);
   const callBig = callDeals
     .filter(r => (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 10);
+    .slice(0, MAX_CALL_ROWS);
 
   slide.addText('Deals In Call > $500K', {
     x: LEFT_X, y: CALL_Y, w: LEFT_W, h: 0.32,
@@ -566,14 +568,16 @@ async function generatePtmpSlide(opts) {
     fontSize: 16, bold: true, color: IBM_DARK, fontFace: FONT,
   });
 
-  // Select pipeline deals toward the gap, largest first
+  // Select pipeline deals toward the gap — capped by available vertical space
+  // Gap zone: y=1.83 to y=3.84 = 2.01" → max floor(1.67 / 0.32) = 5 rows
+  const MAX_GAP_ROWS = Math.floor((STR_HDR_Y - GAP_HDR_Y - 0.34 - 0.10) / ROW_H);
   const gapDeals = [];
   let running = 0;
   const sortedPipe = [...pipeDeals]
     .filter(r => (r.filtered_opportunity_amount || 0) >= 200000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0));
   for (const r of sortedPipe) {
-    if (gapDeals.length >= 6) break;
+    if (gapDeals.length >= MAX_GAP_ROWS) break;
     gapDeals.push(r);
     running += r.filtered_opportunity_amount || 0;
     if (gap > 0 && running >= gap * 1.1) break;
@@ -582,11 +586,13 @@ async function generatePtmpSlide(opts) {
     budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.');
 
   // ── RIGHT: "Other Deals in Upside/Stretch" — x=6.99", y=3.84" FIXED ─────
+  // Stretch zone: y=4.18 to BOTTOM_BAR_Y=6.85 = 2.67" → max floor(2.33 / 0.32) = 7 rows
+  const MAX_STR_ROWS = Math.floor((BOTTOM_BAR_Y - STR_HDR_Y - 0.34 - 0.10) / ROW_H);
   const gapIds = new Set(gapDeals.map(r => r.id));
   const otherStretch = pipeDeals
     .filter(r => !gapIds.has(r.id) && (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 8);
+    .slice(0, MAX_STR_ROWS);
 
   slide.addText('Other Deals in Upside / Stretch > $500K', {
     x: RIGHT_X, y: STR_HDR_Y, w: RIGHT_W, h: 0.32,
