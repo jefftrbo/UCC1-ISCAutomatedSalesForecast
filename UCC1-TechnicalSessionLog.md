@@ -1,3 +1,113 @@
+## Session 49 — PTMP Font Polish (In Progress) + Pre-Submission Housekeeping — July 21, 2026
+
+**Date:** 2026-07-21 (started ~11 PM ET July 20, active past midnight)
+**Branch:** `develop` → `main`
+**Status:** PTMP font fix committed to develop/main but NOT yet validated — server restart + annotated screenshot review needed before sign-off
+
+---
+
+### What Was Accomplished This Session
+
+#### 1. PLAN-3067F00C01E4 — Confirmed Complete
+User confirmed completed July 11, 2026. Marked ✅ in all human action item tables across all docs.
+Only remaining pre-submission human gate: portal registration (teammate handling Tue Jul 21).
+
+#### 2. Git State Remediation
+`develop` was 49 commits ahead of `origin/develop` — all local only. Full push executed:
+- `git push origin develop` — 49 commits pushed
+- `git push origin main` — synced
+- `git push origin --tags` — all tags v2.5.8 through v2.6.2-rc2 pushed to GitHub
+
+GitHub Release for v2.6.2-rc2 could not be created via CLI (gh not installed).
+**Human action still needed:** Create GitHub Release manually at:
+`https://github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast/releases/new`
+- Tag: `v2.6.2-rc2`
+- Title: `v2.6.2-rc2 — IBM watsonx Challenge 2026 Submission`
+- Check "pre-release" box
+
+#### 3. Rules Compliance Audit (Full §2–§13 Review)
+Read `output/2026 IBMer Challenge_Official Rules.pdf` in full. Key findings:
+- §8 says "Winning teams are required to complete" PLAN-3067F00C01E4 — it's a prize eligibility gate, not a submission disqualification gate. Distinction matters.
+- §4 "substantially developed July 8–22" is defensible given scope of work in window
+- Two open items: portal registration + list Duey as Business Owner
+- Created `wxc_compliance_audit` HTML artifact (compliance audit page for all 9 team members)
+
+#### 4. Development Timeline Evidence Documented
+User provided two pieces of evidence proving July 10 start date:
+- **Physical notebook** dated "10 Jul" — "Bob wx challenge · ISC · Stretch · Upside → PPT · Next Step · state commit indicator"
+- **Outlook calendar invite** — "WatsonX Challenge" · Friday July 10, 2026 · 11:00–11:30 AM · Organizer: Dushyant Patel · Attendees: John Albertson, Jeff Underwood, Kim Salatino, Justin Griffin, Kerry Hovan, Spencer Korn, Jeff Trbovich, Muhammad Safwat
+- Context: repo pre-dates July 8 because ATL team used same repo for `hl7demo` and `crud-app` — completely unrelated to this submission
+- Compliance audit HTML artifact updated with full timeline and evidence boxes
+
+#### 5. UCC1-ChallengeSubmissionDraft.html — Finalized
+Removed all DRAFT references:
+- `<title>` → "Submission" (was "Submission Draft")
+- Eyebrow → "Final Submission" (was "First Draft")
+- Amber draft banner → green "✅ Final submission — v2.6.2-rc2 · Ready for portal entry"
+- Both `[REVIEW]` items → plain informational notes
+- Added **Client Zero** paragraph to Deployment & Path Forward section:
+  *"This submission is a Client Zero implementation — IBM using its own watsonx technology to transform an internal IBM sales workflow before recommending it to clients..."*
+- Committed and pushed to develop + main
+
+#### 6. TechnicalSessionLog Frontmatter Parse Error — Fixed
+File opened with bare `---` on line 1 → Markdown previewer treated everything as YAML frontmatter → parse error "Unexpected scalar at node end at line 4, column 11."
+Fix: removed the lone leading `---`. Committed and pushed.
+
+#### 7. Video Pitch — Recommended
+Portal requires pitch file (video or PDF) for competitive judging submissions.
+Recommended 3-minute script:
+1. Login as Duey (5 sec) — real IBM SSO flow
+2. Refresh Data → scores appear (30 sec) — AI doing work
+3. Click red health card → show P1 action items (45 sec) — the management thesis moment
+4. Team Hygiene tab → scroll 76 reps, QE Close column (30 sec)
+5. Generate PPT → download and open (30 sec)
+6. Close with numbers: 90 min → 5 min, 94%, Client Zero
+
+#### 8. PTMP PPT Font Polish — IN PROGRESS (NOT YET VALIDATED)
+
+**Issues identified from user screenshots (Duey's real data):**
+1. Font family: `Calibri` throughout → should be `Aptos` (Body) — Frank Attaie's template uses Aptos
+2. Title font size: `16` → `20`
+3. Summary table header font: `9` → `11`
+4. Summary table data font: `11` → `13`
+5. Section header font sizes: `11` → `13`
+6. Deal row font: `9` → `10`
+7. Action Plan header: `10` → `11`
+8. Action Plan bullets: `8` → `11` (this was the most visually wrong — tiny text)
+9. Row height: `0.225` → `0.28` (sized for Aptos 10pt)
+10. Right column spacing: stretch section `y` calculation used old `0.225` row height — fixed to use `ROW_H = 0.28` + fixed `0.45"` breathing room between gap table and stretch header
+11. Version string: `v2.6.0` → `v2.6.2`
+
+**Code change:** `server/generatePpt.js` — `generatePtmpSlide()` function rewritten.
+Single `const FONT = 'Aptos'` constant replaces all hardcoded `'Calibri'` strings.
+Single `const ROW_H = 0.28` constant replaces all hardcoded `0.225` row heights.
+
+**Committed to develop + main** — but **NOT YET SERVER-TESTED**.
+
+**⚠ PICK UP HERE:** User stopped at 01:20 ET July 21 due to fatigue before validating.
+User will provide annotated screenshot of Duey's original PTMP with RED font annotations
+marking every section's correct font name and size before resuming iteration.
+
+**Server restart required** before testing — `server/generatePpt.js` changed.
+
+---
+
+### Human Actions Still Pending Before July 22, 10:00 AM ET
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | Portal registration + select Growth Enablers for competitive judging + list Duey as Business Owner | Teammate — Tue Jul 21 |
+| 🔴 2 | Create GitHub Release for v2.6.2-rc2 at github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast/releases/new | Jeff — before submission |
+| 🟡 3 | Validate PTMP font fixes with annotated screenshot — restart server first | Jeff — morning Jul 21 |
+| 🟡 4 | Record 3-min pitch video (required by portal for competitive judging) | Jeff — Jul 21 |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
+
 ## Session 48 — Honest Evaluation + Full Doc Sweep + Sessions 26–28 Log Backfill — July 19–20, 2026
 
 **Date:** 2026-07-19 (late) / 2026-07-20 (early AM)
