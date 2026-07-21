@@ -4608,8 +4608,11 @@
       const includeNarrative   = document.getElementById('custppt-opt-narrative').checked;
       const includeWhatChanged = document.getElementById('custppt-opt-whatchanged').checked;
 
-      // Collect currently checked opportunity IDs from the main table
-      const checkedIds = allOpportunities
+      // Use filtered.filter(o => o.selected) — NOT allOpportunities — so we
+      // only include the rows checked in the current filtered view, matching
+      // exactly what the user sees and has ticked. Same pattern as the main
+      // PPT button (line ~4146) which fixed the same "906 vs 21" bug earlier.
+      const checkedIds = filtered
         .filter(o => o.selected)
         .map(o => o.id);
 
