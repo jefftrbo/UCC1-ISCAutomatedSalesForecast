@@ -11,6 +11,122 @@
 
 ---
 
+## v2.7.1 — Column Picker PPT ("Build Your Own Report")
+
+### Origin
+
+Conceived July 21, 2026 (Session 49) at 09:00 ET — 11th-hour idea, correctly deferred
+to avoid submission risk. Design is complete. Zero design work needed to build this.
+
+### Problem Statement
+
+Both current PPT generators produce **predefined output**:
+- `Generate PPT` — fixed column set: deal detail rows, narrative, What Changed
+- `PTMP Slide` — fixed format: Frank Attaie's net-net one-pager
+
+Neither lets the user control what goes on the slide. A TSL wants different columns
+than a VP. A GM wants fewer columns than a TSL. Every user has a specific report
+format they're pasting into — title, font, pagination are their problem, not ours.
+They just need the **right data, in the right order, on a clean slide**.
+
+### The Idea — "Column Picker PPT"
+
+> *"What if the user tells us which of the n columns from the dataset, narrative,
+> and what's changed gets put on what basically looks like #1 with only the data
+> that the user wants to see? The user now has a tailored and specific dataset in
+> PPT format that they could cut/copy/paste into their specific report format
+> without us having to worry about titles, font color/size/position/etc,
+> pagination, or whatever."*
+> — Jeff Trbovich, July 21, 2026
+
+### Design
+
+#### UI — Column Picker Modal (same pattern as Sort dialog)
+
+Button in action bar: **"📋 Custom PPT"** (or added as a tab in the existing PPT confirm modal)
+
+Modal content:
+- Left panel: Available columns checklist (all dataset fields + "Narrative" + "What Changed")
+- Right panel: Selected columns, drag-to-reorder priority
+- Column count indicator: "6 columns selected — estimated ~2 rows per slide at this width"
+- "Select All" / "Clear" shortcuts
+- Preview text showing column order before generating
+
+Suggested default selection (pre-checked):
+`Account Name · Opportunity Name · Close Date · Forecast Category · Total Amount · Score`
+
+#### Server — `POST /api/generate-custom-ppt`
+
+```js
+// Body shape
+{
+  columns: ['account_name', 'opportunity_name', 'close_date',
+            'forecast_category', 'total_opportunity_amount', 'score'],
+  ids: [...],           // same filtered+checked IDs as existing PPT endpoint
+  includeNarrative: true,
+  includeWhatChanged: true,
+}
+```
+
+Server logic:
+1. Pull selected opportunity rows by `ids[]` for this `userId`
+2. Build dynamic column widths: `colW = totalW / columns.length` (equal by default;
+   user can override per-column width in a future iteration)
+3. Truncate column values by type: text fields at 30 chars, amounts formatted via `fmt()`,
+   dates as `MMM D, YYYY`, scores as `NN/100`
+4. Auto-paginate at `ROWS_PER_SLIDE` (same logic as existing generator)
+5. Cover slide: if `includeNarrative`, prepend narrative slide; if `includeWhatChanged`,
+   append What Changed slide — both already built in `generatePpt.js`
+
+#### Column metadata map (needed for header labels + value formatters)
+
+```js
+const COLUMN_META = {
+  account_name:                 { label: 'Account',          type: 'text',   maxLen: 22 },
+  opportunity_name:             { label: 'Opportunity',       type: 'text',   maxLen: 30 },
+  close_date:                   { label: 'Close Date',        type: 'date'              },
+  forecast_category:            { label: 'Forecast',          type: 'text',   maxLen: 12 },
+  filtered_opportunity_amount:  { label: 'Filtered Amt',      type: 'amount'            },
+  total_opportunity_amount:     { label: 'Total Amt',         type: 'amount'            },
+  score:                        { label: 'Score',             type: 'score'             },
+  stage:                        { label: 'Stage',             type: 'text',   maxLen: 18 },
+  opportunity_owner:            { label: 'Owner',             type: 'text',   maxLen: 20 },
+  next_steps:                   { label: 'Next Steps',        type: 'text',   maxLen: 40 },
+  team_notes:                   { label: 'Team Notes',        type: 'text',   maxLen: 40 },
+  flm_judgement:                { label: 'FLM Judgement',     type: 'text',   maxLen: 14 },
+};
+```
+
+### Files That Change
+
+| File | Change |
+|---|---|
+| `public/index.html` | Column picker modal HTML + CSS + JS wiring; new action bar button |
+| `server/index.js` | New `POST /api/generate-custom-ppt` endpoint |
+| `server/generatePpt.js` | New `generateCustomPpt(opts)` function using dynamic column metadata |
+
+### Why This Is Better Than Fixing Fonts on Every Fixed Template
+
+The column picker eliminates the font/size/position debate entirely for user-defined
+output. The user owns what goes on the slide; the app owns clean rendering of whatever
+they chose. Fixed templates (Generate PPT, PTMP) still exist for their specific use
+cases. The column picker is the third option: **bring your own schema**.
+
+### Estimated Build Time
+
+| Task | Estimate |
+|---|---|
+| Column picker modal UI | 45–60 min |
+| `generateCustomPpt()` server function | 60–90 min |
+| `POST /api/generate-custom-ppt` endpoint | 20 min |
+| Testing + edge cases | 45–60 min |
+| Commit / merge / tag | 15 min |
+| **Total** | **~3–4 hours** |
+
+---
+
+
+
 ## v2.6.0 — Per-User HAR Upload (Multi-User Server Deployment)
 
 ### Problem Statement
