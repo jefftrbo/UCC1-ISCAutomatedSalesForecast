@@ -424,11 +424,28 @@ async function generatePtmpSlide(opts) {
   pres.author = 'ISC Automated Sales Forecast';
   pres.subject = 'PTMP — Plan to Make Plan';
 
-  // Font — Aptos (Body) matches Frank Attaie's PTMP template
-  const FONT      = 'Aptos';
+  // ── Fonts — match Frank Attaie's PTMP template exactly ───────────────────
+  // Title uses Aptos Display (Headings); all other text uses Aptos (Body)
+  const FONT_HDG  = 'Aptos Display';  // title only
+  const FONT      = 'Aptos';          // all body text
 
-  // Row height for deal tables — sized for Aptos 10pt
-  const ROW_H     = 0.28;
+  // Row height for deal tables — sized for Aptos (Body) 16pt
+  const ROW_H     = 0.32;
+
+  // ── All positions measured from Format Shape panels in Duey's original PPT ─
+  // Slide canvas: LAYOUT_WIDE = 13.33" × 7.5"
+  const TITLE_X   = 0.39;  TITLE_Y  = 0.34;  // title text box
+  const SUM_X     = 3.93;  SUM_Y    = 0.24;  // summary table x,y
+  const SUM_W     = 7.96;                     // summary table width
+  const LEFT_X    = 0.38;                     // left column x
+  const CALL_Y    = 1.11;                     // "Deals In Call" header y
+  const LEFT_W    = 5.25;                     // left column width
+  const ACT_X     = 0.45;  ACT_Y    = 4.59;  // action plan box
+  const ACT_W     = 5.99;  ACT_H    = 2.92;  // action plan dimensions
+  const RIGHT_X   = 6.99;                     // right column x
+  const RIGHT_W   = 5.89;                     // right column width
+  const GAP_HDR_Y = 1.49;                     // "Deals to close Gap" y — FIXED
+  const STR_HDR_Y = 3.84;                     // "Other Deals Upside/Stretch" y — FIXED
 
   // Derived financials
   const sumAmt = arr => arr.reduce((s, r) => s + (r.filtered_opportunity_amount || 0), 0);
@@ -448,62 +465,59 @@ async function generatePtmpSlide(opts) {
 
   const slide = pres.addSlide();
 
-  // ── Title (top-left) ─────────────────────────────────────────────────────
-  slide.addText(`${lastName} ${teamLabel} PTMP`, {
-    x: 0.3, y: 0.15, w: 4.5, h: 0.6,
-    fontSize: 20, bold: true, color: IBM_DARK, fontFace: FONT,
-    wrap: false, valign: 'middle',
+  // ── Title — Aptos Display 24pt Bold, full-width, wraps to 2 lines ─────────
+  // Format Shape: x=0.39", y=0.34", w=11.5" (full width), h=0.44" per visible line
+  slide.addText(`${lastName} ${teamLabel}\nPTMP`, {
+    x: TITLE_X, y: TITLE_Y, w: 11.5, h: 0.88,
+    fontSize: 24, bold: true, color: IBM_DARK, fontFace: FONT_HDG,
+    wrap: true, valign: 'top',
   });
 
-  // ── Summary table (top-right 5-column) ───────────────────────────────────
+  // ── Summary table — x=3.93", y=0.24", w=7.96", Aptos 18pt ───────────────
   const HDR_BLUE = '1A4F8A';
+  const colW5    = SUM_W / 5; // 1.592" each
   const summaryHeader = [
-    { text: '3Q Budget', options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle', fontFace: FONT } },
-    { text: '3Q Call',   options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle', fontFace: FONT } },
-    { text: 'Gap',       options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle', fontFace: FONT } },
-    { text: 'Upside',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle', fontFace: FONT } },
-    { text: 'Stretch',   options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 11, valign: 'middle', fontFace: FONT } },
+    { text: '3Q Budget', options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 18, valign: 'middle', fontFace: FONT } },
+    { text: '3Q Call',   options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 18, valign: 'middle', fontFace: FONT } },
+    { text: 'Gap',       options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 18, valign: 'middle', fontFace: FONT } },
+    { text: 'Upside',    options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 18, valign: 'middle', fontFace: FONT } },
+    { text: 'Stretch',   options: { bold: true, color: WHITE, fill: { color: HDR_BLUE }, align: 'center', fontSize: 18, valign: 'middle', fontFace: FONT } },
   ];
   const summaryData = [
-    { text: fmt(budget),    options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
-    { text: fmt(callTotal), options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
-    { text: fmt(gap),       options: { align: 'center', fontSize: 13, bold: true, color: gap > 0 ? 'da1e28' : '198038', fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
-    { text: fmt(upside),    options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
-    { text: fmt(stretch),   options: { align: 'center', fontSize: 13, bold: true, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
+    { text: fmt(budget),    options: { align: 'center', fontSize: 18, bold: false, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
+    { text: fmt(callTotal), options: { align: 'center', fontSize: 18, bold: false, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
+    { text: fmt(gap),       options: { align: 'center', fontSize: 18, bold: false, color: gap > 0 ? 'da1e28' : '198038', fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
+    { text: fmt(upside),    options: { align: 'center', fontSize: 18, bold: false, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
+    { text: fmt(stretch),   options: { align: 'center', fontSize: 18, bold: false, color: IBM_DARK, fill: { color: 'E8ECF4' }, valign: 'middle', fontFace: FONT } },
   ];
   slide.addTable([summaryHeader, summaryData], {
-    x: 4.8, y: 0.12, w: 8.2,
-    colW: [1.64, 1.64, 1.64, 1.64, 1.64],
-    rowH: [0.3, 0.4],
+    x: SUM_X, y: SUM_Y, w: SUM_W,
+    colW: [colW5, colW5, colW5, colW5, colW5],
+    rowH: [0.35, 0.44],
     border: { pt: 0.5, color: 'AAAAAA' },
   });
 
-  // Thin rule under title / summary block
-  slide.addShape(pres.ShapeType.line, {
-    x: 0.3, y: 0.85, w: 12.7, h: 0,
-    line: { color: 'CCCCCC', width: 0.5 },
-  });
-
   // ── Helper: deal table — bullet | account | opportunity name | amount ─────
+  // All deal text: Aptos (Body) 16pt, no alternating row shading (matches Duey's)
   function dealTable(deals, x, y, w, h, emptyMsg) {
     if (deals.length === 0) {
-      slide.addText(emptyMsg, { x, y, w, h, fontSize: 10, color: IBM_GRAY, italic: true, fontFace: FONT, valign: 'top' });
-      return deals.length; // 0
+      slide.addText(emptyMsg, { x, y, w, h, fontSize: 16, color: IBM_GRAY, italic: true, fontFace: FONT, valign: 'top' });
+      return;
     }
     const acctW = w * 0.28;
-    const oppW  = w * 0.54;
-    const amtW  = w * 0.18;
+    const oppW  = w * 0.52;
+    const amtW  = w * 0.20;
     const rows  = deals.map((r, i) => {
       const acct = (r.account_name || '').replace(/-US$/, '').slice(0, 20);
-      const opp  = (r.opportunity_name || '').slice(0, 30);
+      const opp  = (r.opportunity_name || '').slice(0, 28);
       const amt  = fmt(r.filtered_opportunity_amount);
       const bg   = i % 2 === 0 ? WHITE : 'F7F8FA';
-      const base = { fill: { color: bg }, fontSize: 10, fontFace: FONT, valign: 'middle' };
+      const base = { fill: { color: bg }, fontSize: 16, fontFace: FONT, valign: 'middle' };
       return [
         { text: '•', options: { ...base, align: 'center', color: IBM_GRAY } },
-        { text: acct, options: { ...base, align: 'left',  color: IBM_DARK, bold: true } },
-        { text: opp,  options: { ...base, align: 'left',  color: IBM_DARK } },
-        { text: amt,  options: { ...base, align: 'right', color: IBM_DARK, bold: true } },
+        { text: acct, options: { ...base, align: 'left', color: IBM_DARK, bold: false } },
+        { text: opp,  options: { ...base, align: 'left', color: IBM_DARK, bold: false } },
+        { text: amt,  options: { ...base, align: 'right', color: IBM_DARK, bold: false } },
       ];
     });
     slide.addTable(rows, {
@@ -512,83 +526,74 @@ async function generatePtmpSlide(opts) {
       rowH: Array(deals.length).fill(ROW_H),
       border: { pt: 0, color: 'FFFFFF' },
     });
-    return deals.length;
   }
 
-  // ── LEFT COLUMN: Deals In Call > $500K ───────────────────────────────────
+  // ── LEFT: "Deals In Call > $500K" — x=0.38", y=1.11", w=5.25" ───────────
   const callBig = callDeals
     .filter(r => (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 12);
+    .slice(0, 10);
 
-  const LEFT_CONTENT_Y = 0.98;
   slide.addText('Deals In Call > $500K', {
-    x: 0.3, y: LEFT_CONTENT_Y, w: 6.0, h: 0.3,
-    fontSize: 13, bold: true, color: IBM_DARK, fontFace: FONT,
+    x: LEFT_X, y: CALL_Y, w: LEFT_W, h: 0.32,
+    fontSize: 16, bold: true, color: IBM_DARK, fontFace: FONT,
   });
-  dealTable(callBig, 0.3, LEFT_CONTENT_Y + 0.32, 6.1, 3.4, 'No deals in Call > $500K');
+  dealTable(callBig, LEFT_X, CALL_Y + 0.34, LEFT_W, ACT_Y - CALL_Y - 0.50, 'No deals in Call > $500K');
 
-  // ── LEFT BOTTOM: Action Plan ──────────────────────────────────────────────
-  // Fixed at y=4.6 so it's always anchored to the same position
-  const ACTION_Y = 4.60;
+  // ── LEFT: "Action Plan" — x=0.45", y=4.59", w=5.99", h=2.92" ────────────
+  // Header: Aptos (Body) 11pt Bold. Bullets: Aptos (Body) 11pt (not bold)
   slide.addText('Action Plan', {
-    x: 0.3, y: ACTION_Y, w: 6.0, h: 0.28,
+    x: ACT_X, y: ACT_Y, w: ACT_W, h: 0.28,
     fontSize: 11, bold: true, color: IBM_DARK, fontFace: FONT,
   });
   const planLines = (actionPlan || '').split('\n').filter(Boolean).slice(0, 8);
   const planBullets = planLines.map(line => ({
     text: line,
-    options: { bullet: { type: 'bullet' }, fontSize: 11, color: IBM_DARK, fontFace: FONT },
+    options: { bullet: { type: 'bullet' }, fontSize: 11, bold: false, color: IBM_DARK, fontFace: FONT },
   }));
   if (planBullets.length === 0) {
     planBullets.push({ text: 'Action plan not provided.', options: { fontSize: 11, color: IBM_GRAY, italic: true, fontFace: FONT } });
   }
   slide.addText(planBullets, {
-    x: 0.3, y: ACTION_Y + 0.30, w: 6.0, h: BOTTOM_BAR_Y - ACTION_Y - 0.35,
+    x: ACT_X, y: ACT_Y + 0.30, w: ACT_W, h: ACT_H - 0.30,
     fontFace: FONT, wrap: true, valign: 'top',
   });
 
-  // ── RIGHT COLUMN: Deals to close Gap ─────────────────────────────────────
-  const RIGHT_CONTENT_Y = 0.98;
+  // ── RIGHT: "Deals to close Gap" — x=6.99", y=1.49", w=5.89" FIXED ───────
   const gapLabel = `Deals to close Gap of ${fmt(gap)}`;
   slide.addText(gapLabel, {
-    x: 6.7, y: RIGHT_CONTENT_Y, w: 6.3, h: 0.3,
-    fontSize: 13, bold: true, color: IBM_DARK, fontFace: FONT,
+    x: RIGHT_X, y: GAP_HDR_Y, w: RIGHT_W, h: 0.32,
+    fontSize: 16, bold: true, color: IBM_DARK, fontFace: FONT,
   });
 
-  // Select pipeline deals that together sum toward the gap, largest first
+  // Select pipeline deals toward the gap, largest first
   const gapDeals = [];
   let running = 0;
   const sortedPipe = [...pipeDeals]
     .filter(r => (r.filtered_opportunity_amount || 0) >= 200000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0));
   for (const r of sortedPipe) {
-    if (gapDeals.length >= 8) break;
+    if (gapDeals.length >= 6) break;
     gapDeals.push(r);
     running += r.filtered_opportunity_amount || 0;
     if (gap > 0 && running >= gap * 1.1) break;
   }
-  const gapTableY = RIGHT_CONTENT_Y + 0.32;
-  dealTable(gapDeals, 6.7, gapTableY, 6.3, 2.0, budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.');
+  dealTable(gapDeals, RIGHT_X, GAP_HDR_Y + 0.34, RIGHT_W, STR_HDR_Y - GAP_HDR_Y - 0.50,
+    budget === 0 ? 'Enter budget to compute gap.' : 'No pipeline deals available.');
 
-  // ── RIGHT BOTTOM: Other Upside/Stretch > $500K ───────────────────────────
-  // Fixed gap between end of gap table and stretch header for consistent spacing
+  // ── RIGHT: "Other Deals in Upside/Stretch" — x=6.99", y=3.84" FIXED ─────
   const gapIds = new Set(gapDeals.map(r => r.id));
   const otherStretch = pipeDeals
     .filter(r => !gapIds.has(r.id) && (r.filtered_opportunity_amount || 0) >= 500000)
     .sort((a, b) => (b.filtered_opportunity_amount || 0) - (a.filtered_opportunity_amount || 0))
-    .slice(0, 10);
-
-  // stretchY: end of gap table rows + fixed 0.45" breathing room before header
-  const gapTableH   = Math.max(gapDeals.length, 1) * ROW_H;
-  const stretchHdrY = gapTableY + gapTableH + 0.45;
-  const stretchDataY = stretchHdrY + 0.32;
+    .slice(0, 8);
 
   slide.addText('Other Deals in Upside / Stretch > $500K', {
-    x: 6.7, y: stretchHdrY, w: 6.3, h: 0.3,
-    fontSize: 13, bold: true, color: IBM_DARK, fontFace: FONT,
+    x: RIGHT_X, y: STR_HDR_Y, w: RIGHT_W, h: 0.32,
+    fontSize: 16, bold: true, color: IBM_DARK, fontFace: FONT,
   });
-  dealTable(otherStretch, 6.7, stretchDataY, 6.3, BOTTOM_BAR_Y - stretchDataY - 0.1, 'No additional stretch deals > $500K.');
+  dealTable(otherStretch, RIGHT_X, STR_HDR_Y + 0.34, RIGHT_W, BOTTOM_BAR_Y - STR_HDR_Y - 0.50,
+    'No additional stretch deals > $500K.');
 
   // ── Bottom bar ────────────────────────────────────────────────────────────
   slide.addShape(pres.ShapeType.rect, {
