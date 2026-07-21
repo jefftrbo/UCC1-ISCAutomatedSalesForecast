@@ -1,5 +1,3 @@
----
-
 ## Session 48 — Honest Evaluation + Full Doc Sweep + Sessions 26–28 Log Backfill — July 19–20, 2026
 
 **Date:** 2026-07-19 (late) / 2026-07-20 (early AM)
