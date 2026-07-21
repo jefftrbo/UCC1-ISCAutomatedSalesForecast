@@ -616,4 +616,296 @@ async function generatePtmpSlide(opts) {
   return outputPath;
 }
 
-module.exports = { generatePpt, generatePtmpSlide };
+// ---------------------------------------------------------------------------
+// generateCustomPpt — column-picker PowerPoint
+// ---------------------------------------------------------------------------
+// Produces an IBM-branded executive PPT with whatever columns the user chose
+// in the Column Picker modal.  Column order and selection are caller-controlled.
+//
+// @param {object} opts
+//   opportunities {Array}   — full opportunity rows from SQLite
+//   columns       {string[]} — ordered array of COLUMN_META keys to include
+//   includeNarrative    {boolean} — prepend AI GM narrative on cover slide
+//   includeWhatChanged  {boolean} — append What Changed slide
+//   outputPath    {string}  — absolute path where .pptx is written
+//   narrative     {object}  — optional { paragraph, bullets } (pre-generated)
+//   diff          {object}  — optional diff from diffEngine.computeDiff()
+//   deltaSummary  {object}  — optional { paragraph, bullets }
+// ---------------------------------------------------------------------------
+
+const COLUMN_META = {
+  account_name:                { label: 'Account',        type: 'text',   maxLen: 22,  defaultW: 1.8  },
+  opportunity_name:            { label: 'Opportunity',    type: 'text',   maxLen: 30,  defaultW: 2.4  },
+  close_date:                  { label: 'Close Date',     type: 'date',                defaultW: 0.85 },
+  forecast_category:           { label: 'Forecast',       type: 'text',   maxLen: 12,  defaultW: 0.9  },
+  filtered_opportunity_amount: { label: 'Filtered Amt',   type: 'amount',              defaultW: 0.95 },
+  total_opportunity_amount:    { label: 'Total Amt',      type: 'amount',              defaultW: 0.95 },
+  score:                       { label: 'Score',          type: 'score',               defaultW: 0.65 },
+  stage:                       { label: 'Stage',          type: 'text',   maxLen: 18,  defaultW: 0.9  },
+  opportunity_owner:           { label: 'Owner',          type: 'text',   maxLen: 20,  defaultW: 1.3  },
+  next_steps:                  { label: 'Next Steps',     type: 'text',   maxLen: 50,  defaultW: 2.2  },
+  team_notes:                  { label: 'Team Notes',     type: 'text',   maxLen: 50,  defaultW: 2.2  },
+  flm_judgement:               { label: 'FLM Judgement',  type: 'text',   maxLen: 14,  defaultW: 0.9  },
+};
+
+// Default columns pre-selected in the Column Picker modal
+const CUSTOM_PPT_DEFAULTS = [
+  'account_name',
+  'opportunity_name',
+  'close_date',
+  'forecast_category',
+  'total_opportunity_amount',
+  'score',
+];
+
+/**
+ * Compute the cell value string for a given column key.
+ */
+function cellValue(row, key) {
+  const meta = COLUMN_META[key];
+  if (!meta) return '—';
+  const raw = row[key];
+  if (meta.type === 'amount') return formatCurrency(raw);
+  if (meta.type === 'score')  return (raw !== null && raw !== undefined) ? String(Math.round(raw)) : '—';
+  if (meta.type === 'date')   return raw || '—';
+  // text — truncate to maxLen
+  if (!raw) return '—';
+  const s   = String(raw);
+  const max = meta.maxLen || 60;
+  return s.length > max ? s.slice(0, max).trimEnd() + '…' : s;
+}
+
+/**
+ * Compute column widths (inches) so they fill the 13.0" usable slide width.
+ * Uses each column's `defaultW` as a proportional weight.
+ */
+function computeColWidths(columns) {
+  const TOTAL_W  = 13.0;
+  const rawTotal = columns.reduce((s, k) => s + (COLUMN_META[k]?.defaultW || 1.0), 0);
+  return columns.map(k => {
+    const raw = COLUMN_META[k]?.defaultW || 1.0;
+    return Math.round((raw / rawTotal) * TOTAL_W * 100) / 100;
+  });
+}
+
+async function generateCustomPpt(opts) {
+  const {
+    opportunities   = [],
+    columns         = CUSTOM_PPT_DEFAULTS,
+    outputPath,
+    narrative       = null,
+    diff            = null,
+    deltaSummary    = null,
+  } = opts;
+
+  const HEADER_ROW_H_C = 0.32;
+  const DATA_ROW_H_C   = 0.40;
+  // How many data rows fit between TABLE_TOP and BOTTOM_BAR_Y?
+  // TABLE_TOP=0.75, BOTTOM_BAR_Y=6.85 → usable=6.10", header=0.32" → 5.78" / 0.40 = 14
+  const ROWS_PER_SLIDE_C = 14;
+
+  const pres = new PptxGenJS();
+  pres.layout  = 'LAYOUT_WIDE';
+  pres.author  = 'ISC Automated Sales Forecast';
+  pres.subject = 'Custom Pipeline Report';
+
+  const now = new Date();
+  const weekLabel = `Week of ${now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
+
+  // ── Cover slide ────────────────────────────────────────────────────────────
+  const cover = pres.addSlide();
+  cover.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 1.5, fill: { color: IBM_BLUE } });
+  cover.addText('Custom Pipeline Report', {
+    x: 0.5, y: 0.25, w: 12, h: 1,
+    fontSize: 32, bold: true, color: WHITE, fontFace: 'Calibri',
+  });
+  cover.addText(weekLabel, {
+    x: 0.5, y: 1.8, w: 12, h: 0.6,
+    fontSize: 18, color: IBM_DARK, fontFace: 'Calibri',
+  });
+  cover.addText(
+    `${opportunities.length} opportunit${opportunities.length === 1 ? 'y' : 'ies'} · ${columns.length} column${columns.length === 1 ? '' : 's'}`,
+    { x: 0.5, y: 2.5, w: 12, h: 0.5, fontSize: 14, color: IBM_GRAY, fontFace: 'Calibri' }
+  );
+  // Column list on cover
+  const colLabels = columns.map(k => COLUMN_META[k]?.label || k).join('  ·  ');
+  cover.addText(colLabels, {
+    x: 0.5, y: 3.1, w: 12.33, h: 0.5,
+    fontSize: 10, color: IBM_GRAY, fontFace: 'Calibri', italic: true,
+  });
+
+  if (narrative && narrative.paragraph) {
+    const NARRATIVE_BLUE = '0F62FE';
+    cover.addShape(pres.ShapeType.line, { x: 0.5, y: 3.75, w: 12.33, h: 0, line: { color: 'e0e0e0', width: 0.5 } });
+    cover.addText('GM BRIEFING', {
+      x: 0.5, y: 3.85, w: 12, h: 0.25,
+      fontSize: 9, bold: true, color: NARRATIVE_BLUE, fontFace: 'Calibri', charSpacing: 2,
+    });
+    cover.addText(narrative.paragraph, {
+      x: 0.5, y: 4.15, w: 12.33, h: 1.5,
+      fontSize: 11, color: IBM_DARK, fontFace: 'Calibri', wrap: true, valign: 'top',
+    });
+    if (narrative.bullets && narrative.bullets.length > 0) {
+      const bulletRows = narrative.bullets.map(b => ({
+        text: b,
+        options: { bullet: { type: 'bullet' }, fontSize: 10, color: IBM_DARK, fontFace: 'Calibri' },
+      }));
+      cover.addText(bulletRows, {
+        x: 0.5, y: 5.7, w: 12.33, h: 1.0,
+        fontFace: 'Calibri', wrap: true, valign: 'top',
+      });
+    }
+  }
+
+  cover.addShape(pres.ShapeType.rect, { x: 0, y: 6.9, w: '100%', h: 0.6, fill: { color: IBM_BLUE } });
+
+  // ── Data slides ────────────────────────────────────────────────────────────
+  const colWidths = computeColWidths(columns);
+  const headers   = columns.map(k => COLUMN_META[k]?.label || k);
+  const amountCols = new Set(columns.filter(k => COLUMN_META[k]?.type === 'amount'));
+  const scoreCols  = new Set(columns.filter(k => COLUMN_META[k]?.type === 'score'));
+
+  for (let pageStart = 0; pageStart < opportunities.length; pageStart += ROWS_PER_SLIDE_C) {
+    const pageRows   = opportunities.slice(pageStart, pageStart + ROWS_PER_SLIDE_C);
+    const pageNum    = Math.floor(pageStart / ROWS_PER_SLIDE_C) + 1;
+    const totalPages = Math.ceil(opportunities.length / ROWS_PER_SLIDE_C);
+
+    const slide = pres.addSlide();
+
+    // Header bar
+    slide.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.6, fill: { color: IBM_BLUE } });
+    slide.addText('Custom Pipeline Report', {
+      x: 0.3, y: 0.05, w: 10, h: 0.5,
+      fontSize: 14, bold: true, color: WHITE, fontFace: 'Calibri',
+    });
+    if (totalPages > 1) {
+      slide.addText(`Page ${pageNum} of ${totalPages}`, {
+        x: 10.5, y: 0.1, w: 2.5, h: 0.4,
+        fontSize: 10, color: WHITE, align: 'right', fontFace: 'Calibri',
+      });
+    }
+
+    // Build table
+    const tableData = [
+      headers.map(h => ({
+        text: h,
+        options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, align: 'left', fontSize: 10, valign: 'middle' },
+      })),
+      ...pageRows.map((opp, i) => {
+        const rowBg = i % 2 === 0 ? 'F4F4F4' : WHITE;
+        return columns.map(key => {
+          const isAmt   = COLUMN_META[key]?.type === 'amount';
+          const isScore = COLUMN_META[key]?.type === 'score';
+          return {
+            text: cellValue(opp, key),
+            options: {
+              fill:   { color: rowBg },
+              color:  IBM_DARK,
+              fontSize: 9,
+              align:  isAmt ? 'right' : isScore ? 'center' : 'left',
+              valign: 'middle',
+            },
+          };
+        });
+      }),
+    ];
+
+    const rowHeights = [HEADER_ROW_H_C, ...Array(pageRows.length).fill(DATA_ROW_H_C)];
+    slide.addTable(tableData, {
+      x: 0.15, y: TABLE_TOP,
+      w: colWidths.reduce((a, b) => a + b, 0),
+      colW: colWidths,
+      rowH: rowHeights,
+      border: { pt: 0.5, color: 'E0E0E0' },
+      autoPage: false,
+    });
+
+    // Bottom bar
+    slide.addShape(pres.ShapeType.rect, { x: 0, y: BOTTOM_BAR_Y, w: '100%', h: SLIDE_H - BOTTOM_BAR_Y, fill: { color: IBM_BLUE } });
+    slide.addText(weekLabel, {
+      x: 0.3, y: BOTTOM_BAR_Y + 0.05, w: 12, h: 0.4,
+      fontSize: 9, color: WHITE, fontFace: 'Calibri',
+    });
+  }
+
+  // ── What Changed slide (optional) ─────────────────────────────────────────
+  if (diff && diff.hasData) {
+    const changeSlide = pres.addSlide();
+    changeSlide.addShape(pres.ShapeType.rect, { x: 0, y: 0, w: '100%', h: 0.6, fill: { color: IBM_BLUE } });
+    changeSlide.addText('What Changed This Week', {
+      x: 0.3, y: 0.05, w: 10, h: 0.5,
+      fontSize: 14, bold: true, color: WHITE, fontFace: 'Calibri',
+    });
+    changeSlide.addText(`${diff.previousWeek} → ${diff.currentWeek}`, {
+      x: 9.5, y: 0.1, w: 3.5, h: 0.4,
+      fontSize: 10, color: WHITE, align: 'right', fontFace: 'Calibri',
+    });
+
+    let contentY = 0.8;
+    if (deltaSummary && deltaSummary.paragraph) {
+      changeSlide.addText(deltaSummary.paragraph, {
+        x: 0.3, y: contentY, w: 12.7, h: 0.8,
+        fontSize: 11, color: IBM_DARK, fontFace: 'Calibri', wrap: true, valign: 'top',
+      });
+      contentY += 0.9;
+    }
+
+    const categories = [
+      { label: 'New Deals',          count: diff.new.length,       color: '198038' },
+      { label: 'Dropped',            count: diff.dropped.length,   color: 'da1e28' },
+      { label: 'Stage Promoted',     count: diff.promoted.length,  color: '0043ce' },
+      { label: 'Stage Demoted',      count: diff.demoted.length,   color: 'f59e0b' },
+      { label: 'Amount Changes',     count: diff.amount.length,    color: '525252' },
+      { label: 'Close Date Slipped', count: diff.slipped.length,   color: 'da1e28' },
+      { label: 'Pulled In Earlier',  count: diff.pulled_in.length, color: '198038' },
+    ].filter(c => c.count > 0);
+
+    if (categories.length === 0) {
+      changeSlide.addText('No significant changes detected this week.', {
+        x: 0.3, y: contentY, w: 12, h: 0.5,
+        fontSize: 12, color: IBM_GRAY, fontFace: 'Calibri', italic: true,
+      });
+    } else {
+      const catTableData = [
+        [
+          { text: 'Category',    options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10 } },
+          { text: 'Count',       options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10, align: 'center' } },
+          { text: 'Top Examples', options: { bold: true, color: WHITE, fill: { color: IBM_BLUE }, fontSize: 10 } },
+        ],
+        ...categories.map((cat, i) => {
+          const bg = i % 2 === 0 ? 'F4F4F4' : WHITE;
+          let examples = [];
+          if (cat.label === 'New Deals')           examples = diff.new.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Dropped')             examples = diff.dropped.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Stage Promoted')      examples = diff.promoted.slice(0,3).map(r => `${r.opportunity_name} (→${r.curStage})`);
+          if (cat.label === 'Stage Demoted')       examples = diff.demoted.slice(0,3).map(r => `${r.opportunity_name} (→${r.curStage})`);
+          if (cat.label === 'Amount Changes')      examples = diff.amount.slice(0,3).map(r => r.opportunity_name);
+          if (cat.label === 'Close Date Slipped')  examples = diff.slipped.slice(0,3).map(r => `${r.opportunity_name} (+${r.daysDiff}d)`);
+          if (cat.label === 'Pulled In Earlier')   examples = diff.pulled_in.slice(0,3).map(r => `${r.opportunity_name} (${r.daysDiff}d)`);
+          return [
+            { text: cat.label,               options: { fill: { color: bg }, color: IBM_DARK, fontSize: 9 } },
+            { text: String(cat.count),       options: { fill: { color: bg }, color: `${cat.color}`, fontSize: 11, bold: true, align: 'center' } },
+            { text: examples.join('  |  ') || '—', options: { fill: { color: bg }, color: IBM_GRAY, fontSize: 8 } },
+          ];
+        }),
+      ];
+      changeSlide.addTable(catTableData, {
+        x: 0.3, y: contentY, w: 12.7,
+        colW: [2.2, 0.8, 9.7],
+        rowH: [0.28, ...Array(categories.length).fill(0.28)],
+        border: { pt: 0.5, color: 'E0E0E0' },
+      });
+    }
+
+    changeSlide.addShape(pres.ShapeType.rect, { x: 0, y: BOTTOM_BAR_Y, w: '100%', h: SLIDE_H - BOTTOM_BAR_Y, fill: { color: IBM_BLUE } });
+    changeSlide.addText(weekLabel, {
+      x: 0.3, y: BOTTOM_BAR_Y + 0.05, w: 12, h: 0.4,
+      fontSize: 9, color: WHITE, fontFace: 'Calibri',
+    });
+  }
+
+  await pres.writeFile({ fileName: outputPath });
+  return outputPath;
+}
+
+module.exports = { generatePpt, generatePtmpSlide, generateCustomPpt, COLUMN_META, CUSTOM_PPT_DEFAULTS };

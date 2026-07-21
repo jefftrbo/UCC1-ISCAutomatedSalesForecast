@@ -1348,6 +1348,165 @@
       padding: 0 2px;
     }
 
+    /* ── Column Picker PPT modal ─────────────────────────────────────────── */
+    #custppt-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1200;
+      align-items: center;
+      justify-content: center;
+    }
+    #custppt-modal-backdrop.open { display: flex; }
+    #custppt-modal {
+      background: #fff;
+      border-radius: 2px;
+      width: 720px;
+      max-width: 96vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.24);
+    }
+    #custppt-modal-header {
+      background: #0043ce;
+      color: #fff;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #custppt-modal-header h3 { margin: 0; font-size: 15px; font-weight: 600; }
+    #custppt-modal-close {
+      background: none; border: none; color: #fff;
+      font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    #custppt-modal-body {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    #custppt-available-panel, #custppt-selected-panel {
+      display: flex;
+      flex-direction: column;
+      padding: 14px 16px;
+      overflow-y: auto;
+    }
+    #custppt-available-panel {
+      width: 46%;
+      border-right: 1px solid #e0e0e0;
+    }
+    #custppt-selected-panel {
+      flex: 1;
+    }
+    .custppt-panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #161616;
+      margin-bottom: 4px;
+    }
+    .custppt-panel-hint {
+      font-size: 11px;
+      color: #6f6f6f;
+      margin-bottom: 10px;
+    }
+    .custppt-panel-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .custppt-panel-actions button {
+      font-size: 11px;
+      padding: 3px 10px;
+      border: 1px solid #c6c6c6;
+      background: #f4f4f4;
+      color: #0043ce;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+    .custppt-panel-actions button:hover { background: #edf4ff; }
+    .custppt-col-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 4px;
+      border-bottom: 1px solid #f4f4f4;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .custppt-col-check:hover { background: #f4f4f4; }
+    .custppt-col-check input[type="checkbox"] { flex-shrink: 0; cursor: pointer; }
+    .custppt-col-type-badge {
+      font-size: 10px;
+      color: #6f6f6f;
+      background: #f4f4f4;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 1px 6px;
+      margin-left: auto;
+    }
+    #custppt-col-count {
+      font-size: 11px;
+      color: #6f6f6f;
+      margin-bottom: 10px;
+    }
+    .custppt-selected-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 8px;
+      border: 1px solid #e0e0e0;
+      background: #f4f4f4;
+      margin-bottom: 5px;
+      font-size: 13px;
+      cursor: grab;
+      border-radius: 2px;
+      user-select: none;
+    }
+    .custppt-selected-item:active { cursor: grabbing; }
+    .custppt-selected-item.drag-over { border-color: #0043ce; background: #edf4ff; }
+    .custppt-drag-handle {
+      color: #a8a8a8;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .custppt-selected-remove {
+      background: none; border: none;
+      color: #da1e28; font-size: 14px;
+      cursor: pointer; margin-left: auto; padding: 0; line-height: 1;
+    }
+    .custppt-selected-remove:hover { color: #a51920; }
+    #custppt-empty-hint {
+      font-size: 12px;
+      color: #a8a8a8;
+      font-style: italic;
+      padding: 10px 4px;
+    }
+    #custppt-modal-options {
+      padding: 10px 16px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      gap: 20px;
+      flex-shrink: 0;
+      font-size: 12px;
+    }
+    #custppt-modal-options label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+    #custppt-modal-footer {
+      border-top: 1px solid #e0e0e0;
+      padding: 12px 18px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+
     /* Sticky columns — checkbox (col 1), ♥ (col 2), Confidence (col 3) */
     /* z-index ladder: body frozen=2, scrolling header=10, corner header=20 */
     thead th:nth-child(1), tbody td:nth-child(1) { position: sticky; left: 0;   z-index: 2; }
@@ -1695,6 +1854,12 @@
   </button>
   <span class="action-status-chip" id="chip-ptmp">Not run</span>
 
+  <button class="action-btn has-tip" id="ab-custppt"
+    data-tip="Build a custom PowerPoint with exactly the columns you choose — pick from all 12 pipeline fields, drag to reorder, then generate and download in seconds.">
+    &#x1F4CB; Custom PPT
+  </button>
+  <span class="action-status-chip" id="chip-custppt">Not run</span>
+
   <div class="action-sep"></div>
 
   <!-- ⇅ Sort -->
@@ -2003,6 +2168,45 @@
         <button class="btn-secondary" id="ptmp-modal-cancel" style="padding:8px 20px;">Cancel</button>
         <button class="btn-success" id="ptmp-modal-generate" style="padding:8px 20px;font-weight:600;">🎯 Generate PTMP Slide</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Column Picker PPT modal ── -->
+<div id="custppt-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="custppt-modal-title">
+  <div id="custppt-modal">
+    <div id="custppt-modal-header">
+      <h3 id="custppt-modal-title">📋 Custom PPT — Column Picker</h3>
+      <button id="custppt-modal-close" aria-label="Close">✕</button>
+    </div>
+    <div id="custppt-modal-body">
+      <!-- Left: Available columns -->
+      <div id="custppt-available-panel">
+        <div class="custppt-panel-title">Available Columns</div>
+        <div class="custppt-panel-hint">Check to add to your report. Uncheck to remove.</div>
+        <div class="custppt-panel-actions">
+          <button id="custppt-select-all">Select All</button>
+          <button id="custppt-clear-all">Clear All</button>
+        </div>
+        <div id="custppt-col-list"></div>
+      </div>
+      <!-- Right: Selected columns with drag-to-reorder -->
+      <div id="custppt-selected-panel">
+        <div class="custppt-panel-title">Selected Columns</div>
+        <div class="custppt-panel-hint">Drag ⠿ to reorder. Click ✕ to remove.</div>
+        <div id="custppt-col-count">0 columns selected</div>
+        <div id="custppt-selected-list"></div>
+        <div id="custppt-empty-hint">No columns selected — check columns on the left.</div>
+      </div>
+    </div>
+    <div id="custppt-modal-options">
+      <label><input type="checkbox" id="custppt-opt-narrative"> Include AI GM Narrative on cover</label>
+      <label><input type="checkbox" id="custppt-opt-whatchanged"> Include What Changed slide</label>
+    </div>
+    <div id="custppt-modal-footer">
+      <div id="custppt-status" style="font-size:12px;color:var(--cds-text-secondary);flex:1;align-self:center;"></div>
+      <button class="btn-secondary" id="custppt-modal-cancel" style="padding:7px 18px;">Cancel</button>
+      <button class="btn-success"   id="custppt-modal-generate" style="padding:7px 18px;font-weight:600;">📋 Generate Custom PPT</button>
     </div>
   </div>
 </div>
@@ -4252,6 +4456,202 @@
         btn.disabled = false;
       }
     });
+  })();
+
+  // ── Column Picker (Custom PPT) Modal ─────────────────────────────────────
+  (function wireCustPpt() {
+    // Column metadata — mirrors server/generatePpt.js COLUMN_META
+    const CUSTPPT_META = {
+      account_name:                { label: 'Account',        type: 'text'   },
+      opportunity_name:            { label: 'Opportunity',    type: 'text'   },
+      close_date:                  { label: 'Close Date',     type: 'date'   },
+      forecast_category:           { label: 'Forecast',       type: 'text'   },
+      filtered_opportunity_amount: { label: 'Filtered Amt',   type: 'amount' },
+      total_opportunity_amount:    { label: 'Total Amt',      type: 'amount' },
+      score:                       { label: 'Score',          type: 'score'  },
+      stage:                       { label: 'Stage',          type: 'text'   },
+      opportunity_owner:           { label: 'Owner',          type: 'text'   },
+      next_steps:                  { label: 'Next Steps',     type: 'text'   },
+      team_notes:                  { label: 'Team Notes',     type: 'text'   },
+      flm_judgement:               { label: 'FLM Judgement',  type: 'text'   },
+    };
+    const ALL_KEYS    = Object.keys(CUSTPPT_META);
+    const DEFAULT_SEL = ['account_name','opportunity_name','close_date','forecast_category','total_opportunity_amount','score'];
+
+    // State: ordered array of selected column keys
+    let selectedCols = [...DEFAULT_SEL];
+    // Drag state
+    let dragSrcKey = null;
+
+    const backdrop    = document.getElementById('custppt-modal-backdrop');
+    const colList     = document.getElementById('custppt-col-list');
+    const selList     = document.getElementById('custppt-selected-list');
+    const colCount    = document.getElementById('custppt-col-count');
+    const emptyHint   = document.getElementById('custppt-empty-hint');
+    const statusEl    = document.getElementById('custppt-status');
+    const genBtn      = document.getElementById('custppt-modal-generate');
+
+    function openModal() {
+      selectedCols = [...DEFAULT_SEL];
+      renderAvailable();
+      renderSelected();
+      statusEl.textContent = '';
+      backdrop.classList.add('open');
+      genBtn.focus();
+    }
+    function closeModal() { backdrop.classList.remove('open'); }
+
+    // ── Render left (available) panel ──────────────────────────────────────
+    function renderAvailable() {
+      colList.innerHTML = '';
+      ALL_KEYS.forEach(key => {
+        const meta    = CUSTPPT_META[key];
+        const checked = selectedCols.includes(key);
+        const row     = document.createElement('label');
+        row.className = 'custppt-col-check';
+        row.innerHTML = `
+          <input type="checkbox" data-key="${key}" ${checked ? 'checked' : ''}>
+          <span>${meta.label}</span>
+          <span class="custppt-col-type-badge">${meta.type}</span>`;
+        row.querySelector('input').addEventListener('change', (e) => {
+          if (e.target.checked) {
+            if (!selectedCols.includes(key)) selectedCols.push(key);
+          } else {
+            selectedCols = selectedCols.filter(k => k !== key);
+          }
+          renderSelected();
+        });
+        colList.appendChild(row);
+      });
+    }
+
+    // ── Render right (selected / reorder) panel ───────────────────────────
+    function renderSelected() {
+      // Sync checkboxes in left panel
+      colList.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.checked = selectedCols.includes(cb.dataset.key);
+      });
+      // Count indicator
+      colCount.textContent = `${selectedCols.length} column${selectedCols.length === 1 ? '' : 's'} selected`;
+      emptyHint.style.display = selectedCols.length === 0 ? 'block' : 'none';
+
+      selList.innerHTML = '';
+      selectedCols.forEach((key, idx) => {
+        const meta = CUSTPPT_META[key];
+        const item = document.createElement('div');
+        item.className   = 'custppt-selected-item';
+        item.draggable   = true;
+        item.dataset.key = key;
+        item.innerHTML   = `
+          <span class="custppt-drag-handle">⠿</span>
+          <span>${meta.label}</span>
+          <span class="custppt-col-type-badge">${meta.type}</span>
+          <button class="custppt-selected-remove" aria-label="Remove ${meta.label}">✕</button>`;
+
+        item.querySelector('.custppt-selected-remove').addEventListener('click', () => {
+          selectedCols = selectedCols.filter(k => k !== key);
+          renderAvailable();
+          renderSelected();
+        });
+
+        // ── Drag-to-reorder ──
+        item.addEventListener('dragstart', (e) => {
+          dragSrcKey = key;
+          e.dataTransfer.effectAllowed = 'move';
+        });
+        item.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          item.classList.add('drag-over');
+        });
+        item.addEventListener('dragleave', () => item.classList.remove('drag-over'));
+        item.addEventListener('drop', (e) => {
+          e.preventDefault();
+          item.classList.remove('drag-over');
+          if (!dragSrcKey || dragSrcKey === key) return;
+          const srcIdx  = selectedCols.indexOf(dragSrcKey);
+          const destIdx = selectedCols.indexOf(key);
+          if (srcIdx === -1 || destIdx === -1) return;
+          selectedCols.splice(srcIdx, 1);
+          selectedCols.splice(destIdx, 0, dragSrcKey);
+          dragSrcKey = null;
+          renderSelected();
+        });
+        item.addEventListener('dragend', () => {
+          dragSrcKey = null;
+          selList.querySelectorAll('.custppt-selected-item').forEach(el => el.classList.remove('drag-over'));
+        });
+
+        selList.appendChild(item);
+      });
+    }
+
+    // ── Select All / Clear All ────────────────────────────────────────────
+    document.getElementById('custppt-select-all').addEventListener('click', () => {
+      selectedCols = [...ALL_KEYS];
+      renderAvailable();
+      renderSelected();
+    });
+    document.getElementById('custppt-clear-all').addEventListener('click', () => {
+      selectedCols = [];
+      renderAvailable();
+      renderSelected();
+    });
+
+    // ── Generate ──────────────────────────────────────────────────────────
+    genBtn.addEventListener('click', async () => {
+      if (selectedCols.length === 0) {
+        statusEl.style.color = '#da1e28';
+        statusEl.textContent = 'Select at least one column before generating.';
+        return;
+      }
+      const includeNarrative   = document.getElementById('custppt-opt-narrative').checked;
+      const includeWhatChanged = document.getElementById('custppt-opt-whatchanged').checked;
+
+      // Collect currently checked opportunity IDs from the main table
+      const checkedIds = allOpportunities
+        .filter(o => o.selected)
+        .map(o => o.id);
+
+      genBtn.disabled = true;
+      statusEl.style.color = 'var(--cds-text-secondary)';
+      statusEl.textContent = `⏳ Generating ${selectedCols.length}-column PPT…`;
+
+      try {
+        const res  = await fetch('/api/generate-custom-ppt', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            columns:           selectedCols,
+            ids:               checkedIds.length > 0 ? checkedIds : undefined,
+            includeNarrative,
+            includeWhatChanged,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          statusEl.style.color = '#da1e28';
+          statusEl.textContent = 'Error: ' + (data.error || res.statusText);
+          return;
+        }
+        statusEl.style.color = '#198038';
+        statusEl.textContent = `✅ Ready — ${data.count} opportunit${data.count === 1 ? 'y' : 'ies'} · ${data.columns} columns`;
+        window.open(data.file, '_blank');
+        updateActionBar('custppt', 'fresh');
+        setTimeout(closeModal, 1800);
+      } catch (err) {
+        statusEl.style.color = '#da1e28';
+        statusEl.textContent = 'Error: ' + err.message;
+      } finally {
+        genBtn.disabled = false;
+      }
+    });
+
+    // ── Wire open/close ───────────────────────────────────────────────────
+    document.getElementById('ab-custppt').addEventListener('click', openModal);
+    document.getElementById('custppt-modal-close').addEventListener('click', closeModal);
+    document.getElementById('custppt-modal-cancel').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModal(); });
   })();
 
   // ── Patch loadOpportunities — auto-score after every refresh ──────────────

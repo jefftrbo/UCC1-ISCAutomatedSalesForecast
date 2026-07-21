@@ -29,7 +29,7 @@ const { spawn }    = require('child_process');
 const db           = require('./db');
 const authRouter   = require('./auth');
 const requireAuth  = require('./middleware/requireAuth');
-const { generatePpt, generatePtmpSlide } = require('./generatePpt');
+const { generatePpt, generatePtmpSlide, generateCustomPpt, COLUMN_META, CUSTOM_PPT_DEFAULTS } = require('./generatePpt');
 const { scoreOpportunity } = require('./scoreOpportunity');
 const { batchScore, isLiveMode, modelId, generateNarrative, generateDeltaSummary } = require('./watsonxScore');
 const { saveSnapshot, computeDiff, getLedgerHistory } = require('./diffEngine');
@@ -680,6 +680,83 @@ app.post('/api/generate-ptmp', async (req, res) => {
     res.json({ url: '/' + relPath, callCount: callDeals.length, pipeCount: pipeDeals.length, budget, gap: Math.max(0, budget - callDeals.reduce((s, r) => s + (r.filtered_opportunity_amount || 0), 0)) });
   } catch (err) {
     console.error('POST /api/generate-ptmp error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/generate-custom-ppt
+// Generates a Column Picker PPT — user-chosen column set, user-chosen rows.
+// Body: { columns: string[], ids: number[], includeNarrative: bool, includeWhatChanged: bool }
+//   columns          — ordered array of COLUMN_META keys (from client)
+//   ids              — opportunity IDs to include (defaults to selected=1 if omitted)
+//   includeNarrative — prepend AI GM narrative on cover slide
+//   includeWhatChanged — append What Changed slide
+// ---------------------------------------------------------------------------
+app.post('/api/generate-custom-ppt', async (req, res) => {
+  const userId = req.session.user.ibm_id;
+  try {
+    // Validate + sanitise requested columns
+    const validKeys = Object.keys(COLUMN_META);
+    let columns = Array.isArray(req.body.columns)
+      ? req.body.columns.filter(k => validKeys.includes(k))
+      : CUSTOM_PPT_DEFAULTS;
+    if (columns.length === 0) columns = CUSTOM_PPT_DEFAULTS;
+
+    const includeNarrative    = Boolean(req.body.includeNarrative);
+    const includeWhatChanged  = Boolean(req.body.includeWhatChanged);
+
+    // Fetch rows
+    const ids = Array.isArray(req.body.ids) && req.body.ids.length > 0 ? req.body.ids : null;
+    let opportunities;
+    if (ids) {
+      const placeholders = ids.map(() => '?').join(',');
+      opportunities = db
+        .prepare(`SELECT * FROM opportunities WHERE user_id = ? AND id IN (${placeholders}) ORDER BY close_date ASC`)
+        .all(userId, ...ids);
+    } else {
+      opportunities = db
+        .prepare('SELECT * FROM opportunities WHERE user_id = ? AND selected = 1 ORDER BY close_date ASC')
+        .all(userId);
+    }
+
+    if (opportunities.length === 0) {
+      return res.status(400).json({ error: 'No opportunities selected. Please check at least one opportunity.' });
+    }
+
+    // Output file
+    const dateStamp  = new Date().toISOString().slice(0, 10);
+    const safeId     = userId.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const outputDir  = path.join(__dirname, '..', 'output', safeId);
+    require('fs').mkdirSync(outputDir, { recursive: true });
+    const outputPath = path.join(outputDir, `custom-ppt-${dateStamp}-${Date.now()}.pptx`);
+
+    // Optional narrative
+    let narrative = null;
+    if (includeNarrative) {
+      try { narrative = await generateNarrative(opportunities); } catch (e) {
+        console.warn('generate-custom-ppt: narrative skipped —', e.message);
+      }
+    }
+
+    // Optional diff / delta summary
+    let diff = null;
+    let deltaSummary = null;
+    if (includeWhatChanged) {
+      try {
+        diff = computeDiff(db, new Date(), userId);
+        if (diff.hasData) deltaSummary = await generateDeltaSummary(diff);
+      } catch (e) {
+        console.warn('generate-custom-ppt: diff skipped —', e.message);
+      }
+    }
+
+    await generateCustomPpt({ opportunities, columns, outputPath, narrative, diff, deltaSummary });
+
+    const fileName = path.basename(outputPath);
+    res.json({ file: `/output/${safeId}/${fileName}`, count: opportunities.length, columns: columns.length });
+  } catch (err) {
+    console.error('POST /api/generate-custom-ppt error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
