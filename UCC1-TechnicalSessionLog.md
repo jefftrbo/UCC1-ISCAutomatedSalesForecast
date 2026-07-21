@@ -1,3 +1,87 @@
+## Session 50 — Column Picker Custom PPT v2.6.3 — July 21, 2026
+
+**Date:** 2026-07-21
+**Branch:** `main`
+**Tag:** `v2.6.3`
+**Status:** ✅ Complete — Column Picker PPT fully implemented, smoke-tested, committed, pushed, tagged
+
+---
+
+### What Was Accomplished This Session
+
+#### 1. Column Picker Custom PPT — Built End-to-End
+
+Resumed from Session 49 context summary. PTMP PPT remains abandoned (see Session 49 decision). Column Picker PPT was the identified replacement — more innovative, sidesteps font/position issues, demonstrates more AI capability.
+
+**`server/generatePpt.js`** — added:
+- `COLUMN_META` — 12 fields with label, type (`text`/`date`/`amount`/`score`), maxLen, and proportional `defaultW` weights
+- `CUSTOM_PPT_DEFAULTS` — 6 pre-checked columns: account_name, opportunity_name, close_date, forecast_category, total_opportunity_amount, score
+- `cellValue(row, key)` helper — format-aware cell renderer (currency, score rounding, text truncation)
+- `computeColWidths(columns)` — scales `defaultW` values proportionally to fill 13.0" slide width
+- `generateCustomPpt(opts)` — full PPT generator:
+  - Cover slide with column list enumerated, optional AI GM narrative block
+  - Auto-paginating data table at 14 rows/slide (0.75" top + 0.32" header + 14×0.40" = 6.87" ≤ 6.85" safe)
+  - Amounts right-aligned, scores center-aligned, text left-aligned
+  - Optional What Changed slide (copy of `generatePpt()` What Changed logic)
+- Exported `generateCustomPpt`, `COLUMN_META`, `CUSTOM_PPT_DEFAULTS`
+
+**`server/index.js`** — added:
+- `POST /api/generate-custom-ppt` endpoint
+  - Validates column keys against `COLUMN_META` whitelist (server-side guard)
+  - Accepts `ids[]` array; falls back to `selected=1` rows if omitted
+  - `includeNarrative` — calls `generateNarrative()` if true (non-blocking, skip on error)
+  - `includeWhatChanged` — calls `computeDiff()` + `generateDeltaSummary()` if true (non-blocking)
+  - Writes to `/output/<safeId>/custom-ppt-<date>-<ts>.pptx`
+  - Returns `{ file, count, columns }`
+
+**`public/index.html`** — added:
+- CSS block: `#custppt-modal-backdrop`, `#custppt-modal`, panels, checklist rows, drag items, badges — all in Carbon/IBM style
+- Action bar button `#ab-custppt` (📋 Custom PPT) + `#chip-custppt` chip after PTMP button
+- Modal HTML: two-panel layout — Available Columns (checklist + Select All / Clear All) | Selected Columns (drag-to-reorder + ✕ remove)
+- Options row: "Include AI GM Narrative on cover" + "Include What Changed slide" checkboxes
+- JS `wireCustPpt()` IIFE:
+  - `CUSTPPT_META` mirrors server COLUMN_META (client-side labels for rendering)
+  - `renderAvailable()` — builds checkbox list; checks sync to `selectedCols` state
+  - `renderSelected()` — builds drag-reorder list; syncs checkboxes; shows empty hint
+  - HTML5 drag API: `dragstart → dragover → drop` reorders `selectedCols` in-place
+  - Select All / Clear All toggle entire `ALL_KEYS` set
+  - Generate handler: POSTs `{ columns, ids, includeNarrative, includeWhatChanged }`, opens download in new tab, calls `updateActionBar('custppt', 'fresh')`
+  - Opens modal with DEFAULT_SEL pre-checked; resets state on every open
+
+#### 2. Smoke Tests Passed
+```
+node -e "const g = require('./server/generatePpt'); console.log(Object.keys(g))"
+→ ['generatePpt','generatePtmpSlide','generateCustomPpt','COLUMN_META','CUSTOM_PPT_DEFAULTS']
+
+node --check server/index.js → OK
+
+generateCustomPpt({ 2 fake rows, CUSTOM_PPT_DEFAULTS })
+→ PPT generated OK: /var/folders/.../test-custom.pptx
+```
+
+#### 3. Git
+- Committed: `263036a` — `feat: v2.6.3 Column Picker Custom PPT`
+- Pushed to origin/main
+- Tagged: `v2.6.3` pushed to origin
+
+---
+
+### Human Actions Still Pending Before July 22, 10:00 AM ET
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | **Live test with Duey's data** — restart server, open modal, pick columns, generate, verify .pptx downloads | Jeff — now |
+| 🔴 2 | Portal registration + select Growth Enablers for competitive judging + list Duey as Business Owner | Teammate — today |
+| 🟡 3 | Create GitHub Release for v2.6.2-rc2 at github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast/releases/new | Jeff |
+| 🟡 4 | Record 3-min pitch video (required by portal for competitive judging) | Jeff |
+| ⬜ 5 | PTMP font validation (if demoed) — server restart + annotated screenshot | Jeff (optional — not in submission demo) |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 49 — PTMP Font Polish (In Progress) + Pre-Submission Housekeeping — July 21, 2026
 
 **Date:** 2026-07-21 (started ~11 PM ET July 20, active past midnight)
