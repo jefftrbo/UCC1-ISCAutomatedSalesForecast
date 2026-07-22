@@ -79,9 +79,19 @@ node scripts/init-users.js
 
 You should see all 9 test users confirmed and existing pipeline rows tagged.
 
-### Step 4 — Seed demo data for the other 8 users *(optional but recommended)*
+### Step 4 — Load demo data *(required for a working demo)*
 
-Each non-primary user gets 6 realistic deals from real health system accounts, with a Week 1 baseline and Week 3 live mutations pre-loaded so the diff engine shows changes on first login.
+Every user (including the primary user Duey) needs pipeline rows before the app is useful. Two approaches:
+
+**Option A — Day 0 clean slate (all 9 users, synthetic data)**
+
+Wipes everything and seeds all 9 users with realistic health-system deals, a Week 1 baseline, and Week 3 live mutations. Use this when demoing without real HAR data or when you need a perfectly clean reset.
+
+```bash
+node scripts/day0-reset.js
+```
+
+**Option B — Seed only the 8 non-primary users (preserves Duey's real HAR data)**
 
 ```bash
 node scripts/seed-quarter.js --all
@@ -101,9 +111,9 @@ You will see the IBM-styled simulated SSO login page. Sign in with any user from
 
 ## Test Users (Simulated SSO)
 
-| Display Name | IBM ID | Password | Pipeline |
+| Display Name | IBM ID | Password | Seed pipeline (after day0-reset) |
 |---|---|---|---|
-| Duey Patel (GM/VP) | `dkpatel@us.ibm.com` | `dk` | 221 real deals from ISC |
+| Duey Patel (GM/VP) | `dkpatel@us.ibm.com` | `dk` | 6 deals — DISA, VA, HHS, DHA, CMS, CDC |
 | Jeff Trbovich | `trbovich@us.ibm.com` | `jt` | 6 UPMC/Philadelphia deals |
 | Spencer Korn | `spencer.korn@ibm.com` | `sk` | 6 Mayo/Cleveland Clinic deals |
 | Kim Salatino | `kim.salatino@ibm.com` | `ks` | 6 UPMC/AHN deals |
@@ -114,6 +124,8 @@ You will see the IBM-styled simulated SSO login page. Sign in with any user from
 | Brian Coyle | `bcoyle@us.ibm.com` | `bc` | 6 Horizon BCBS NJ deals |
 
 Each user's data is **completely isolated** — no user can see another's pipeline. Log out and log back in as a different user to prove it.
+
+> **After a Day 0 reset**, all 9 users have synthetic seed data. To restore a user's real ISC pipeline, re-run the HAR importer: `node scraper/load-from-har.js <path-to-har>`
 
 ---
 
@@ -191,6 +203,9 @@ Click **"⇄ What Changed"** to see week-over-week diff against your last saved 
 #### Baseline & Generate GM Report
 Click **"📊 Baseline & GM Report"** → confirm → PowerPoint generated and downloaded.
 
+#### Custom PPT — Column Picker
+Click **"📋 Custom PPT"** to open the Column Picker modal. Choose exactly which columns appear in your report, drag to reorder them, and optionally include the AI GM Narrative and/or What Changed slide. Generates an IBM-branded `.pptx` with only the columns you selected, using the currently filtered and checked rows.
+
 ---
 
 ## App Header — What You'll See After Login
@@ -216,14 +231,19 @@ The filter bar includes three one-click view presets:
 
 ---
 
-## The Generated PowerPoint
+## Generated PowerPoints
 
-The PPTX includes:
-- **Cover slide** — GM narrative paragraph + key pipeline stats
-- **Deal slides** — one per opportunity, sorted by confidence score
-- **"What Changed" slide** — week-over-week delta summary
+### Baseline & GM Report (`forecast-[date].pptx`)
+- **Cover slide** — GM narrative + pipeline stats
+- **Deal slides** — fixed column set (Opportunity, Account, Stage, Forecast, Close Date, IBM Tech Amt, Total Amt, Owner, FLM Judgement, Next Steps)
+- **What Changed slide** — week-over-week delta summary
 
-Downloaded automatically as `forecast-[date].pptx` in your user-namespaced output directory.
+### Custom PPT (`custom-ppt-[date]-[ts].pptx`)
+- **Cover slide** — column list enumerated + optional AI GM narrative
+- **Data slides** — exactly the columns you chose, in the order you chose, auto-paginating at 14 rows/slide
+- **Optional What Changed slide**
+
+Both files are written to `output/<ibm_id>/` and auto-downloaded in the browser.
 
 ---
 
@@ -249,7 +269,8 @@ public/
 
 scripts/
   init-users.js         — Loads test-users.csv → users table; tags existing rows to primary user
-  seed-quarter.js       — Multi-user seed helper: --user / --all / --restore / --status flags
+  seed-quarter.js       — Multi-user seed helper (non-primary users only — preserves Duey's real data)
+  day0-reset.js         — "Day 0" clean-slate reset: wipes ALL 9 users + re-seeds synthetic data
   test-baseline-ledger.js — Unit test: 34/34 assertions, 13-week Q3 2026 in-memory simulation
 
 scraper/
@@ -270,19 +291,39 @@ scripts/test-users.csv  — Test user registry (gitignored — contains real IBM
 ```bash
 # Unit test: 34/34 assertions, 13-week Q3 2026 simulation, under 5 seconds
 node scripts/test-baseline-ledger.js
+```
 
-# Seed demo data for a specific user
-node scripts/seed-quarter.js --user trbovich@us.ibm.com
+## Seed / Reset Commands
 
-# Seed all non-primary users at once
+```bash
+# ── Day 0 reset — wipes ALL 9 users + re-seeds everyone (including Duey) ──
+node scripts/day0-reset.js             # execute
+node scripts/day0-reset.js --dry-run   # preview without writing
+
+# ── seed-quarter.js — operates on non-primary users only (preserves Duey's real HAR data) ──
+
+# Seed all 8 non-primary users
 node scripts/seed-quarter.js --all
 
-# Check seeded state
-node scripts/seed-quarter.js --status
+# Seed a single user
+node scripts/seed-quarter.js --user trbovich@us.ibm.com
 
-# Restore (remove all seeded rows)
+# Seed a single user at a specific mutation week (1=baseline, 2=week2, 3=week3 live)
+node scripts/seed-quarter.js --user trbovich@us.ibm.com --week 2
+
+# Check current seeded state (all users, or scoped)
+node scripts/seed-quarter.js --status
+node scripts/seed-quarter.js --status --user trbovich@us.ibm.com
+
+# Remove seeded rows only (all users, or scoped) — leaves Duey's real rows untouched
 node scripts/seed-quarter.js --restore --all
+node scripts/seed-quarter.js --restore --user trbovich@us.ibm.com
+
+# Preview any operation without writing
+node scripts/seed-quarter.js --dry-run --user trbovich@us.ibm.com
 ```
+
+> **Key difference:** `day0-reset.js` touches all 9 users including Duey and wipes baselines too. `seed-quarter.js` never touches `dkpatel@us.ibm.com` and only removes rows matching the SEED- ID pattern — it cannot accidentally wipe real HAR data.
 
 ---
 
@@ -359,6 +400,9 @@ Set `SIMULATE_SSO=false` in `.env`. Session shape, all DB queries, and the front
 | v2.6.2 | Multi-column sort modal — "⇅ Sort" action bar button opens modal with up to 6 stacked sort keys; COL_LABELS map; sort pill bar shows active sort stack; group-by divider rows for categorical first key (Quarter/Stage/Forecast/Owner); single-click column header still works (collapses stack to one key); "✕ Clear sort" resets to default |
 | hotfix | Narrative fetch guard — `res.ok` + `Content-Type` check before `res.json()` in both click and auto-refresh paths; prevents HTML error page surfacing as raw SyntaxError |
 | **v2.6.2-rc2** | **Submission candidate — user-tested PTMP + sort modal + narrative fix · tagged on main · July 19, 2026** |
+| v2.6.3 | Column Picker Custom PPT — "📋 Custom PPT" action bar button opens two-panel modal; left panel: 12-column checklist with Select All / Clear; right panel: selected columns with HTML5 drag-to-reorder; optional AI GM Narrative + What Changed slide checkboxes; `COLUMN_META` + `generateCustomPpt()` in generatePpt.js; `POST /api/generate-custom-ppt`; uses filtered+checked IDs (same pattern as GM Report — prevents full-pipeline dump bug) |
+| hotfix | Custom PPT filtered-view fix — was using `allOpportunities.filter(selected)` (943 rows) instead of `filtered.filter(selected)` (user's actual checked rows) |
+| **scripts/day0-reset.js** | **Day 0 clean-slate utility — wipes all 9 users (including Duey) + re-seeds synthetic data + writes 9 baselines; `--dry-run` flag previews without writing; supports demo/video reset workflow** |
 
 ---
 
@@ -369,9 +413,9 @@ This app is a submission for the **IBM watsonx Challenge 2026, Growth Enablers t
 - **Business value:** 90 min → under 5 min weekly GM prep · 94% time reduction
 - **Multi-user:** 9 IBM TSLs/ATLs/GMs with full data isolation, IBM SSO architecture
 - **watsonx.ai models:** `ibm/granite-13b-instruct-v2` (scoring) · `meta-llama/llama-3-70b-instruct` (narrative) · `ibm/granite-3-8b-instruct` (delta summary)
-- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 47 sessions
+- **Built with:** IBM Bob (IBM's watsonx AI development assistant) · 51 sessions
 - **Deployment path:** CIO "Build with watsonx" Path to Production
 
 ---
 
-*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.6.2*
+*UCC1 — ISC Automated Sales Forecast · US Public Sector IBM · v2.6.3*

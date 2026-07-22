@@ -1,3 +1,46 @@
+## Session 51 — Doc Sweep + Day 0 Script — July 21, 2026
+
+**Date:** 2026-07-21
+**Branch:** `main`
+**Status:** ✅ Complete
+
+### What Was Accomplished This Session
+
+#### 1. Day 0 Reset Script — `scripts/day0-reset.js`
+Built and executed while you tested all 9 users. Wipes ALL opportunities + baseline_ledger for all 9 users (including Duey's real HAR data) and re-seeds everyone with 6 synthetic health-system deals + a Week 1 confirmed baseline + Week 3 mutations.
+
+- Executed: wiped 5,579 opportunities + 9,065 baseline_ledger rows; seeded 54 rows across 9 users
+- Supports `--dry-run` flag
+- Committed: `d857c12` — pushed to origin/main
+
+#### 2. Full Doc Sweep — All HTML + MD files updated to v2.6.3
+
+Files updated:
+- **`README.md`** — Step 4 rewritten to explain Day 0 vs seed-quarter options; test users table updated (Duey now shows seed data); Custom PPT workflow step added; Generated PowerPoints section split into GM Report + Custom PPT; App Structure updated with day0-reset.js; Running Tests renamed to "Seed / Reset Commands" with all seed-quarter.js flags documented; Version History updated through v2.6.3 + Day 0 hotfix; session count updated to 51; footer updated to v2.6.3
+- **`UCC1-ChallengeSubmissionDraft.html`** — Version v2.6.2-rc2 → v2.6.3; all criteria cells updated with Custom PPT + Day 0; solution description expanded with Column Picker + Day 0 paragraphs; innovation section + deployment section updated; session counts 47→51; GitHub/session log refs updated; stat tile 47→51; footer updated
+- **`isc-automated-sales-forecast-project-narrative.html`** — version/date header updated; stat tile 28→51; "What it does today" heading v2.6.2→v2.6.3; Refresh Data desc updated; "How Dushyant uses it" section updated with Day 0 state; build status table — 3 new rows (Column Picker, filtered-view fix, Day 0); v2.6.2-rc2 row updated; v2.6.3 row added; git pills updated; footer updated
+- **`UCC1-PostSubmissionBacklog.md`** — v2.6.3 Column Picker marked ✅ SHIPPED; original spec archived below
+
+#### 3. Custom PPT Bug Fix (in same session)
+`allOpportunities.filter(o => o.selected)` → `filtered.filter(o => o.selected)` — was dumping 943-row full pipeline instead of the user's actual checked rows in the filtered view. Committed `5e98f02`.
+
+---
+
+### Human Actions Still Pending Before July 22, 10:00 AM ET
+
+| Priority | Action | Status |
+|---|---|---|
+| 🔴 1 | Test all 9 users — validate 6 seed rows each, full workflow | Jeff — in progress |
+| 🔴 2 | Portal registration + Growth Enablers + Duey as Business Owner | Teammate — today |
+| 🟡 3 | Create GitHub Release for v2.6.2-rc2 at github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast/releases/new | Jeff |
+| 🟡 4 | Record 3-min pitch video | Jeff |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 50 — Column Picker Custom PPT v2.6.3 — July 21, 2026
 
 **Date:** 2026-07-21

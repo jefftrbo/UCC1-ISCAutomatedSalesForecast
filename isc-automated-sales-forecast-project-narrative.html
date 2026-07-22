@@ -107,7 +107,7 @@
   <div class="page-header">
     <div class="eyebrow">IBM watsonx Challenge 2026 · UCC1 Submission · Growth Enablers Track</div>
     <h1>ISC Automated Sales Forecast</h1>
-    <div class="subtitle">Project narrative — what it does, where it stands, what's next &nbsp;·&nbsp; v2.6.2 &nbsp;·&nbsp; July 19, 2026</div>
+    <div class="subtitle">Project narrative — what it does, where it stands, what's next &nbsp;·&nbsp; v2.6.3 &nbsp;·&nbsp; July 21, 2026</div>
   </div>
 
   <!-- ── Key Numbers ── -->
@@ -115,7 +115,7 @@
     <div class="stat"><div class="stat-number">90→5</div><div class="stat-label">Minutes saved per week</div></div>
     <div class="stat"><div class="stat-number">221</div><div class="stat-label">Live pipeline opportunities</div></div>
     <div class="stat"><div class="stat-number">9</div><div class="stat-label">IBM users (TSL/ATL/GM/VP)</div></div>
-    <div class="stat"><div class="stat-number">28</div><div class="stat-label">Sessions with IBM Bob</div></div>
+    <div class="stat"><div class="stat-number">51</div><div class="stat-label">Sessions with IBM Bob</div></div>
   </div>
 
   <!-- ── Problem ── -->
@@ -131,7 +131,7 @@
 
   <!-- ── What it does ── -->
   <section>
-    <h2>What the app does today (v2.6.2)</h2>
+    <h2>What the app does today (v2.6.3)</h2>
     <ul class="feature-list">
 
       <li>
@@ -146,7 +146,7 @@
         <span class="icon">&#x27F3;</span>
         <div>
           <div class="label">Refresh Data</div>
-          <div class="desc">Loads 221 live opportunities from ISC via a HAR export — the practical workaround for IBM w3id passkey auth that blocks all programmatic access. Stores to local SQLite in under 2 seconds. Every row is tagged with the authenticated user's <code>ibm_id</code> — no row can be read by another user's session.</div>
+          <div class="desc">Loads live opportunities from ISC via a HAR export — the practical workaround for IBM w3id passkey auth that blocks all programmatic access. Stores to local SQLite in under 2 seconds. Every row is tagged with the authenticated user's <code>ibm_id</code> — no row can be read by another user's session. After Day 0 reset, each of the 9 users has 6 realistic synthetic deals pre-loaded; real HAR data can be loaded at any time by re-running the HAR importer.</div>
         </div>
       </li>
 
@@ -197,9 +197,9 @@
   <section>
     <h2>How Dushyant (and the team) use it</h2>
     <p>The app uses a <strong>status-driven action bar</strong> — five flat buttons, always available, no numbered sequence lock. Each button shows a timestamp chip after it runs (<em>Done · 7:06 AM</em> in green, or amber on failure). This reflects how a VP actually works: non-linear, iterative, context-dependent.</p>
-    <p>Every session starts at <code>/login</code>. After sign-in, a user chip in the header shows initials, display name, role, and a Sign Out button. A yellow TEST MODE banner confirms the active <code>ibm_id</code>. Each of the 9 users sees <em>only their own deals</em> — Duey's 221 real opportunities are never visible to any other user's session.</p>
+    <p>Every session starts at <code>/login</code>. After sign-in, a user chip in the header shows initials, display name, role, and a Sign Out button. A yellow TEST MODE banner confirms the active <code>ibm_id</code>. Each of the 9 users sees <em>only their own deals</em> — no user can read another user's pipeline rows.</p>
     <div class="callout green">
-      <strong>v2.5.7 live data (Duey's pipeline, July 18 2026):</strong> 221 opportunities · 76 distinct owners · 48 blank Next Steps (22%) · 216 blank Team Notes (98%) · 22 urgent / 8 watch / 46 clean coaching flags from the Pipeline Intelligence Engine. The hygiene gaps are not a data problem — they are the demo. A VP seeing "Rep X: 12 deals, hygiene score 0, no Next Steps updates anywhere" is a viscerally powerful management signal.
+      <strong>v2.6.3 Day 0 state (all 9 users, July 21 2026):</strong> 54 seed deals across 9 users (6 each) · 9 confirmed Week 1 baselines · Week 3 mutations applied (stage promotions, amount changes, date slippage) so the diff engine shows real changes immediately · all 9 users validated with Refresh Data → Score → Narrative → What Changed → Sort → Custom PPT → Baseline workflow. The Pipeline Intelligence Engine, Deal Health Card, and Rep Hygiene coaching dashboard are fully functional on seed data. Load a real ISC HAR at any time to replace seed data with live pipeline.
     </div>
   </section>
 
@@ -240,8 +240,12 @@
         <tr><td>PTMP slide generator (v2.6.0)</td><td><span class="badge done">Done</span></td><td>🎯 PTMP Slide button · budget/action-plan modal · POST /api/generate-ptmp · generatePtmpSlide() · Frank Attaie's PTMP format · v2.5.21-rc1 tagged as submission freeze</td></tr>
         <tr><td>PTMP font polish (v2.6.1)</td><td><span class="badge done">Done</span></td><td>title 16pt no-wrap · summary table 9pt/11pt · addTable() deal lists (true column alignment, no Courier+padEnd) · section headers 11pt · action plan 8pt uniform · dynamic stretchY</td></tr>
         <tr><td>Multi-column sort modal (v2.6.2)</td><td><span class="badge done">Done</span></td><td>⇅ Sort button · up to 6 stacked sort keys · COL_LABELS map · sort pill bar · group-by divider rows for categorical first key · single-click header still works · ✕ Clear sort</td></tr>
+        <tr><td>Column Picker Custom PPT (v2.6.3)</td><td><span class="badge done">Done</span></td><td>📋 Custom PPT button · two-panel modal (checklist left, drag-reorder right) · COLUMN_META · generateCustomPpt() · POST /api/generate-custom-ppt · uses filtered+checked IDs · optional AI narrative + What Changed · proportional column widths · 14 rows/slide</td></tr>
+        <tr><td>Custom PPT filtered-view fix</td><td><span class="badge done">Done</span></td><td>Was sending allOpportunities (943 rows); corrected to filtered.filter(selected) — same pattern as GM Report button</td></tr>
+        <tr><td>Day 0 reset utility</td><td><span class="badge done">Done</span></td><td>scripts/day0-reset.js — wipes all 9 users + re-seeds 54 deals + 9 baselines · --dry-run flag · executed July 21 (5,579 opps + 9,065 ledger rows wiped in &lt;2s)</td></tr>
         <tr><td>Narrative fetch guard (hotfix)</td><td><span class="badge done">Done</span></td><td>res.ok + Content-Type check before res.json() in both click and auto-refresh paths — prevents HTML error page surfacing as raw SyntaxError</td></tr>
-        <tr><td><strong>v2.6.2-rc2 tagged</strong></td><td><span class="badge done">RC2</span></td><td>Submission candidate · user-tested PTMP + sort modal + narrative fix · 47 sessions · ~90 hours · target July 22 2026</td></tr>
+        <tr><td><strong>v2.6.2-rc2 tagged</strong></td><td><span class="badge done">RC2</span></td><td>Submission candidate · user-tested PTMP + sort modal + narrative fix · 47 sessions · ~90 hours · July 19 2026</td></tr>
+        <tr><td><strong>v2.6.3 tagged</strong></td><td><span class="badge done">Done</span></td><td>Column Picker Custom PPT + Day 0 reset · 51 sessions · ~100 hours · July 21 2026</td></tr>
         <tr><td>Named view presets</td><td><span class="badge done">Done</span></td><td>GM Prep / At Risk / Full Pipeline — one-click filter configs</td></tr>
         <tr><td>PowerPoint GM Report generation</td><td><span class="badge done">Done</span></td><td>3-button confirm, per-user namespaced output, diff + narrative in PPT</td></tr>
         <tr><td>IBM Carbon Design System UX</td><td><span class="badge done">Done</span></td><td>IBM Plex Sans, Carbon tokens, GM Ready indicator, user identity chip</td></tr>
@@ -251,10 +255,9 @@
     </table>
 
     <div class="git-bar" style="margin-top:14px">
-      <div class="git-pill"><b>main</b> 5390cac · v2.6.2-rc2</div>
-      <div class="git-pill"><b>develop</b> 9710995 · v2.6.2</div>
-      <div class="git-pill"><b>tag</b> v2.6.2-rc2 · v2.6.2 · v2.6.1 · v2.5.21-rc1 on main</div>
-      <div class="git-pill">47 sessions · ~90 hours · 70+ commits</div>
+      <div class="git-pill"><b>main</b> d857c12 · v2.6.3</div>
+      <div class="git-pill"><b>tag</b> v2.6.3 · v2.6.2-rc2 · v2.6.2 · v2.6.1 · v2.6.0 · v2.5.21-rc1 on main</div>
+      <div class="git-pill">51 sessions · ~100 hours · 75+ commits</div>
       <div class="git-pill">github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast</div>
     </div>
   </section>
@@ -340,6 +343,6 @@
 
 </div>
 
-<footer>ISC Automated Sales Forecast &nbsp;·&nbsp; UCC1 &nbsp;·&nbsp; IBM watsonx Challenge 2026 &nbsp;·&nbsp; Growth Enablers Track &nbsp;·&nbsp; v2.6.2 &nbsp;·&nbsp; July 19, 2026<br><br>Made with IBM Bob</footer>
+<footer>ISC Automated Sales Forecast &nbsp;·&nbsp; UCC1 &nbsp;·&nbsp; IBM watsonx Challenge 2026 &nbsp;·&nbsp; Growth Enablers Track &nbsp;·&nbsp; v2.6.3 &nbsp;·&nbsp; July 21, 2026<br><br>Made with IBM Bob</footer>
 </body>
 </html>

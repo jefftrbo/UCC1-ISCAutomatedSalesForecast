@@ -11,7 +11,27 @@
 
 ---
 
-## v2.7.1 — Column Picker PPT ("Build Your Own Report")
+## ✅ v2.6.3 — Column Picker PPT — SHIPPED July 21, 2026
+
+> Originally planned as v2.7.1 post-submission. Built and shipped same day (Session 50).
+> Full implementation details in `UCC1-TechnicalSessionLog.md` Session 50 entry.
+
+### What Was Built
+
+- `COLUMN_META` (12 fields), `CUSTOM_PPT_DEFAULTS`, `generateCustomPpt()` — `server/generatePpt.js`
+- `POST /api/generate-custom-ppt` — `server/index.js`
+- Two-panel Column Picker modal — `public/index.html`
+  - Left: checklist of all 12 columns (Select All / Clear)
+  - Right: drag-to-reorder selected columns (HTML5 drag API)
+  - Options: Include AI Narrative, Include What Changed
+- Bug fix: was sending `allOpportunities` (943 rows); corrected to `filtered.filter(selected)` — same pattern as GM Report
+- Tagged v2.6.3, pushed to origin
+
+---
+
+## v2.7.1 — Column Picker PPT ("Build Your Own Report") — ORIGINAL SPEC (now archived)
+
+> **Archived** — shipped as v2.6.3. Spec below preserved for historical reference.
 
 ### Origin
 
