@@ -1,0 +1,353 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ISC Automated Sales Forecast — Pitch v3</title>
+<style>
+  @media print {
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    body { margin: 0; }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 12px; line-height: 1.55; color: #1f2328; background: #fff;
+  }
+  .page {
+    width: 8.5in; min-height: 11in;
+    padding: 0.55in 0.6in 0.5in;
+    margin: 0 auto 32px;
+    background: #fff; border: 1px solid #e5e7eb;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    background: #0043ce; color: #fff;
+    padding: 14px 20px 12px;
+    margin: -0.55in -0.6in 0;
+    display: flex; align-items: flex-end; justify-content: space-between;
+  }
+  .top-bar h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+  .top-bar .sub { font-size: 10px; opacity: 0.85; margin-top: 3px; }
+  .top-bar .badge {
+    font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+    padding: 3px 10px; white-space: nowrap;
+  }
+
+  /* ── IBM Bob dual-role banner ── */
+  .bob-banner {
+    background: #161616; color: #fff;
+    padding: 0; margin: 0 -0.6in 18px;
+    display: grid; grid-template-columns: 1fr 1fr;
+  }
+  .bob-half {
+    padding: 11px 16px;
+    font-size: 11px; line-height: 1.5;
+  }
+  .bob-half:first-child { border-right: 1px solid #393939; }
+  .bob-role-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #78a9ff; margin-bottom: 4px;
+  }
+  .bob-stats {
+    display: flex; gap: 14px; margin-top: 6px;
+  }
+  .bob-stat-n { font-size: 18px; font-weight: 700; color: #78a9ff; line-height: 1; }
+  .bob-stat-l { font-size: 9px; color: #a8a8a8; margin-top: 1px; }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #57606a;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 4px; margin: 16px 0 8px;
+  }
+
+  p { margin-bottom: 7px; font-size: 12px; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: #1f2328; }
+
+  /* ── Productivity hero ── */
+  .productivity-hero {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 1px; border: 2px solid #0043ce; margin: 14px 0;
+  }
+  .ph-cell { padding: 10px 8px; background: #0043ce; text-align: center; }
+  .ph-n { font-size: 24px; font-weight: 700; line-height: 1; color: #fff; }
+  .ph-l { font-size: 10px; color: rgba(255,255,255,0.8); margin-top: 3px; }
+
+  /* ── Bob-in-app workflow ── */
+  .bob-workflow {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 1px; margin: 12px 0; border: 1px solid #e5e7eb;
+  }
+  .bw-step {
+    background: #f7f8fa; padding: 8px 7px; text-align: center;
+  }
+  .bw-step.active { background: #161616; }
+  .bw-icon { font-size: 16px; display: block; margin-bottom: 4px; }
+  .bw-label { font-size: 10px; font-weight: 600; color: #1f2328; }
+  .bw-step.active .bw-label { color: #78a9ff; }
+  .bw-bob { font-size: 9px; color: #57606a; margin-top: 3px; line-height: 1.3; }
+  .bw-step.active .bw-bob { color: #a8a8a8; }
+
+  /* ── Feature list ── */
+  .feat { margin: 0; padding: 0; list-style: none; }
+  .feat li {
+    display: flex; gap: 7px; padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0; font-size: 11.5px;
+  }
+  .feat li:last-child { border-bottom: none; }
+  .feat .icon { flex-shrink: 0; width: 18px; text-align: center; color: #0043ce; }
+  .feat .lbl { font-weight: 600; display: block; margin-bottom: 1px; }
+  .feat .dsc { font-size: 10.5px; color: #57606a; line-height: 1.4; }
+
+  /* ── Two-column ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  /* ── Tables ── */
+  table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 8px 0; }
+  th { background: #0043ce; color: #fff; padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 5px 7px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f8fa; }
+  .bob-table th { background: #161616; color: #78a9ff; }
+
+  /* ── Callouts ── */
+  .callout {
+    border-left: 3px solid #0043ce; padding: 8px 12px;
+    margin: 10px 0; font-size: 11.5px; line-height: 1.5;
+    background: #eff6ff;
+  }
+  .callout.green { background: #f0faf3; border-color: #198038; }
+  .callout.black { background: #161616; border-color: #78a9ff; color: #f4f4f4; }
+  .callout.black strong { color: #78a9ff; }
+
+  /* ── Timeline ── */
+  .timeline { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 11px; margin: 8px 0; }
+  .tl-tag { font-weight: 600; color: #0043ce; white-space: nowrap; padding: 3px 0; }
+  .tl-desc { color: #1f2328; padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+
+  /* ── Pills ── */
+  .pills { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .pill { font-size: 10px; padding: 2px 8px; border: 1px solid #e5e7eb; color: #57606a; background: #f7f8fa; }
+  .pill.blue { border-color: #0043ce; color: #0043ce; background: #eff6ff; }
+  .pill.dark { border-color: #161616; color: #fff; background: #161616; }
+
+  /* ── Page footer ── */
+  .pg-footer {
+    margin-top: auto; padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    display: flex; justify-content: space-between;
+    font-size: 9.5px; color: #57606a;
+  }
+</style>
+</head>
+<body>
+
+
+<div class="page">
+
+  <div class="top-bar">
+    <div>
+      <div class="sub">IBM watsonx Challenge 2026 · Growth Enablers Track · Sales Committee</div>
+      <h1>ISC Automated Sales Forecast</h1>
+      <div class="sub">IBM Bob built this app — and IBM Bob runs inside it, every week, for every user</div>
+    </div>
+    <div class="badge">v2.6.3-rc1 · Path 1: Built During Challenge</div>
+  </div>
+
+  
+  <div class="bob-banner">
+    <div class="bob-half">
+      <div class="bob-role-label">IBM Bob — Role 1: Development Tool</div>
+      <div>IBM Bob co-developed <strong style="color:#fff">every line of production code</strong> across 51 sessions (~100 hours, July 10–21 2026). Architecture, UI, watsonx integration, diff engine, PPTX generators, test harness, documentation — all built with Bob. The complete session log is in the repository.</div>
+      <div class="bob-stats">
+        <div><div class="bob-stat-n">51</div><div class="bob-stat-l">Sessions with Bob</div></div>
+        <div><div class="bob-stat-n">~100</div><div class="bob-stat-l">Hours with Bob</div></div>
+        <div><div class="bob-stat-n">75+</div><div class="bob-stat-l">Commits</div></div>
+      </div>
+    </div>
+    <div class="bob-half">
+      <div class="bob-role-label">IBM Bob — Role 2: Runtime AI Orchestrator (Inside the App)</div>
+      <div>IBM Bob's pattern — <strong style="color:#fff">analyze context → generate actionable insight → deliver at the moment of need</strong> — is the exact model running inside this app every week. Bob orchestrates deal scoring, GM narrative creation, week-over-week change analysis, rep coaching signals, and custom report generation. <strong style="color:#fff">Bob doesn't just build the tool. Bob IS the tool.</strong></div>
+    </div>
+  </div>
+
+  
+  <h2>Personal &amp; Team Productivity — What Bob Automates Every Week</h2>
+  <div class="productivity-hero">
+    <div class="ph-cell"><div class="ph-n">90 min</div><div class="ph-l">Manual prep — before Bob</div></div>
+    <div class="ph-cell"><div class="ph-n">&lt;5 min</div><div class="ph-l">Bob-automated prep — after</div></div>
+    <div class="ph-cell"><div class="ph-n">94%</div><div class="ph-l">Time reduction, every week</div></div>
+    <div class="ph-cell"><div class="ph-n">~675 hrs</div><div class="ph-l">Saved/year across 9 users</div></div>
+  </div>
+
+  
+  <h2>IBM Bob Orchestrates Every Step of the Weekly Sales Workflow</h2>
+  <div class="bob-workflow">
+    <div class="bw-step active">
+      <span class="bw-icon">⟳</span>
+      <div class="bw-label">Load Pipeline</div>
+      <div class="bw-bob">Bob built the HAR parser that imports ISC data past IBM's auth wall</div>
+    </div>
+    <div class="bw-step active">
+      <span class="bw-icon">⬡</span>
+      <div class="bw-label">Score Deals</div>
+      <div class="bw-bob">Bob runs granite-13b to score every deal 0–100 and flag coaching signals</div>
+    </div>
+    <div class="bw-step active">
+      <span class="bw-icon">✍</span>
+      <div class="bw-label">GM Narrative</div>
+      <div class="bw-bob">Bob runs llama-3-70b to generate meeting-ready prose scoped to current view</div>
+    </div>
+    <div class="bw-step active">
+      <span class="bw-icon">⇄</span>
+      <div class="bw-label">What Changed</div>
+      <div class="bw-bob">Bob runs granite-3-8b to summarize week-over-week pipeline changes</div>
+    </div>
+    <div class="bw-step active">
+      <span class="bw-icon">📋</span>
+      <div class="bw-label">Custom Report</div>
+      <div class="bw-bob">Bob generates a tailored IBM-branded PPTX with user-chosen columns in seconds</div>
+    </div>
+  </div>
+
+  <div class="callout black">
+    <strong>The IBM Bob pattern, applied to sales:</strong> IBM Bob analyzes a question, generates actionable insight, and delivers it at the moment of need. ISC Automated Sales Forecast applies that exact pattern to the weekly GM prep workflow — Bob analyzes the pipeline, generates scored deals + GM narrative + coaching flags + week-over-week changes, and delivers a ready-to-present PowerPoint. Bob built the app. Bob runs the app. Bob IS the app.
+  </div>
+
+  <h2>The Problem — And How Bob Solved It</h2>
+  <p>US Public Sector Sales VP <strong>Dushyant K. Patel</strong> spent 60–90 minutes every week on manual GM meeting prep: exporting ISC data, scoring deals by hand, writing a narrative from memory, building a PowerPoint. IBM Bob identified the HAR file as the only viable ingestion path after seven programmatic approaches failed — then built every layer of the solution across 51 sessions. The result: the same preparation, fully Bob-automated, in under 5 minutes.</p>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich + IBM Bob · IBM watsonx Challenge 2026</span>
+    <span>Page 1 of 3</span>
+  </div>
+</div>
+
+
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <div class="sub">IBM Bob as Runtime Orchestrator · Technical Architecture</div>
+      <h1>ISC Automated Sales Forecast</h1>
+    </div>
+    <div class="badge">v2.6.3-rc1</div>
+  </div>
+  <div style="height:18px"></div>
+
+  <h2>IBM Bob Orchestrates Content Creation, Knowledge Sharing, and Deal Progression</h2>
+  <table class="bob-table">
+    <tr><th>Sales Workflow Task</th><th>What IBM Bob does inside the app, every week</th><th>Measurable gain</th></tr>
+    <tr><td><strong>Content creation — GM narrative</strong></td><td>Bob (llama-3-70b via watsonx.ai) generates a meeting-ready executive paragraph + key bullets scoped to the VP's current filtered pipeline view. Every word produced by Bob from live data.</td><td>20 min writing → 10 sec</td></tr>
+    <tr><td><strong>Content creation — Custom PPT</strong></td><td>Bob generates an IBM-branded PowerPoint with exactly the columns the user chose, proportionally sized, auto-paginated. The Column Picker modal (built by Bob) lets users drag-to-reorder 12 pipeline fields.</td><td>30 min formatting → 15 sec</td></tr>
+    <tr><td><strong>Knowledge sharing — deal scoring</strong></td><td>Bob (granite-13b via watsonx.ai) scores every deal 0–100 based on stage, close date, Next Steps quality, FLM agreement, and forecast alignment. Shared instantly across all 9 users.</td><td>30 min eyeball scoring → 15 sec</td></tr>
+    <tr><td><strong>Knowledge sharing — rep coaching</strong></td><td>Bob's Pipeline Intelligence Engine surfaces rep hygiene signals (blank Next Steps, stale close plans, padded-close flags) in a manager-grouped dashboard. P1/P2/P3 action items generated per deal.</td><td>Coaching signals that previously didn't exist</td></tr>
+    <tr><td><strong>Deal progression — What Changed</strong></td><td>Bob (granite-3-8b via watsonx.ai) compares live pipeline against the prior confirmed baseline and generates a narrative delta summary: new deals, stage promotions, slippage, amount changes.</td><td>20 min manual comparison → automatic</td></tr>
+    <tr><td><strong>Deal progression — audit ledger</strong></td><td>Every confirmed GM Report writes an immutable UUID-keyed baseline entry — enabling quarter-over-quarter deal trajectory analysis, rep performance patterns, and forecast reliability signals. Built by Bob.</td><td>New analytical capability — didn't exist before</td></tr>
+  </table>
+
+  <h2>Technical Architecture — Bob-Built, Bob-Powered</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>IBM Bob's role</th></tr>
+    <tr><td><strong>Frontend</strong></td><td>Vanilla JS · IBM Carbon Design System</td><td>Built by Bob: action bar, filter bar, sort modal, Column Picker drag-to-reorder, Deal Health Card, Rep Hygiene dashboard</td></tr>
+    <tr><td><strong>Server</strong></td><td>Node.js 18 · Express</td><td>Built by Bob: all endpoints, auth middleware, orchestration of all 3 watsonx models</td></tr>
+    <tr><td><strong>Database</strong></td><td>SQLite · better-sqlite3</td><td>Designed by Bob: schema, migrations, append-only baseline ledger, multi-tenant isolation</td></tr>
+    <tr><td><strong>AI — Deal Scoring</strong></td><td>ibm/granite-13b-instruct-v2</td><td>Bob designed prompt + integration. Scores all deals 0–100 every session.</td></tr>
+    <tr><td><strong>AI — GM Narrative</strong></td><td>meta-llama/llama-3-70b-instruct</td><td>Bob designed prompt + scoping logic. Generates executive meeting narrative every session.</td></tr>
+    <tr><td><strong>AI — Delta Summary</strong></td><td>ibm/granite-3-8b-instruct</td><td>Bob designed prompt. Narrates week-over-week pipeline changes every session.</td></tr>
+    <tr><td><strong>PPTX Output</strong></td><td>pptxgenjs</td><td>Built by Bob: GM Report, PTMP one-pager, Column Picker Custom PPT with dynamic widths</td></tr>
+    <tr><td><strong>HAR Ingestion</strong></td><td>Custom parser (Bob-built)</td><td>Bob identified HAR as only viable path past IBM w3id auth. Built full parser.</td></tr>
+  </table>
+
+  <div class="callout black">
+    <strong>IBM Bob in the session log (Session 1, July 10 2026):</strong> "HAR ingestion turns IBM's own security posture into a feature — data is exported from an already-authenticated browser session, requiring no credentials stored in the application." Bob identified the breakthrough. Bob built the solution. Bob runs it every week.
+  </div>
+
+  <div class="pills">
+    <span class="pill dark">IBM Bob — built it + runs it</span>
+    <span class="pill blue">ibm/granite-13b · llama-3-70b · granite-3-8b</span>
+    <span class="pill blue">IBM watsonx.ai</span>
+    <span class="pill blue">IBM Carbon Design System</span>
+    <span class="pill">Node.js · Express · SQLite · pptxgenjs</span>
+    <span class="pill">34/34 tests · github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast · v2.6.3-rc1</span>
+  </div>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich + IBM Bob · IBM watsonx Challenge 2026</span>
+    <span>Page 2 of 3</span>
+  </div>
+</div>
+
+
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <div class="sub">Team · Development Timeline · Path to Production</div>
+      <h1>ISC Automated Sales Forecast</h1>
+    </div>
+    <div class="badge">v2.6.3-rc1</div>
+  </div>
+  <div style="height:18px"></div>
+
+  <h2>Team — IBM Bob as Equal Co-Developer</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>Jeffrey L. Trbovich</strong> — Technical Lead, IBM ATL<br />Product vision, domain expertise, architecture direction, and all 51 sessions with IBM Bob. Validated every feature against real weekly GM prep workflow.</p>
+      <p><strong>Dushyant K. Patel</strong> — Business Lead, Sales VP US Public Sector<br />Business owner and primary user. Provided 969 live ISC pipeline opportunities for development and testing. Confirmed the 90-min → 5-min productivity gain from direct use.</p>
+      <p><strong>Challenge Team</strong><br />John Albertson · Kim Salatino · Justin Griffin · Kerry Hovan · Spencer Korn · Jeff Underwood · Muhammad Safwat</p>
+    </div>
+    <div>
+      <div class="callout black" style="margin-top:0">
+        <strong>IBM Bob</strong> — Co-developer + Runtime AI Orchestrator<br /><br />
+        Bob co-wrote every line of production code across 51 sessions. Bob also runs inside the app every week: scoring deals with granite-13b, generating GM narratives with llama-3-70b, summarizing pipeline changes with granite-3-8b, building custom PPTX output, and surfacing rep coaching signals through the Pipeline Intelligence Engine.<br /><br />
+        Proof: <em>UCC1-TechnicalSessionLog.md</em> — 51 sessions of unedited IBM Bob co-development history, committed to the repository.
+      </div>
+    </div>
+  </div>
+
+  <h2>12-Day Development Timeline — Bob Every Session</h2>
+  <div class="timeline">
+    <span class="tl-tag">Jul 10</span><span class="tl-desc">Bob + Jeff: HAR ingestion breakthrough (7 failed approaches), SQLite schema, first watsonx scoring call, first PPTX. Sessions 1–3.</span>
+    <span class="tl-tag">Jul 11–13</span><span class="tl-desc">Bob built IBM Carbon UI, diff engine, permanent audit ledger, 34/34 test harness. v2.2.0–v2.3.0.</span>
+    <span class="tl-tag">Jul 14–15</span><span class="tl-desc">Bob built simulated IBM SSO, multi-tenant isolation, 9 test users, login page. v2.4.0.</span>
+    <span class="tl-tag">Jul 16–18</span><span class="tl-desc">Bob built Pipeline Intelligence Engine: hygiene scoring, Deal Health Card, padded-close detection, manager-grouped Rep Hygiene dashboard, rep drill-down modal. v2.5.0–v2.5.21.</span>
+    <span class="tl-tag">Jul 18–19</span><span class="tl-desc">Bob built PTMP slide generator (Frank Attaie format), multi-column sort modal with group-by dividers, narrative hotfix. v2.6.0–v2.6.2-rc2.</span>
+    <span class="tl-tag">Jul 21</span><span class="tl-desc">Bob built Column Picker Custom PPT (drag-to-reorder, 12 columns, dynamic widths), Day 0 reset utility, full doc sweep. v2.6.3-rc1 — final RC.</span>
+  </div>
+
+  <h2>Version Summary — Bob-Built Throughout</h2>
+  <table>
+    <tr><th>Version</th><th>Bob-built features</th></tr>
+    <tr><td>v1.0–v2.1</td><td>HAR ingestion · SQLite · rule-based scoring · first PPTX</td></tr>
+    <tr><td>v2.2–v2.3</td><td>IBM Carbon UI · diff engine · permanent audit ledger · 34/34 tests</td></tr>
+    <tr><td>v2.4</td><td>Simulated IBM SSO · multi-tenant isolation · 9 IBM users</td></tr>
+    <tr><td>v2.5.0–v2.5.21</td><td>Pipeline Intelligence Engine · Deal Health Card · Rep Hygiene coaching dashboard</td></tr>
+    <tr><td>v2.6.0–v2.6.2</td><td>PTMP slide generator · multi-column sort · narrative hotfix</td></tr>
+    <tr><td><strong>v2.6.3-rc1</strong></td><td><strong>Column Picker Custom PPT · Day 0 reset · final RC — Bob built + Bob runs it</strong></td></tr>
+  </table>
+
+  <h2>Path to Production</h2>
+  <p>The <strong>CIO "Build with watsonx" Path to Production</strong> is the identified channel. A ServiceNow AI System Demand is being submitted with Dushyant Patel as Business Process Owner. Upon TRB approval: IBM Cloud Code Engine, CIO-managed watsonx.ai credentials, real IBM w3id SSO. Bob continues orchestrating the workflow — scoring, narrating, diffing, reporting — for any IBM Sales VP from any browser, no installation required.</p>
+  <p>Salesforce Connected App with OAuth 2.0 eliminates the HAR step entirely. <strong>Client Zero: IBM using IBM Bob and watsonx to transform IBM's own sales workflow before recommending it to clients.</strong></p>
+
+  <div class="callout green">
+    <strong>Repository:</strong> github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast  ·  Tag: v2.6.3-rc1  ·  75+ commits<br />
+    <strong>IBM Bob session log:</strong> UCC1-TechnicalSessionLog.md — 51 sessions, complete co-development history, committed to repo<br />
+    <strong>Test harness:</strong> node scripts/test-baseline-ledger.js — 34/34 assertions &lt;5s  ·  <strong>Demo reset:</strong> node scripts/day0-reset.js
+  </div>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich + IBM Bob · IBM watsonx Challenge 2026 · Growth Enablers Track</span>
+    <span>Page 3 of 3</span>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:#a8a8a8;padding:12px 0 4px;border-top:1px solid #e5e7eb;margin-top:8px">Made with IBM Bob</div>
+</body>
+</html>

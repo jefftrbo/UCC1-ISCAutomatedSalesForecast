@@ -1,0 +1,317 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ISC Automated Sales Forecast — Pitch</title>
+<style>
+  @media print {
+    .page { page-break-after: always; }
+    .page:last-child { page-break-after: avoid; }
+    body { margin: 0; }
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.55;
+    color: #1f2328;
+    background: #fff;
+  }
+  .page {
+    width: 8.5in;
+    min-height: 11in;
+    padding: 0.55in 0.6in 0.5in;
+    margin: 0 auto 32px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* ── Header bar ── */
+  .top-bar {
+    background: #0043ce;
+    color: #fff;
+    padding: 14px 20px 12px;
+    margin: -0.55in -0.6in 22px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .top-bar h1 { font-size: 18px; font-weight: 700; line-height: 1.2; }
+  .top-bar .sub { font-size: 10px; opacity: 0.85; margin-top: 3px; }
+  .top-bar .badge {
+    font-size: 10px; font-weight: 600;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+
+  /* ── Section headings ── */
+  h2 {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #57606a;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 4px; margin: 18px 0 8px;
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  p { margin-bottom: 7px; font-size: 12px; }
+  p:last-child { margin-bottom: 0; }
+  strong { color: #1f2328; }
+
+  /* ── Stat row ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    border: 1px solid #e5e7eb;
+    margin: 14px 0;
+  }
+  .stat {
+    background: #f7f8fa;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .stat-n { font-size: 22px; font-weight: 700; color: #0043ce; line-height: 1; }
+  .stat-l { font-size: 10px; color: #57606a; margin-top: 3px; }
+
+  /* ── Two-column layout ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+
+  /* ── Feature list ── */
+  .feat { margin: 0; padding: 0; list-style: none; }
+  .feat li {
+    display: flex; gap: 7px;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 11.5px;
+  }
+  .feat li:last-child { border-bottom: none; }
+  .feat .icon { flex-shrink: 0; width: 18px; text-align: center; color: #0043ce; }
+  .feat .lbl { font-weight: 600; display: block; margin-bottom: 1px; }
+  .feat .dsc { font-size: 10.5px; color: #57606a; line-height: 1.4; }
+
+  /* ── Architecture table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 11px; margin: 8px 0; }
+  th { background: #0043ce; color: #fff; padding: 5px 7px; text-align: left; font-size: 10px; font-weight: 600; }
+  td { border: 1px solid #e5e7eb; padding: 5px 7px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f7f8fa; }
+
+  /* ── Callout ── */
+  .callout {
+    background: #eff6ff; border-left: 3px solid #0043ce;
+    padding: 8px 12px; margin: 10px 0; font-size: 11.5px;
+  }
+  .callout.green { background: #f0faf3; border-color: #198038; }
+
+  /* ── Timeline ── */
+  .timeline { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 11px; margin: 8px 0; }
+  .tl-tag { font-weight: 600; color: #0043ce; white-space: nowrap; padding: 3px 0; }
+  .tl-desc { color: #1f2328; padding: 3px 0; border-bottom: 1px solid #f0f0f0; }
+
+  /* ── Page footer ── */
+  .pg-footer {
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    font-size: 9.5px;
+    color: #57606a;
+  }
+
+  /* ── Pill row ── */
+  .pills { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+  .pill {
+    font-size: 10px; padding: 2px 8px;
+    border: 1px solid #e5e7eb; color: #57606a; background: #f7f8fa;
+  }
+  .pill.blue { border-color: #0043ce; color: #0043ce; background: #eff6ff; }
+
+  .page-num { font-size: 10px; color: #a8a8a8; text-align: right; margin-top: -10px; margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <div class="sub">IBM watsonx Challenge 2026 · Growth Enablers Track · Sales Committee</div>
+      <h1>ISC Automated Sales Forecast</h1>
+      <div class="sub">AI-powered GM meeting prep — 90 min → under 5 min, every week</div>
+    </div>
+    <div class="badge">v2.6.3-rc1 · Path 1: Built During Challenge</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-n">94%</div><div class="stat-l">Time reduction</div></div>
+    <div class="stat"><div class="stat-n">90→5</div><div class="stat-l">Minutes per week</div></div>
+    <div class="stat"><div class="stat-n">9</div><div class="stat-l">IBM users, live</div></div>
+    <div class="stat"><div class="stat-n">51</div><div class="stat-l">Sessions w/ IBM Bob</div></div>
+  </div>
+
+  <h2>The Problem</h2>
+  <p>Every week, US Public Sector IBM Sales VP <strong>Dushyant K. Patel</strong> spends 60–90 minutes manually preparing for his GM meeting: opening IBM Sales Cloud (ISC), exporting pipeline data to a spreadsheet, hand-scoring each deal, writing a narrative summary from memory, and formatting a PowerPoint. The process is slow, error-prone, and memory-dependent — and it repeats every single week of every quarter.</p>
+  <p>IBM Sales Cloud is protected by IBM w3id SSO with passkey authentication, blocking all programmatic access. Seven documented technical approaches — SAQL API, Playwright automation, browser extensions, Salesforce Connected App — all failed. The data was locked inside an authenticated browser session with no extraction path.</p>
+
+  <h2>The Solution</h2>
+  <p><strong>ISC Automated Sales Forecast</strong> replaces that 90-minute workflow with a single five-minute, AI-powered process. The key insight: a browser HAR file captures authenticated API responses directly — turning IBM's own security posture into a feature. One HAR export, one click, and the entire pipeline is loaded, scored, narrativized, diff'd, and ready to present.</p>
+
+  <div class="two-col">
+    <ul class="feat">
+      <li><span class="icon">⟳</span><div><span class="lbl">Refresh Data</span><span class="dsc">HAR import loads full pipeline in &lt;2 sec. Each user's rows isolated by IBM ID.</span></div></li>
+      <li><span class="icon">⬡</span><div><span class="lbl">Score with watsonx</span><span class="dsc">ibm/granite-13b scores every deal 0–100. Rule-based fallback when offline.</span></div></li>
+      <li><span class="icon">✍</span><div><span class="lbl">GM Narrative</span><span class="dsc">llama-3-70b writes meeting-ready opening paragraph + bullets scoped to current filter.</span></div></li>
+      <li><span class="icon">⇄</span><div><span class="lbl">What Changed</span><span class="dsc">Diff engine compares live vs. saved baseline: new deals, stage changes, slippage, amount shifts.</span></div></li>
+    </ul>
+    <ul class="feat">
+      <li><span class="icon">📊</span><div><span class="lbl">Baseline &amp; GM Report</span><span class="dsc">One click: immutable baseline written + IBM-branded PPTX downloaded with narrative + diff slide.</span></div></li>
+      <li><span class="icon">📋</span><div><span class="lbl">Custom PPT Column Picker</span><span class="dsc">User picks columns, drags to reorder, generates tailored PPTX in seconds.</span></div></li>
+      <li><span class="icon">♥</span><div><span class="lbl">Deal Health Card</span><span class="dsc">Hygiene score (0–100), P1/P2/P3 action items, week-over-week timeline per deal.</span></div></li>
+      <li><span class="icon">⇅</span><div><span class="lbl">Multi-Column Sort</span><span class="dsc">Up to 6 stacked sort keys with group-by divider rows. Turns pipeline into analytical workspace.</span></div></li>
+    </ul>
+  </div>
+
+  <h2>Business Impact</h2>
+  <div class="callout green">
+    <strong>Client Zero:</strong> IBM using its own watsonx technology to transform an internal IBM sales workflow before recommending it to clients. Dushyant Patel's HCLS team within US Public Market IBM is the first production user. The same weekly workflow — forecast review, rep hygiene coaching, GM meeting prep — runs in every IBM geography and every sales segment.
+  </div>
+  <p>Beyond the primary user: 9 IBM TSLs, ATLs, and the GM/VP are fully provisioned with isolated pipelines. The Pipeline Intelligence Engine surfaces rep coaching signals — blank Next Steps, stale close plans, forecast mismatches — that a VP typically discovers only when it's too late. The permanent quarterly audit ledger creates an SR/SM/Customer trajectory dataset that didn't exist before.</p>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich · IBM watsonx Challenge 2026</span>
+    <span>Page 1 of 3</span>
+  </div>
+</div>
+
+
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <div class="sub">Technical Architecture</div>
+      <h1>ISC Automated Sales Forecast</h1>
+    </div>
+    <div class="badge">v2.6.3-rc1</div>
+  </div>
+
+  <h2>Architecture Overview</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Role</th></tr>
+    <tr><td><strong>Frontend</strong></td><td>Vanilla JS · IBM Carbon Design System · IBM Plex Sans</td><td>Status-driven action bar, filter bar, modals, drag-to-reorder Column Picker, sort modal, Deal Health Card</td></tr>
+    <tr><td><strong>Server</strong></td><td>Node.js 18 · Express · express-session</td><td>All API endpoints, auth middleware, HAR ingestion trigger, PPT generation orchestration</td></tr>
+    <tr><td><strong>Database</strong></td><td>SQLite · better-sqlite3</td><td>opportunities, baseline_ledger, users, sessions — all tables keyed by user_id for multi-tenant isolation</td></tr>
+    <tr><td><strong>Auth</strong></td><td>Simulated IBM SSO · bcryptjs · OIDC-ready architecture</td><td>Session shape identical to real IBM w3id OIDC — swap to production requires 1 code block + 2 env vars</td></tr>
+    <tr><td><strong>AI — Scoring</strong></td><td>ibm/granite-13b-instruct-v2 via watsonx.ai</td><td>0–100 confidence score per deal; rule-based fallback when credentials unavailable</td></tr>
+    <tr><td><strong>AI — Narrative</strong></td><td>meta-llama/llama-3-70b-instruct via watsonx.ai</td><td>GM meeting opening paragraph + bullets scoped to current filtered view</td></tr>
+    <tr><td><strong>AI — Delta</strong></td><td>ibm/granite-3-8b-instruct via watsonx.ai</td><td>Week-over-week change summary for What Changed slide</td></tr>
+    <tr><td><strong>PPT</strong></td><td>pptxgenjs</td><td>IBM-branded PPTX: cover + data slides + What Changed. Dynamic column widths for Column Picker output.</td></tr>
+    <tr><td><strong>Data ingestion</strong></td><td>HAR parser (custom · scraper/load-from-har.js)</td><td>Extracts SAQL API responses from browser HAR — the only viable path past IBM w3id passkey auth</td></tr>
+  </table>
+
+  <h2>Key Engineering Decisions</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>HAR ingestion over API scraping:</strong> IBM Sales Cloud blocks every programmatic access path. The HAR file captures authenticated browser responses — no credentials stored in the app, no security risk, no IBM IT approval required to get started.</p>
+      <p><strong>Append-only baseline ledger:</strong> Every "Confirm &amp; Generate" writes an immutable UUID-keyed row-set to baseline_ledger. No DELETE or UPDATE paths exist. A strict <code>confirmed_at &lt; asOf</code> SQL guard makes "today vs today" diff structurally impossible — the same discipline as an auditable financial system.</p>
+      <p><strong>Column Picker PPT:</strong> COLUMN_META map drives dynamic proportional width calculation across all 12 fields. generateCustomPpt() scales defaultW weights to fill exactly 13.0" — no hardcoded column widths. Uses filtered.filter(selected) — the same guard that fixed the 943-vs-21 row bug on the main PPT button.</p>
+    </div>
+    <div>
+      <p><strong>Pipeline Intelligence Engine:</strong> Hygiene scoring (0–100) built from the existing schema — no new data sources. Padded-close detection flags deals within 4 days of quarter-end (P1/P2/P3). Manager-grouped Rep Hygiene Summary with rep drill-down modal. All rules-based; watsonx upgrade path documented in server/hygieneScore.js.</p>
+      <p><strong>Multi-tenant data isolation:</strong> Every DB table keyed by user_id. PPT output namespaced to output/{ibm_id}/. Sessions per-user. Zero cross-user data leakage possible by schema design, not just by access control.</p>
+      <p><strong>Day 0 reset utility:</strong> scripts/day0-reset.js wipes all 9 users and re-seeds 54 deals + 9 confirmed baselines in &lt;2 seconds. --dry-run flag previews before writing. Enables reproducible demo and video recording from a known-good state.</p>
+    </div>
+  </div>
+
+  <h2>Build Process</h2>
+  <div class="callout">
+    <strong>Built entirely with IBM Bob</strong> across 51 sessions (~100 hours, July 10–21, 2026). Every design decision, architecture choice, debugging session, and line of production code was collaborative with IBM's own watsonx AI development tool. The complete session log — UCC1-TechnicalSessionLog.md — is part of the repository: an unedited technical history of an IBMer and IBM Bob building a production application together.
+  </div>
+
+  <h2>Test Coverage</h2>
+  <p><strong>34/34 assertions passing</strong> — scripts/test-baseline-ledger.js runs a full 13-week Q3 2026 in-memory simulation: baseline writes, diff computation, "today vs today" guard, quarter boundaries, multi-user isolation. Passes in under 5 seconds on any Node.js 18+ machine.</p>
+
+  <div class="pills">
+    <span class="pill blue">Node.js 18</span>
+    <span class="pill blue">Express</span>
+    <span class="pill blue">SQLite / better-sqlite3</span>
+    <span class="pill blue">IBM watsonx.ai</span>
+    <span class="pill blue">pptxgenjs</span>
+    <span class="pill blue">IBM Carbon Design System</span>
+    <span class="pill blue">bcryptjs</span>
+    <span class="pill blue">express-session</span>
+    <span class="pill">github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast</span>
+    <span class="pill">Tag: v2.6.3-rc1</span>
+  </div>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich · IBM watsonx Challenge 2026</span>
+    <span>Page 2 of 3</span>
+  </div>
+</div>
+
+
+
+<div class="page">
+  <div class="top-bar">
+    <div>
+      <div class="sub">Version History · Team · Path Forward</div>
+      <h1>ISC Automated Sales Forecast</h1>
+    </div>
+    <div class="badge">v2.6.3-rc1</div>
+  </div>
+
+  <h2>Development Timeline — July 10–21, 2026</h2>
+  <div class="timeline">
+    <span class="tl-tag">Jul 10</span><span class="tl-desc">Kick-off session. HAR ingestion PoC. SQLite schema. Rule-based scoring. First PPTX generated. (Sessions 1–3)</span>
+    <span class="tl-tag">Jul 11–13</span><span class="tl-desc">IBM Carbon Design System UI. Action bar. Named view presets. Diff engine. Permanent audit ledger. 34/34 test harness. (v2.2.0–v2.3.0)</span>
+    <span class="tl-tag">Jul 14–15</span><span class="tl-desc">Simulated IBM SSO. Multi-tenant data isolation. 9 test users. Per-user seed data. Login page. Header user chip. (v2.4.0)</span>
+    <span class="tl-tag">Jul 16–18</span><span class="tl-desc">Pipeline Intelligence Engine. Deal Health Card. Hygiene scoring. Padded-close detection. Manager-grouped Rep Hygiene. Rep drill-down modal. 21 micro-versions. (v2.5.0–v2.5.21)</span>
+    <span class="tl-tag">Jul 18–19</span><span class="tl-desc">PTMP slide generator. Font polish. Multi-column sort modal with group-by dividers. Narrative fetch guard hotfix. RC2 tagged. (v2.6.0–v2.6.2-rc2)</span>
+    <span class="tl-tag">Jul 21</span><span class="tl-desc">Column Picker Custom PPT. Two-panel modal, drag-to-reorder, 12 columns, dynamic widths. Day 0 reset utility. Full doc sweep. RC1 tagged. (v2.6.3-rc1)</span>
+  </div>
+
+  <h2>Version Summary</h2>
+  <table>
+    <tr><th>Version</th><th>What shipped</th></tr>
+    <tr><td>v1.0.0 – v2.1.x</td><td>HAR ingestion · SQLite · rule-based scoring · first PPTX</td></tr>
+    <tr><td>v2.2.0 – v2.3.0</td><td>IBM Carbon UI · diff engine · permanent audit ledger · 34/34 tests</td></tr>
+    <tr><td>v2.4.0</td><td>Simulated IBM SSO · multi-tenant isolation · 9 users · login page</td></tr>
+    <tr><td>v2.5.0 – v2.5.21</td><td>Pipeline Intelligence Engine · Deal Health Card · Rep Hygiene coaching dashboard</td></tr>
+    <tr><td>v2.6.0 – v2.6.1</td><td>PTMP slide generator (Frank Attaie format) · font + alignment polish</td></tr>
+    <tr><td>v2.6.2 / rc2</td><td>Multi-column sort modal · group-by dividers · narrative hotfix · submission RC</td></tr>
+    <tr><td><strong>v2.6.3 / rc1</strong></td><td><strong>Column Picker Custom PPT · Day 0 reset utility · full doc sweep · final RC</strong></td></tr>
+  </table>
+
+  <h2>Team</h2>
+  <div class="two-col">
+    <div>
+      <p><strong>Jeffrey L. Trbovich</strong> — Technical Lead<br />Built entire application across 51 sessions (~100 hours) using IBM Bob. IBM ATL / US Public Sector.</p>
+      <p><strong>Dushyant K. Patel</strong> — Business Lead, Sales VP<br />US Public Market IBM. Business owner, primary user, domain expertise. Live pipeline data used throughout development.</p>
+    </div>
+    <div>
+      <p><strong>IBM Bob</strong> — Co-developer<br />IBM's watsonx-powered AI development assistant. Co-developer for all 51 sessions. Every line of production code and every architecture decision.</p>
+      <p><strong>John Albertson · Kim Salatino · Justin Griffin · Kerry Hovan · Spencer Korn · Jeff Underwood · Muhammad Safwat</strong> — Challenge team members and test users.</p>
+    </div>
+  </div>
+
+  <h2>Path to Production</h2>
+  <p>The <strong>CIO "Build with watsonx" Path to Production</strong> has been identified as the official deployment channel. A ServiceNow AI System Demand is being submitted with the architecture diagram. Upon Technical Review Board approval: IBM Cloud Code Engine deployment, CIO-managed watsonx.ai credentials, real IBM w3id SSO — available to any IBM Sales VP from any browser, no local installation required.</p>
+  <p>Approval as an official IBM AI System creates standing to request a <strong>Salesforce Connected App with OAuth 2.0</strong> — eliminating the HAR step entirely. The same application, unchanged, serves any IBM Sales VP with a Salesforce-backed pipeline. IBM Public Market is the immediate target; broader IBM Sales organization adoption is the medium-term opportunity.</p>
+
+  <div class="callout green" style="margin-top:12px">
+    <strong>Repository:</strong> github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast  ·  Tag: v2.6.3-rc1  ·  75+ commits · 51 sessions · ~100 hours · July 10–21, 2026<br />
+    <strong>Test harness:</strong> node scripts/test-baseline-ledger.js — 34/34 assertions, &lt;5 seconds  ·  <strong>Reset:</strong> node scripts/day0-reset.js
+  </div>
+
+  <div class="pg-footer">
+    <span>ISC Automated Sales Forecast · Jeffrey L. Trbovich · IBM Bob · IBM watsonx Challenge 2026 · Growth Enablers Track</span>
+    <span>Page 3 of 3</span>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:11px;color:#a8a8a8;padding:12px 0 4px;border-top:1px solid #e5e7eb;margin-top:8px">Made with IBM Bob</div>
+</body>
+</html>

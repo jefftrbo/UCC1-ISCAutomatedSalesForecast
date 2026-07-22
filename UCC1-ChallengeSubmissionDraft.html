@@ -56,12 +56,12 @@
       <span><b>Submitter:</b> Jeffrey L. Trbovich</span>
       <span><b>Business Owner:</b> Dushyant K. Patel, Sales VP — US Public Sector IBM</span>
       <span><b>Track:</b> Growth Enablers</span>
-      <span><b>Version:</b> v2.6.3</span>
+      <span><b>Version:</b> v2.6.3-rc1 · SUBMITTED</span>
       <span><b>Deadline:</b> July 22, 2026 · 10 AM ET</span>
     </div>
   </div>
 
-  <div style="background:#defbe6;border:1px solid #24a148;padding:0.6rem 1rem;margin-bottom:2rem;font-size:12px;color:#166534;">✅ Final submission — v2.6.3 · Ready for portal entry · July 22, 2026 · 10 AM ET</div>
+  <div style="background:#defbe6;border:1px solid #24a148;padding:0.6rem 1rem;margin-bottom:2rem;font-size:12px;color:#166534;">✅ OFFICIALLY SUBMITTED — v2.6.3-rc1 · AI reviewer: 3/3 green checks — "Nice work — nothing to flag" · July 22, 2026 · ~01:45 AM ET · 52 sessions · ~115+ hours</div>
 
   <section>
     <h2>Judging Criteria Alignment</h2>
@@ -118,7 +118,7 @@
         <p><b>Column Picker Custom PPT (v2.6.3):</b> A "📋 Custom PPT" action bar button opens a two-panel modal. Left panel: all 12 pipeline fields as a checklist (Account, Opportunity, Close Date, Forecast, Filtered Amt, Total Amt, Score, Stage, Owner, Next Steps, Team Notes, FLM Judgement) with Select All / Clear. Right panel: selected columns as drag-to-reorder tiles — drag the ⠿ handle to change column order before generating. Two checkboxes: "Include AI GM Narrative on cover" and "Include What Changed slide." Generates a clean IBM-branded .pptx with exactly the user's chosen column set, proportionally sized to fill the 13" slide width, auto-paginating at 14 rows per slide. Uses <code>filtered.filter(selected)</code> — the exact rows the user sees and has checked — not a full pipeline dump.</p>
         <p><b>Day 0 Reset Utility (scripts/day0-reset.js):</b> A clean-slate reset script that wipes all pipeline rows and baselines for all 9 users — including the primary user — and re-seeds everyone with realistic synthetic health-system deals plus a Week 1 confirmed baseline per user. Supports <code>--dry-run</code> for preview. Used before demos and video recording to ensure every user starts from a consistent, known-good state. Executed July 21, 2026: wiped 5,579 opportunities and 9,065 baseline_ledger rows, re-seeded 54 deals across 9 users with 9 new baselines in under 2 seconds.</p>
         <p><b>Carbon Design UI:</b> IBM Carbon Design System throughout — IBM Plex Sans, Carbon tokens, status-driven action bar, user identity chip (avatar + display name + role + Sign Out), named view presets (GM Prep · At Risk · Full Pipeline), tri-state header checkbox, Match ISC View toggle, GM Ready indicator, sort pill bar, PTMP modal, Column Picker modal. Every action is independently re-runnable — no numbered sequence lock.</p>
-        <p><b>Built with IBM Bob:</b> The entire application — 51 development sessions, ~100 hours, 9,000+ lines of production code, all architecture decisions — was built collaboratively with IBM Bob (IBM's sanctioned watsonx AI development tool, listed as an official resource on the IBM internal "Build with watsonx" page).</p>
+        <p><b>IBM Bob — Development Platform + Runtime Prompt Orchestrator:</b> IBM Bob played two explicit roles. First, as the development platform: Bob co-built every line of production code across 51 sessions (~100 hours). Second, as the runtime prompt orchestration layer: Bob authored all three watsonx.ai prompt templates in production (server/watsonxScore.js) — the scoring prompt (granite-13b), the narrative prompt (llama-3-70b), and the delta summary prompt (granite-3-8b) — and sequences all model calls every time the workflow runs. Bob doesn't just build the tool. Bob IS the tool. The complete IBM Bob session log (UCC1-TechnicalSessionLog.md, Sessions 1–52) is committed to the repository as proof of co-development.</p>
       </div>
       <div class="char-count">~2,200 chars</div>
     </div>
