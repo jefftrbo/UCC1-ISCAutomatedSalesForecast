@@ -1,8 +1,8 @@
-## Session 53 — Post-Submission Branch Strategy + ISC MCP Server Design — July 22, 2026
+## Session 53 — Post-Submission Branch Strategy + ISC MCP Server Architecture — July 22, 2026
 
 **Date:** 2026-07-22
 **Branch:** `develop` (cut this session off `main`)
-**Status:** ✅ Complete — branch strategy locked, MCP design documented
+**Status:** ✅ Complete — branch strategy locked, MCP design documented, cost analysis complete
 
 ---
 
@@ -86,10 +86,71 @@ isc-mcp-server/
 
 ---
 
-#### 4. Files Updated This Session
+#### 4. MCP Server Cost Analysis — Does This Require watsonx Orchestrate?
 
-- `UCC1-TechnicalSessionLog.md` — this entry (Session 53)
-- `UCC1-ISCMCPServerDesign.html` — full MCP server design specification
+**Jeff's question (verbatim):** *"does this specific MCP Server require watsonx orchestrate for the task or can this be its own server free from any additional IBM Cloud hosted watsonx software? I ask because every watsonx call will increase the monthly operating bill we get from IBM Cloud."*
+
+**Short answer: No watsonx Orchestrate required. Zero additional IBM Cloud cost.**
+
+---
+
+**What MCP Actually Is**
+
+MCP (Model Context Protocol) is a **protocol specification** — a standardized way for an AI model's host (IBM Bob) to call external tools. Under the hood it's JSON over HTTP or stdio. There's no IBM Cloud component involved. The `@modelcontextprotocol/sdk` package is a ~50KB npm library. That's it.
+
+```
+IBM Bob (chat)
+    │
+    └── calls MCP tool via JSON/HTTP
+              │
+              └── isc-mcp-server   ← plain Node.js, runs on localhost:3091
+                        │
+                        └── ISC/Salesforce API  ← only external call
+```
+
+**watsonx Orchestrate** is IBM's pre-built workflow automation product — a SaaS platform where you drag-and-drop AI agents and connect enterprise systems through a GUI. It has its own licensing, its own hosted runtime, and its own per-call billing. It is **not required** for MCP. MCP predates Orchestrate and runs independently of it.
+
+---
+
+**Cost Breakdown — Honest Numbers**
+
+| Component | Cost | Notes |
+|---|---|---|
+| `isc-mcp-server` Node.js process | **$0** | Runs on the same machine as the app (`localhost:3091`). No cloud. No hosting. |
+| `@modelcontextprotocol/sdk` npm package | **$0** | Open source, Apache 2.0 |
+| ISC/Salesforce API calls | **$0** (if IBM internal) | IBM internal Salesforce instance — no per-call charge. Same data we're getting free via HAR today. |
+| watsonx Orchestrate | **$0** — not needed | Don't touch it. |
+| watsonx.ai (scoring/narrative) | **Same as today** | The MCP server doesn't call watsonx.ai at all. Scoring/narrative stays in `server/watsonxScore.js` exactly as today. No change. |
+
+**The MCP server adds zero dollars to the IBM Cloud bill.** It's local infrastructure, same as the Express server at `localhost:3090`.
+
+---
+
+**The Only Scenario Where Cost Enters the Picture**
+
+If the app ever needs to be deployed for multiple IBM offices / remote users (not localhost — actual hosted deployment), a machine is needed to run the MCP server. That could be an IBM Cloud VSI or a container — which does cost something. For the current model (Duey's team, single server, internal use), it stays local and free.
+
+---
+
+**The Bigger Cost Question — Protecting the watsonx.ai Bill**
+
+The real monthly IBM Cloud exposure is `watsonxScore.js` — the three granite/llama model calls. Two things protect that bill today:
+
+1. **Scoring is user-triggered**, not automatic — no background polling
+2. **Mock mode** (`WATSONX_ENABLED=false` in `.env`) costs nothing and is the default
+
+If Duey's team grows to 20+ users all hitting Score simultaneously, that's when rate limiting or a daily batch cap becomes a v2.7.x concern. Not today's problem.
+
+---
+
+**Decision recorded:** The ISC MCP server is a standalone Node.js process — no watsonx Orchestrate, no additional IBM Cloud services, no new line items on the monthly bill.
+
+---
+
+#### 5. Files Updated This Session
+
+- `UCC1-TechnicalSessionLog.md` — this entry (Session 53) — full conversation captured
+- `UCC1-ISCMCPServerDesign.html` — full MCP server design specification (HTML artifact)
 
 ---
 
