@@ -1,3 +1,126 @@
+## Session 53 — Post-Submission Branch Strategy + ISC MCP Server Design — July 22, 2026
+
+**Date:** 2026-07-22
+**Branch:** `develop` (cut this session off `main`)
+**Status:** ✅ Complete — branch strategy locked, MCP design documented
+
+---
+
+### What Was Accomplished This Session
+
+#### 1. Branch Strategy — rc1 Stays Pristine
+
+Established the post-submission development model:
+
+- `v2.6.3-rc1` on `main` is frozen — the submitted artifact. If judges clone the repo, that's what they see. Never force-push, rebase, or re-tag it.
+- All new work happens on `develop`. When stable enough for a named release, merge → `main` → tag (same pattern used through v2.6.2).
+- Feature branches off `develop` as needed: `feature/v2.7.0-*`, `feature/v2.7.1-*`, etc.
+
+**Actions taken:**
+- Committed untracked files sitting in the working tree: `ucc1-honest-performance-evaluation.html`, `Honest Evaluation - 20Jul2026.pdf`, removed stale `.mhtml` — committed as `ece5fa1` on `main`.
+- `develop` branch already existed (from Sessions 46–49 PTMP work). Fast-forwarded it to `ece5fa1` via `git merge main --ff-only`.
+- Both `main` and `develop` are at `ece5fa1` and pushed to origin.
+
+```
+main     ● ece5fa1  (frozen submission baseline)
+               |
+         develop  ← all new sessions happen here
+```
+
+---
+
+#### 2. MCP Server Strategy — Three Questions Answered Honestly
+
+Jeff raised three questions that came out of the WXC AI reviewer experience. Full reasoning documented below.
+
+**Q1: Should we build an MCP server to replace HAR harvesting?**
+
+No. The HAR harvest exists because ISC has no public API — it's a Salesforce/CRM Analytics app behind IBM SSO. An MCP server cannot bypass SSO. It would still need the HAR file (same problem, new wrapper) or a headless browser with live SSO session injection (fragile, security nightmare). The current flow: open ISC → capture HAR → drop file → click Refresh Data. An MCP-wrapped version of the same flow would be: open ISC → capture HAR → tell Bob in chat → Bob calls MCP tool → same parse. You traded a button click for a chat prompt. **Technical gymnastics for technology's sake** — Jeff's exact phrase, and the correct diagnosis.
+
+**Q2 / Q3: If IBM grants ISC API access, is MCP the right architecture?**
+
+Yes — and it's worth designing now so we're ready when that access comes through. MCP is the correct abstraction when:
+- Multiple consumers need the same data source (app UI button, Bob chat, future mobile)
+- Auth complexity should live in one place (OAuth token exchange, service account, caching)
+- Field mapping should be versioned independently of the app
+
+The "Refresh Data" button survives unchanged. `POST /api/scrape` adds one env-var branch: if `ISC_MCP_ENABLED=true`, call MCP tool instead of spawning `load-from-har.js`. HAR path stays as fallback. Zero UX regression.
+
+The highest-value capability an ISC API unlocks is **write-back**: Tool 4 (`write_next_steps`) pushes AI-generated Next Steps back to Salesforce. Today the app reads ISC. With write access + MCP, the AI narrative becomes a Salesforce update, not just a report. That's the v3.0 thesis.
+
+---
+
+#### 3. ISC MCP Server — Design Specification
+
+Full design documented in `UCC1-ISCMCPServerDesign.html` (created this session). Key elements:
+
+**Four tools defined:**
+
+| Tool | Replaces | Description |
+|---|---|---|
+| `refresh_isc_pipeline` | `load-from-har.js` | Fetch all pipeline opps for a user via ISC/SF API, upsert to SQLite |
+| `get_opportunity_detail` | New | Single opp full record + related contacts + stage history |
+| `get_pipeline_delta` | Complements `diffEngine.js` | API-to-API diff vs. snapshot timestamp — more authoritative than local diff |
+| `write_next_steps` | New (write access required) | Push AI-generated Next Steps back to Salesforce record |
+
+**Auth design:** Two options sketched — OAuth delegation (preferred: app passes user's IBM ID + session token, MCP exchanges for ISC bearer token) and service account with user-context (Connected App pattern, common in IBM internal tooling). Tools 1–3 need read-only `api` scope. Tool 4 requires write scope.
+
+**Only real blocker:** ISC API access. Everything else is designed and waiting.
+
+**File structure when built:**
+```
+isc-mcp-server/
+  index.js              ← MCP server entry (registerTool calls)
+  tools/
+    refresh-pipeline.js
+    get-opportunity.js
+    get-delta.js
+    write-next-steps.js
+  lib/
+    salesforce-auth.js  ← OAuth token exchange + cache
+    salesforce-client.js
+    field-map.js        ← parseRecords() extracted from load-from-har.js
+  package.json
+  .env.example
+```
+
+---
+
+#### 4. Files Updated This Session
+
+- `UCC1-TechnicalSessionLog.md` — this entry (Session 53)
+- `UCC1-ISCMCPServerDesign.html` — full MCP server design specification
+
+---
+
+### Decisions Made
+
+| Decision | Rationale |
+|---|---|
+| `v2.6.3-rc1` on `main` stays frozen | Submission integrity — judges see what was submitted |
+| All new work on `develop` | Same branching model as v2.0–v2.6.2 era |
+| Don't build MCP for HAR harvest | Same underlying problem, zero UX improvement |
+| Design MCP now for ISC API path | Correct architecture; ready to build when API access arrives |
+| Write-back (Tool 4) is v3.0 thesis | Read-only → read-write is the biggest capability jump possible |
+
+---
+
+### Still Pending (Carry-Forward)
+
+| Priority | Action | Owner |
+|---|---|---|
+| 🟡 1 | Record 3-min pitch video | Jeff |
+| 🟡 2 | Create GitHub Release for v2.6.3-rc1 | Jeff |
+| 🟢 3 | UPMC demo — Client Zero story | Jeff |
+| 🔵 4 | ISC API access request — initiate conversation with Duey/IBM IT | Jeff + Duey |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
+
 ## Session 52 — WXC Submission Battle + 3 Green Checks — July 21–22, 2026
 
 **Date:** 2026-07-21 (started ~11 PM ET) → 2026-07-22 (completed ~01:45 AM ET)
