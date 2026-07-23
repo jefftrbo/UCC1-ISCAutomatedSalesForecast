@@ -1,3 +1,325 @@
+## Session 55 — TZ Deployment Prep + Feedback Button + Salesforce/ISC Mode Discovery — July 22, 2026
+
+**Date:** 2026-07-22 (evening — ~21:00–23:43 ET)
+**Branch:** `develop`
+**Status:** ✅ Logged and deferred — deliberate decision to resume fresh in the morning. No code written this session — design and discovery only.
+
+---
+
+### Why This Session Was Logged But Not Built
+
+Jeff made the right call at 23:43 ET: deploying to TechZone, wiring a Slack webhook, and building a feedback button all require active approval of tool calls. Doing that at midnight introduces unnecessary risk (wrong firewall rule, missed credential, misconfigured webhook). Everything is designed and ready. Resume fresh.
+
+---
+
+### What Was Discussed This Session
+
+---
+
+#### 1. TechZone MCP Reality Check — What Tools Actually Exist
+
+Found the TechZone MCP server config in the `bob-marketplace` workspace at `~/Desktop/bobbi/bob-marketplace/.bob/mcp.json`. This is a **remote streamable-HTTP MCP server** at `https://mcp.techzone.ibm.com/servers/c7442b81221647c3b36c75df4f2f88e8/mcp`. Requires a `TechZone-Token` header (personal API key from `techzone.ibm.com/my/profile → API Keys`).
+
+**Tools confirmed available (auto-approved in the config):**
+
+| TZ MCP Tool | What It Does |
+|---|---|
+| `documentation-mcp-techzone-search-content-docs` | Search TechZone documentation |
+| `request-mcp-techzone-get-request` | Get details of an existing reservation |
+| `request-mcp-search-environments` | Search available TZ environments/SKUs |
+| `platform-mcp-platform-get` | Get platform details |
+| `platform-mcp-platform-list` | List available platforms |
+| `collection-mcp-collection-get` | Get collection details |
+| `collection-mcp-collection-list` | List collections |
+
+**Tools NOT confirmed (not in auto-allow list):**
+- `provision_environment` / `create_reservation` — provisioning a new VSI
+- `extend_reservation` — programmatic renewal
+- `get_reservation_status` — expiry check
+
+**Impact on v3.0 auto-renewal watchdog:** The watchdog design (Session 54) is still correct and documented. Build status changes from "ready to implement" to "implement once TZ API capabilities are confirmed after first reservation." The renewal tools may exist under different names — we'll discover them when we use the MCP server in the morning.
+
+**The TechZone MCP config needs to be copied from bob-marketplace into this workspace's `.bob/mcp.json` (with Jeff's real API key) before the deployment session.**
+
+---
+
+#### 2. TechZone Deployment Session Plan — Ready to Execute
+
+Full sequence documented here so the morning session starts at Step 1 with no design time needed.
+
+**Pre-session prerequisite (Jeff does before opening Bob):**
+- Get TechZone API key: `https://techzone.ibm.com/my/profile` → API Keys section
+- Have WATSONX_API_KEY and WATSONX_PROJECT_ID from `.env` ready to copy
+
+**Step 1 — Wire TechZone MCP into this workspace**
+```
+Copy TZ MCP block from ~/Desktop/bobbi/bob-marketplace/.bob/mcp.json
+into UCC1-ISCAutomatedSalesForecast/.bob/mcp.json
+Replace "YOUR-TECHZONE-API-KEY-HERE" with real key
+Reload Bob MCP panel → confirm TZ server shows green
+```
+
+**Step 2 — Search + Reserve VSI via TZ MCP**
+```
+Use TZ MCP tool: request-mcp-search-environments
+  query: "Ubuntu 22.04 VSI"
+  → note the environment/SKU ID
+
+If provisioning tool exists: use it from Bob chat
+If not: reserve manually at techzone.ibm.com
+  → Catalog → Infrastructure → Virtual Server Instance
+  → Ubuntu 22.04, 4 vCPU / 8 GB RAM, 100 GB disk
+  → Note: reservation ID, public IP, SSH key
+```
+
+**Step 3 — SSH + deploy app**
+```bash
+ssh root@<techzone-ip>
+
+# Install Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+apt-get install -y nodejs git
+
+# Clone repo
+git clone https://github.com/jefftrbo/UCC1-ISCAutomatedSalesForecast
+cd UCC1-ISCAutomatedSalesForecast
+git checkout develop
+npm install
+
+# Copy .env (from local machine — scp or paste)
+# Must include: SESSION_SECRET, WATSONX_ENABLED, WATSONX_API_KEY,
+#               WATSONX_PROJECT_ID, WATSONX_URL, PORT=3090
+
+# Build pilot user roster
+nano scripts/test-users.csv   # add Duey + pilot users
+node scripts/init-users.js
+node scripts/day0-reset.js
+
+# Install PM2 for persistent process
+npm install -g pm2
+pm2 start server/index.js --name isc-forecast
+pm2 save
+pm2 startup   # follow the printed command to enable on boot
+
+# Open firewall
+ufw allow 3090/tcp
+ufw allow 22/tcp   # keep SSH open!
+ufw enable
+
+# Validate
+curl http://localhost:3090   # should redirect to /login
+```
+
+**Step 4 — Validate from Jeff's laptop**
+```
+open http://<techzone-ip>:3090
+Login as test user → Refresh Data → Score → PPT
+Confirm multi-user: log in as two different users simultaneously
+```
+
+**Estimated time:** 60–90 minutes if clean. 2 hours with troubleshooting buffer.
+
+---
+
+#### 3. Feedback Button — Design Complete, Ready to Build
+
+**Jeff's idea (verbatim):** *"wouldn't it be great to have a 'feedback' button for users to give us user feedback where you, I, and all pilot users to see what others are saying?"*
+
+**Scope for v3.0:** Feedback button in app footer → modal → `POST /api/feedback` → writes to `feedback.json` + optional Slack webhook notification.
+
+**UI — modal design:**
+```
+┌─────────────────────────────────────────────┐
+│ 📝 Send Feedback                        [×] │
+├─────────────────────────────────────────────┤
+│ Your name (optional):                       │
+│ [_______________________________________]   │
+│                                             │
+│ What's working? What's broken?              │
+│ What would make this better?                │
+│ ┌─────────────────────────────────────────┐ │
+│ │                                         │ │
+│ │  (textarea, 500 char max)               │ │
+│ │                                         │ │
+│ └─────────────────────────────────────────┘ │
+│                                    [Send]   │
+└─────────────────────────────────────────────┘
+```
+
+**Backend — `POST /api/feedback` (new endpoint in `server/index.js`):**
+```javascript
+app.post('/api/feedback', requireAuth, (req, res) => {
+  const { name, text } = req.body;
+  const entry = {
+    timestamp: new Date().toISOString(),
+    user_id:   req.session.user.ibm_id,
+    name:      name || 'Anonymous',
+    text:      text.slice(0, 500),
+  };
+  // Append to feedback.json
+  const logPath = path.join(__dirname, '..', 'feedback.json');
+  const log = fs.existsSync(logPath)
+    ? JSON.parse(fs.readFileSync(logPath, 'utf8')) : [];
+  log.push(entry);
+  fs.writeFileSync(logPath, JSON.stringify(log, null, 2));
+  // Optional: POST to Slack webhook
+  if (process.env.SLACK_FEEDBACK_WEBHOOK) postToSlack(entry);
+  res.json({ success: true });
+});
+```
+
+**New `.env` variable:** `SLACK_FEEDBACK_WEBHOOK=https://hooks.slack.com/services/...`
+
+**`feedback.json` is gitignored** — pilot user feedback is not committed to the repo.
+
+---
+
+#### 4. Slack Integration — Design Complete, Ready to Wire
+
+**Jeff's comment (verbatim):** *"Too bad we don't have a Slack interface where all of it comes back to me and you."*
+
+**Short answer: You can. Incoming Webhooks take 15 minutes.**
+
+**Option A — Feedback-only webhook (v3.0, build tomorrow):**
+- Slack workspace → Apps → Incoming Webhooks → new webhook → channel `#isc-forecast-feedback`
+- Copy URL → paste into `.env` as `SLACK_FEEDBACK_WEBHOOK`
+- Every "Send Feedback" click posts to the channel instantly
+- You, Bob, and pilot users all see it in real-time
+
+**Slack message format:**
+```
+📝 *New Feedback — ISC Automated Sales Forecast*
+*From:* dkpatel@us.ibm.com
+*Time:* 2026-07-24 09:17 ET
+
+"The Score button is great but takes ~45 seconds.
+Can we show a progress bar while it runs?"
+```
+
+**Option B — Full Slack bot with slash commands (v3.1, after pilot gate):**
+- `/forecast refresh` → triggers pipeline refresh
+- `/forecast score` → triggers watsonx scoring
+- Requires Slack app + OAuth bot token + new endpoint
+- Deferred until pilot proves the app is sticky — don't build infrastructure before traction
+
+---
+
+#### 5. Salesforce / ISC Data Harvester Mode — Major Discovery
+
+**Jeff's discovery (verbatim):** *"I found this on our CE Mode Hub... slug: salesforce-isc, name: 🔵 Salesforce / ISC Data Harvester... I'm wondering if you knew this existed when we were doing all of our screen scraping evaluations before settling on the cookie browser+HAR?"*
+
+**Honest answer: No. This mode was not known during Sessions 1–8. Here is the full post-mortem.**
+
+---
+
+**What the mode covers:**
+
+The `salesforce-isc` mode on the CE Mode Hub is an IBM Client Engineering Bob mode with three capability layers:
+
+| Layer | Capability |
+|---|---|
+| 1 — Browser automation | Playwright/Selenium, Salesforce Lightning, Shadow DOM via `shadowRoot.querySelector()`, virtual scroll, session-based auth |
+| 2 — Salesforce API | REST API, SOQL queries, Bulk API 2.0, OAuth 2.0 (Username-Password, JWT Bearer, Connected App) |
+| 3 — Data processing | XLS/CSV/JSON/Markdown output, row count reconciliation, normalization |
+
+**Retrospective — would it have changed the outcome?**
+
+| Session | What We Did | Mode Would Have Helped? |
+|---|---|---|
+| 1–2 | Built `scraper/scrape.js` — Playwright + `/wave/` intercept | ✅ Yes — better Shadow DOM selectors, faster SAQL discovery |
+| 3–4 | Hit IBM w3id passkey SSO wall — cannot be automated | ❌ No — SSO wall is a policy constraint, not a technique problem |
+| 5 | Built `scraper/fetch-from-api.js` — SAQL query + session cookies | ✅ Yes — the SAQL query in this file is literally in the mode's roleDefinition |
+| 6–7 | Cookie sessions expired, couldn't refresh reliably | ❌ No — session expiry is IBM policy, not solvable by technique |
+| 8+ | Pivoted to HAR — the only approach that works with IBM SSO | ✅ Mode documents HAR approach too |
+
+**The pivot to HAR was correct regardless.** The mode would have saved approximately 3–4 days (~35–50 hours) of re-discovering what the mode already knows — primarily the SAQL query structure and the cookie-based API approach. It would NOT have produced a different final architecture because IBM w3id is unsolvable by any browser automation technique.
+
+**The honest regret:** If this mode had been found in Session 1, we would have arrived at the HAR solution faster. The WXC deadline would have been hit with more time to spare. That's documented for the record.
+
+**The mode's own best practices line says it all:**
+> *"Always use the authenticated user's existing browser session — never store credentials in code"*
+
+That IS the HAR approach. The mode and our final solution agree.
+
+**What this changes going forward:**
+
+1. **Install `salesforce-isc` mode into this workspace now** — for all v4.0 `isc-mcp-server` work
+2. **When building `isc-mcp-server` (v4.0):** open session in `🔵 Salesforce / ISC Data Harvester` mode — SOQL queries, OAuth flows, and Shadow DOM patterns are pre-loaded
+3. **The SAQL query in `scraper/fetch-from-api.js`** is already the right query — the mode would have written it on Day 1
+
+**Install command (run before morning session):**
+```bash
+npx @ibm/bob-modes salesforce-isc
+# or install via Mode Hub UI → click "Install" on the card
+```
+
+---
+
+#### 6. Updated v3.0 Build Sequence — Morning Session Agenda
+
+**Everything is designed. Morning session is pure execution, no design time needed.**
+
+| Order | Task | Estimated Time | Notes |
+|---|---|---|---|
+| 1 | Wire TZ MCP into workspace + get API key | 10 min | Jeff gets key from TZ profile |
+| 2 | Search TZ environments via MCP + reserve VSI | 15 min | Manual reserve if MCP can't provision |
+| 3 | SSH + deploy app + PM2 + firewall | 60 min | Most of the session time |
+| 4 | Validate multi-user from Jeff's laptop | 15 min | Two browser tabs, two user logins |
+| 5 | Build feedback button + `POST /api/feedback` | 30 min | UI modal + backend endpoint |
+| 6 | Wire Slack webhook | 15 min | Jeff creates webhook in Slack first |
+| 7 | Smoke test end-to-end | 15 min | Submit feedback → see it in Slack |
+| **Total** | | **~2.5 hours** | With 30-min buffer for surprises |
+
+**Result:** A live URL Jeff can show Duey on Friday + real-time pilot feedback via Slack.
+
+---
+
+#### 7. Files Updated This Session
+
+- `UCC1-TechnicalSessionLog.md` — this entry (Session 55) — full conversation captured
+- No code written — design only, by deliberate decision
+
+---
+
+### Decisions Made
+
+| Decision | Rationale |
+|---|---|
+| Defer all building to morning | 23:43 ET — TZ deployment requires active approval, no midnight infrastructure changes |
+| TZ MCP config needs real API key before deployment session | Placeholder "YOUR-TECHZONE-API-KEY-HERE" in bob-marketplace config |
+| Feedback button is v3.0 scope | Low effort, high pilot value — 30 min build |
+| Slack webhook (Option A only) is v3.0 scope | 15 min, gives real-time pilot signal |
+| Full Slack bot (Option B) deferred to v3.1 | Don't build infrastructure before traction |
+| Install `salesforce-isc` mode before morning session | Needed for v4.0 ISC API work |
+| HAR approach was and remains correct for v3.0 | SSO wall is policy, not technique — mode discovery doesn't change this |
+
+---
+
+### Morning Session Pre-Checklist (Jeff does before opening Bob)
+
+- [ ] Get TechZone API key from `https://techzone.ibm.com/my/profile` → API Keys
+- [ ] Have WATSONX_API_KEY + WATSONX_PROJECT_ID from `.env` ready
+- [ ] Create Slack Incoming Webhook: workspace → Apps → Incoming Webhooks → `#isc-forecast-feedback`
+- [ ] Install `salesforce-isc` mode via Mode Hub or `npx @ibm/bob-modes salesforce-isc`
+- [ ] Get a good night's sleep
+
+### Still Pending (Full Carry-Forward)
+
+| Priority | Action | Owner |
+|---|---|---|
+| 🔴 1 | Morning: TZ VSI deployment + app live | Jeff + Bob |
+| 🔴 2 | Morning: Feedback button + Slack webhook | Jeff + Bob |
+| 🟡 3 | Friday: Review app with Duey + wxc team — offer pilot to ATL/TSL | Jeff |
+| 🟡 4 | Record 3-min pitch video | Jeff |
+| 🟡 5 | Create GitHub Release for v2.6.3-rc1 | Jeff |
+| 🔵 6 | ISC API access request — conversation with Duey/IBM IT | Jeff + Duey |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 54 — TechZone Pilot Strategy + v3.0 Versioning + TZ Auto-Renewal Design — July 22, 2026
 
 **Date:** 2026-07-22
