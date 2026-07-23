@@ -11,6 +11,101 @@
 
 ---
 
+## v3.0 — TechZone Pilot + Hosted Deployment + Auto-Renewal — Designed Session 54, July 22, 2026
+
+> **Status:** Design complete. Blocked on: (1) conversation with Duey to confirm pilot interest, (2) TechZone VSI reservation.
+> **Version rationale:** v3.0, not v2.7.x — this is an architectural and operational step-change. The app moves from Jeff's laptop to shared IBM infrastructure accessed by Duey's team without Jeff in the loop. Same logic as v1→v2 (single-user → multi-user sessions).
+
+### What v3.0 Is
+
+| Capability | Description |
+|---|---|
+| TechZone VSI deployment | App runs on IBM-controlled infrastructure, not Jeff's BYOD |
+| TechZone MCP integration | Bob provisions, queries, and renews TZ environments from chat |
+| Multi-user pilot infrastructure | Real IBM IDs, real pipeline data, real concurrent use |
+| TZ auto-renewal watchdog | Near-continuous uptime via programmatic reservation extension |
+| Per-user HAR upload (pulled forward from v2.7.1 backlog) | Required for multi-user deployment — each user uploads their own HAR |
+| "How to refresh your pipeline" 1-pager | Plain-English onboarding doc for non-technical pilot users |
+
+### Pilot Structure
+
+**Recommended shape:** VP + FLMs (Duey + 2-3 First Line Managers). Small enough to control, broad enough to test multi-user data isolation and team hierarchy use case. Add reps after week 1 if stable.
+
+**Day 0 setup sequence (Jeff runs this, ~30 min):**
+```
+1. Reserve TechZone VSI (Ubuntu 22.04, 4 vCPU / 8GB RAM)
+2. git clone repo, npm install, copy .env with WATSONX keys
+3. Build pilot user roster in scripts/test-users.csv (Duey + Duey's nominees)
+4. node scripts/init-users.js
+5. node scripts/day0-reset.js
+6. Confirm app at http://<techzone-ip>:3090
+7. Send Duey: URL + IBM ID + temp password + "click Refresh Data first"
+```
+
+**Phase gate signals (behavior, not sentiment):**
+- Duey uses the Monday PPT in an actual GM call → app replaced a real workflow
+- A rep asks "can I get access too?" unprompted → pull demand
+- Duey mentions it to Frank without prompting → organic advocacy, Phase 2 ticket
+- Someone asks "can we add [feature X]?" → invested enough to want it better
+
+### TechZone Auto-Renewal Watchdog
+
+**New file:** `server/tzRenewal.js`
+**New `.env` variables:** `TZ_RESERVATION_ID`, `TZ_RENEWAL_ENABLED`, `TZ_RENEW_BEFORE_DAYS`, `TZ_CHECK_INTERVAL_HRS`, `TZ_ALERT_WEBHOOK`
+
+**Logic (runs on app startup when `TZ_RENEWAL_ENABLED=true`, checks every 12 hours):**
+```
+Every 12 hours:
+  1. Call TZ MCP: get_reservation_status(TZ_RESERVATION_ID)
+     → { expiresAt, daysRemaining, extensible }
+
+  2. daysRemaining <= 3 AND extensible === true
+       → Call TZ MCP: extend_reservation(reservationId, days=7)
+       → Log + optional webhook alert
+
+  3. daysRemaining <= 1 AND extensible === false
+       → Alert: "TZ reservation expires in <24h. Manual action required."
+         (TechZone hard 30-day max — this is the failure mode)
+
+  4. Reservation not found
+       → Alert: "TZ reservation not found. App may go offline."
+```
+
+**Hard limit:** TechZone caps at 30 days per reservation. Watchdog maximizes uptime within that window. When the 30-day wall hits: either IBM intranet hosting is live (TZ retires gracefully) or create a new TZ reservation (~30 min downtime, update `TZ_RESERVATION_ID` in `.env`).
+
+**TechZone MCP tools used:**
+- `get_reservation_status` — check expiry + extensibility
+- `extend_reservation` — request 7-day extension
+- `list_reservations` — find reservation ID if unknown
+- `provision_environment` — new reservation if hard limit hit
+
+### Files That Change
+
+| File | Change |
+|---|---|
+| `server/tzRenewal.js` | NEW — watchdog background process |
+| `server/index.js` | Start `tzRenewal` on boot if `TZ_RENEWAL_ENABLED=true` |
+| `.env.example` | Add TZ variables |
+| `public/index.html` | Per-user HAR upload UI (pulled forward from v2.7.1) |
+| `server/index.js` | `POST /api/scrape` — accept file upload per-user, not shared path |
+| `scraper/load-from-har.js` | Accept HAR content as argument, not hardcoded path |
+| `docs/how-to-refresh-pipeline.md` | NEW — plain-English onboarding for pilot users |
+
+### v3.x Roadmap
+
+| Version | Thesis | Gate |
+|---|---|---|
+| v3.0 | TechZone hosted pilot — Duey's HCLS org | Duey uses Monday PPT in a real GM call |
+| v3.1 | Frank's Public Sector Market pilot | Frank's org uses it 4+ consecutive Mondays |
+| v3.2 | IBM intranet permanent hosting | IT approval + IBM security review |
+| v4.0 | ISC API + MCP write-back — HAR retires | IBM grants ISC API access |
+
+### ngrok Decision
+
+ngrok is explicitly ruled out for any pilot involving real IBM pipeline data. IBM data (even internal-use) must not transit non-IBM infrastructure. ngrok is acceptable only for Jeff + Bob local feature development on synthetic/seed data.
+
+---
+
 ## ✅ v2.6.3 — Column Picker PPT — SHIPPED July 21, 2026
 
 > Originally planned as v2.7.1 post-submission. Built and shipped same day (Session 50).

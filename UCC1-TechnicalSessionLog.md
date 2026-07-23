@@ -1,3 +1,293 @@
+## Session 54 — TechZone Pilot Strategy + v3.0 Versioning + TZ Auto-Renewal Design — July 22, 2026
+
+**Date:** 2026-07-22
+**Branch:** `develop`
+**Status:** ✅ Complete — v3.0 versioning decided, TZ pilot strategy designed, auto-renewal architecture documented
+
+---
+
+### What Was Accomplished This Session
+
+#### 1. Versioning Decision — Is TechZone Pilot v3.0?
+
+**Jeff's question (verbatim):** *"Since this is similar to our decision to go from single user to multi-user, is this a v3.0 since we're going down introducing the TZ MCP so I can pitch this to Duey for a pilot?"*
+
+**Answer: Yes. v3.0 is the right designation. Here's the reasoning:**
+
+Version numbers in this project have tracked genuine architectural step-changes, not just feature additions:
+
+| Version | Step-Change |
+|---|---|
+| v1.x | Single-user, local, HAR scraping, rule-based scores |
+| v2.x | Multi-user sessions, watsonx.ai scoring, PPT generation, Pipeline Intelligence Engine |
+| **v3.0** | **Multi-user hosted deployment + TechZone MCP integration + pilot program** |
+
+The jump from v2.x to v3.0 is justified by the same logic as v1→v2: it's not a feature — it's an **architectural and operational context change**. The app goes from running on Jeff's laptop to running on shared infrastructure that Duey's team accesses without Jeff being in the loop. That's a different class of software.
+
+**v3.0 scope (what makes it v3.0, not v2.7.x):**
+
+| Capability | Description |
+|---|---|
+| TechZone VSI deployment | App runs on IBM-controlled infrastructure, not Jeff's BYOD |
+| TechZone MCP integration | Bob can provision, query, and renew TZ environments from chat |
+| Multi-user pilot infrastructure | Real IBM IDs, real pipeline data, real concurrent use |
+| TZ auto-renewal process | Near-continuous uptime via programmatic reservation extension |
+| Per-user HAR upload (v2.7.1, pulled forward) | Required for multi-user deployment — each user uploads their own HAR |
+
+**v3.x roadmap beyond v3.0:**
+
+| Version | Thesis |
+|---|---|
+| v3.0 | TechZone hosted pilot — Duey's HCLS org |
+| v3.1 | Frank's Public Sector Market pilot (if v3.0 shows traction) |
+| v3.2 | IBM intranet permanent hosting (if Frank's pilot shows traction) |
+| v4.0 | ISC API + MCP write-back (if IBM grants API access) — replaces HAR entirely |
+
+---
+
+#### 2. TechZone as the Right Platform — Jeff's Context
+
+Jeff was part of the team that created TechZone when it was DTE (Digital Technical Engagement) from 2017–2021. The platform was built to host Cloud Pak for Data, Integration, MCM, Apps, and new SaaS offerings — a "try before you buy" environment with scripted demos demonstrating product capabilities to IBM, Partner, and customer audiences.
+
+Key insight from that experience: **TechZone was never meant to be production hosting.** It was always a controlled, time-limited environment to prove viability on the way to a real hosting decision. That's exactly the right use case here.
+
+TechZone today is significantly better than DTE was in 2017 — VSI reservation takes ~10 minutes through the catalog, and the TechZone MCP server means Bob can provision it directly from chat.
+
+---
+
+#### 3. ngrok Is Not the Answer for the Pilot
+
+**Jeff's concern (verbatim):** *"I love the ngrok tunnel running on my laptop, however I'm concerned that while it's supposed to be secure, it opens up all of my personal as well as my IBM information as this is my BYOD that I've registered since 2012 when IBM instituted a BYOD policy. Tell me that I shouldn't worry about it because ngrok is bullet-proof."*
+
+**Honest answer: Be worried. Not paranoid, but worried.**
+
+```
+Internet user
+    │
+    ▼
+ngrok.com cloud relay (their servers, US-based)
+    │   ← ALL traffic passes through here
+    ▼
+ngrok agent on Jeff's BYOD MacBook
+    │
+    ▼
+localhost:3090 (the app)
+```
+
+| Risk | Severity | Why |
+|---|---|---|
+| ngrok relay sees all HTTP traffic | 🟡 Medium | Session cookies, IBM IDs, opportunity data — all transit ngrok's infrastructure |
+| IBM BYOD policy violation | 🔴 High | IBM data (even internal-use) should not route through third-party relay. ISC pipeline data has revenue sensitivity. |
+| Personal machine exposure | 🟡 Medium | ngrok only exposes port 3090 — not the filesystem or other ports. Personal MacBook is not compromised. But IBM data leaving IBM infrastructure is the real risk. |
+| ngrok free tier logging | 🟡 Medium | Request metadata logged on ngrok.com servers |
+
+**Decision recorded:** ngrok is fine for Jeff + Bob local feature development. The moment a second IBM ID with real pipeline data touches it, move to TechZone or IBM Cloud VSI. No exceptions.
+
+---
+
+#### 4. Controlled Pilot Structure — Design
+
+**Three pilot shapes — Duey's call:**
+
+| Pilot Shape | Users | What You Learn |
+|---|---|---|
+| VP-only | Duey alone (+ EA) | Does core workflow work for a real VP in a real week? |
+| VP + FLMs | Duey + 2-3 First Line Managers | Multi-user isolation, team hierarchy use case |
+| VP + FLMs + reps | Duey + FLMs + 3-5 reps | Full org slice — most signal, most coordination overhead |
+
+**Recommendation:** Start with VP + FLMs. Small enough to control, big enough to test multi-user. If it works for one week, add reps.
+
+**Day 0 setup sequence:**
+```
+1. Reserve TechZone VSI (Ubuntu 22.04, 4 vCPU / 8GB RAM)
+2. git clone repo, npm install, copy .env with WATSONX keys
+3. Build real pilot user roster in scripts/test-users.csv
+4. node scripts/init-users.js         ← creates user accounts
+5. node scripts/day0-reset.js         ← seeds clean pipeline state
+6. Confirm app at http://<techzone-ip>:3090
+7. Send Duey: URL + IBM ID + temp password + "click Refresh Data first"
+```
+
+**Pre-pilot deliverable (1 session with Bob):** "How to refresh your pipeline" — a one-page plain-English doc with screenshots covering the HAR capture workflow. Every pilot user needs this before Day 1.
+
+**Phase gate signals — don't advance to Frank's market based on "people liked it":**
+
+| Signal | What It Means |
+|---|---|
+| Duey uses the Monday PPT in an actual GM call | App replaced a real workflow |
+| A rep asks "can I get access too?" unprompted | Pull demand — the best kind |
+| Duey mentions it to Frank without prompting | Organic advocacy — Phase 2 ticket |
+| Someone asks "can we add [feature X]?" | Invested enough to want it better |
+
+---
+
+#### 5. TechZone Auto-Renewal — Architecture Design
+
+**Jeff's idea (verbatim):** *"imagine if once we know how long our TZ environment lease is, you build an auto-renewal process in our MCP client calling the TZ MCP so that we have near continuous up time as a fall-back plan IF we cannot get this on the IBM intranet"*
+
+**This is buildable. Here's the design:**
+
+---
+
+**How TechZone Reservations Work**
+
+TechZone reservations have:
+- A **hard expiry** (typically 2 days default, extendable to 30 days max per reservation)
+- An **extension API** — the TechZone MCP server exposes reservation management as tools
+- A **renewal window** — extensions must be requested before expiry, not after
+
+The auto-renewal process exploits the extension API to keep the reservation alive programmatically, requesting extensions before the current one expires.
+
+---
+
+**Auto-Renewal Architecture**
+
+```
+isc-mcp-server/
+  lib/
+    tz-renewal.js     ← NEW — auto-renewal watchdog process
+
+Flow:
+─────────────────────────────────────────────────────────
+[On app startup]
+  tzRenewal.start({
+    reservationId:  process.env.TZ_RESERVATION_ID,
+    renewBeforeDays: 3,        ← renew when 3 days remain
+    checkIntervalHrs: 12,      ← check twice daily
+  })
+
+[Every 12 hours]
+  1. Call TZ MCP tool: get_reservation_status(reservationId)
+     → returns { expiresAt, daysRemaining, extensible }
+
+  2. if daysRemaining <= 3 AND extensible === true:
+       Call TZ MCP tool: extend_reservation(reservationId, days=7)
+       Log: "TZ reservation extended. New expiry: {date}"
+       Alert: POST to Slack/Teams webhook (optional)
+
+  3. if daysRemaining <= 1 AND extensible === false:
+       Alert: "⚠️ TZ reservation expires in <24h. Manual action required."
+       (TechZone has a hard 30-day max — this is the failure mode)
+
+  4. if expiresAt is null or reservationId not found:
+       Alert: "⚠️ TZ reservation not found. App may go offline."
+```
+
+---
+
+**The Hard Limit — TechZone's 30-Day Max**
+
+TechZone has a hard maximum of 30 days per reservation. The auto-renewal watchdog handles everything up to that wall. Beyond 30 days, one of two things happens:
+
+| Scenario | Response |
+|---|---|
+| IBM intranet hosting is approved | TZ reservation expires gracefully — app moves to permanent hosting |
+| IBM intranet not yet approved | Create a new TZ reservation, re-deploy, update `TZ_RESERVATION_ID` in `.env`. ~30 min downtime. |
+
+The auto-renewal process maximizes uptime within the 30-day window. It doesn't solve the 30-day hard limit — nothing can. But it means you're never caught off-guard by a silent expiry.
+
+---
+
+**TechZone MCP Tools Required**
+
+The TechZone MCP server (already available in Bob) exposes these tools that the renewal process needs:
+
+| TZ MCP Tool | Used for |
+|---|---|
+| `get_reservation_status` | Check expiry date + extensibility flag |
+| `extend_reservation` | Request a 7-day extension |
+| `list_reservations` | Find reservation ID if unknown |
+| `provision_environment` | (New reservation if hard limit hit) |
+
+---
+
+**New `.env` Variables for v3.0**
+
+```bash
+# TechZone
+TZ_RESERVATION_ID=...          # assigned when VSI is provisioned
+TZ_RENEWAL_ENABLED=true        # set false to disable watchdog
+TZ_RENEW_BEFORE_DAYS=3         # renew when N days remain
+TZ_CHECK_INTERVAL_HRS=12       # how often to check
+TZ_ALERT_WEBHOOK=...           # optional Slack/Teams webhook URL for alerts
+```
+
+---
+
+**New File: `server/tzRenewal.js`**
+
+Runs as a background process started by `server/index.js` on boot when `TZ_RENEWAL_ENABLED=true`. Completely independent of the app's request handling — doesn't affect any existing endpoints or user experience.
+
+---
+
+#### 6. Phase Roadmap — Full Picture
+
+```
+NOW (v2.6.3 — submitted, frozen on main)
+    │
+    ├── Sessions 53-54: Design work — MCP architecture, TZ pilot strategy
+    │
+    ▼
+v3.0 — TechZone Pilot (Duey's HCLS org)
+    │   TZ VSI deployment + TZ MCP integration + per-user HAR upload (v2.7.1 pulled forward)
+    │   + TZ auto-renewal watchdog + "How to refresh" onboarding doc
+    │   Gate: Duey uses Monday PPT in a real GM call
+    │
+    ▼
+v3.1 — Frank's Public Sector Market Pilot (if v3.0 gate passes)
+    │   Broader user base, more sales VPs, more reps
+    │   Gate: Frank's org uses it for 4+ consecutive Mondays
+    │
+    ▼
+v3.2 — IBM Intranet Permanent Hosting (if v3.1 gate passes)
+    │   IT-provisioned server, IBM security review, real user provisioning
+    │   TZ auto-renewal retires — no longer needed
+    │
+    ▼
+v4.0 — ISC API + MCP Write-Back (if IBM grants API access)
+        HAR workflow retires. App becomes read-write Salesforce layer.
+        AI-generated Next Steps written back to ISC records.
+```
+
+---
+
+#### 7. Files Updated This Session
+
+- `UCC1-TechnicalSessionLog.md` — this entry (Session 54) — full conversation captured
+- `UCC1-PostSubmissionBacklog.md` — v3.0 section added with full pilot + auto-renewal design
+
+---
+
+### Decisions Made
+
+| Decision | Rationale |
+|---|---|
+| TechZone pilot = v3.0 | Architectural/operational step-change, same logic as v1→v2 |
+| ngrok not used for pilot | IBM data must not transit non-IBM infrastructure |
+| Start with VP + FLMs | Controlled enough to debug, broad enough to test multi-user |
+| Auto-renewal watchdog via TZ MCP | Near-continuous uptime within 30-day TZ hard limit |
+| Per-user HAR upload pulled forward to v3.0 | Required for any multi-user deployment |
+| Phase gates based on behavior, not sentiment | "Duey used it in a GM call" beats "people liked it" |
+
+---
+
+### Still Pending (Carry-Forward)
+
+| Priority | Action | Owner |
+|---|---|---|
+| 🟡 1 | Record 3-min pitch video | Jeff |
+| 🟡 2 | Create GitHub Release for v2.6.3-rc1 | Jeff |
+| 🟢 3 | Have pilot conversation with Duey — "Want to run 2 weeks with your FLMs?" | Jeff |
+| 🔵 4 | ISC API access request — initiate conversation with Duey/IBM IT | Jeff + Duey |
+| 🔵 5 | Reserve TechZone VSI + deploy app (next Bob session) | Jeff + Bob |
+| 🔵 6 | Build "How to refresh your pipeline" 1-pager (next Bob session) | Bob + Jeff |
+
+### How to Resume
+
+Tell Bob: **"Read UCC1-TechnicalSessionLog.md and pick up where we left off."**
+
+---
+
 ## Session 53 — Post-Submission Branch Strategy + ISC MCP Server Architecture — July 22, 2026
 
 **Date:** 2026-07-22
